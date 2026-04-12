@@ -32,8 +32,9 @@ object McpToolsSection {
         toggle.addEventListener("click", {
             val visible = list.style.display != "none"
             list.style.display = if (visible) "none" else "block"
-            toggle.textContent = if (visible) "▶ Tools ($toolCount)" else "▼ Tools ($toolCount)"
-            if (!visible && list.children.length == 0) loadTools(serverId, list)
+            val count = if (list.children.length > 0) list.children.length else toolCount
+            toggle.textContent = if (visible) "▶ Tools ($count)" else "▼ Tools ($count)"
+            if (!visible && list.children.length == 0) loadTools(serverId, list, toggle)
         })
         wrapper.appendChild(toggle)
         wrapper.appendChild(list)
@@ -47,7 +48,7 @@ object McpToolsSection {
         return btn
     }
 
-    private fun loadTools(serverId: String, container: HTMLElement) {
+    private fun loadTools(serverId: String, container: HTMLElement, toggle: HTMLElement) {
         currentServerId = serverId
         container.innerHTML = "<div style='font-size:10px;opacity:0.4;'>Loading tools...</div>"
         scope.launch {
@@ -57,6 +58,7 @@ object McpToolsSection {
                 if (resp.status == HttpStatusCode.OK) {
                     val tools = json.decodeFromString<List<McpToolInfoDto>>(resp.bodyAsText())
                     renderTools(container, tools, serverId)
+                    toggle.textContent = "▼ Tools (${tools.size})"
                 } else {
                     container.innerHTML = "<div style='font-size:10px;color:var(--danger);'>Server not running</div>"
                 }

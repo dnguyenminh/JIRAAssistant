@@ -42,17 +42,21 @@ class HttpMcpProtocolClient(
 
     override suspend fun sendRequest(method: String, params: JsonElement?): JsonElement {
         val id = reqId.incrementAndGet()
-        val rpc = JsonRpcRequest(id = id, method = method, params = params)
-        val bodyStr = json.encodeToString(rpc)
-        logger.debug("[{}] → {} id={}", serverId, method, id)
+        val bodyStr = buildRequestBody(id, method, params)
+        logger.info("[{}] → {} id={} body={}", serverId, method, id, bodyStr.take(500))
         val response = doPost(bodyStr)
         response.headers["Mcp-Session-Id"]?.let { sessionId = it }
+        val contentType = response.headers["Content-Type"] ?: "unknown"
+        logger.info("[{}] ← {} status={} contentType={}", serverId, method, response.status.value, contentType)
         if (!response.status.isSuccess()) {
             val err = response.bodyAsText()
+            logger.error("[{}] HTTP error {}: {}", serverId, response.status.value, err.take(500))
             throw McpError(McpError.INTERNAL_ERROR, "HTTP ${response.status.value}: ${err.take(200)}")
         }
         val respBody = response.bodyAsText()
+        logger.info("[{}] raw response ({} chars): {}", serverId, respBody.length, respBody.take(300))
         val jsonBody = extractJsonFromResponse(respBody)
+        logger.info("[{}] extracted JSON: {}", serverId, jsonBody.take(300))
         val rpcResp = json.decodeFromString<JsonRpcResponse>(jsonBody)
         val rpcErr = rpcResp.error
         if (rpcErr != null) throw McpError(rpcErr.code, rpcErr.message, rpcErr.data)
@@ -60,8 +64,8 @@ class HttpMcpProtocolClient(
     }
 
     override suspend fun sendNotification(method: String, params: JsonElement?) {
-        val rpc = JsonRpcRequest(method = method, params = params)
-        try { doPost(json.encodeToString(rpc)) } catch (e: Exception) {
+        val bodyStr = buildNotificationBody(method, params)
+        try { doPost(bodyStr) } catch (e: Exception) {
             logger.debug("[{}] notification {} failed: {}", serverId, method, e.message)
         }
     }
@@ -83,13 +87,13 @@ class HttpMcpProtocolClient(
     override fun close() { logger.debug("[{}] HTTP MCP client closed", serverId) }
 
     private suspend fun doPost(body: String): HttpResponse {
+        logger.info("[{}] POST body: {}", serverId, body.take(500))
         return httpClient.post(serverUrl) {
-            contentType(ContentType.Application.Json)
             header("Accept", "application/json, text/event-stream")
             for ((k, v) in authHeaders) header(k, v)
             val sid = sessionId
             if (sid != null) header("Mcp-Session-Id", sid)
-            setBody(body)
+            setBody(io.ktor.http.content.TextContent(body, ContentType.Application.Json))
         }
     }
 
@@ -139,6 +143,25 @@ class HttpMcpProtocolClient(
         if (dataLines.isNotEmpty()) return dataLines.joinToString("")
         // Fallback: return as-is
         return trimmed
+    }
+
+    /** Build JSON-RPC request body, omitting "params" when null. */
+    private fun buildRequestBody(id: Int, method: String, params: JsonElement?): String {
+        return buildJsonObject {
+            put("jsonrpc", "2.0")
+            put("id", id)
+            put("method", method)
+            if (params != null) put("params", params)
+        }.toString()
+    }
+
+    /** Build JSON-RPC notification body (no id), omitting "params" when null. */
+    private fun buildNotificationBody(method: String, params: JsonElement?): String {
+        return buildJsonObject {
+            put("jsonrpc", "2.0")
+            put("method", method)
+            if (params != null) put("params", params)
+        }.toString()
     }
 
     companion object {
