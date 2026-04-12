@@ -1,0 +1,70 @@
+/* User Management Page — Obsidian Kinetic page-specific styles */
+/* Supplements master_style.css for UserManagementPage.kt */
+
+/* User row in directory table */
+.um-user-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+.um-user-row:hover { background: rgba(255, 255, 255, 0.03); }
+.um-user-row.selected { background: rgba(45, 254, 207, 0.06); border: 1px solid rgba(45, 254, 207, 0.15); }
+
+/* User avatar circle */
+.um-avatar {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: rgba(51, 134, 255, 0.15);
+    border: 2px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 600; color: var(--accent);
+    flex-shrink: 0;
+}
+
+/* Role select dropdown */
+.um-role-select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px 12px;
+    border-radius: 8px;
+    color: #fff;
+    font-family: 'Be Vietnam Pro', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+}
+.um-role-select option { background: #1a1b2e; color: #fff; }
+
+/* Permission toggle card */
+.um-toggle-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Toggle switch */
+.um-toggle-switch { position: relative; width: 44px; height: 24px; cursor: pointer; }
+.um-toggle-track {
+    width: 44px; height: 24px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    transition: 0.3s;
+    position: absolute; top: 0; left: 0;
+}
+.um-toggle-track.active { background: rgba(45, 254, 207, 0.3); }
+.um-toggle-thumb {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    position: absolute; top: 3px; left: 3px;
+    transition: 0.3s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+.um-toggle-thumb.active { left: 23px; background: var(--primary); }

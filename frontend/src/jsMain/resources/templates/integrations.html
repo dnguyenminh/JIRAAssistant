@@ -1,0 +1,267 @@
+<!-- ============================================================
+     INTEGRATIONS PAGE — HTML Template
+     Obsidian Kinetic Design System (Luminous V3)
+     ============================================================ -->
+
+<header style="margin-bottom: 40px;">
+    <h1 class="page-title">Integrations</h1>
+    <p style="opacity: 0.5; font-size: 13px; letter-spacing: 1px;">AI provider management, failover priority, and connection diagnostics.</p>
+</header>
+
+<!-- Error Banner (hidden by default) -->
+<div id="integrations-error" class="glass-card" style="display:none; padding:24px; text-align:center; border-left:4px solid var(--danger); margin-bottom:24px;">
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:20px;">⚠️</span>
+        <span id="integrations-error-msg" style="font-size:13px;color:var(--danger);">Failed to load providers.</span>
+    </div>
+    <button class="btn-vibrant" id="integrations-retry-btn" style="padding:8px 20px;font-size:11px;">RETRY</button>
+</div>
+
+<div id="integ-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(380px, 1fr)); gap:24px;">
+    <!-- Provider cards rendered dynamically by IntegrationsPage.kt -->
+</div>
+
+<!-- ── AI Provider Config Modal (existing) ──────────────────── -->
+<div id="integ-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); z-index:2000; align-items:center; justify-content:center;">
+    <div id="integ-modal-content" class="glass-card" style="max-width:520px; width:90%; max-height:80vh; overflow-y:auto; position:relative; padding:40px;"></div>
+</div>
+
+<!-- ── MCP Servers Section ──────────────────────────────────── -->
+<section style="margin-top:48px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+        <div>
+            <h2 style="font-size:18px; font-weight:700; letter-spacing:1.5px; margin:0;">MCP Servers</h2>
+            <p style="opacity:0.4; font-size:11px; letter-spacing:1px; margin-top:4px;">Model Context Protocol — extend AI with external tools</p>
+        </div>
+        <div style="display:flex; gap:8px;">
+            <button class="btn-vibrant" id="btn-add-mcp" style="padding:8px 16px; font-size:11px;">➕ Add MCP Server</button>
+            <button class="chat-action-btn atlassian-preset-btn" id="btn-atlassian-rovo" style="font-size:11px;" title="Add Atlassian Rovo MCP Server">
+                <span style="font-size:13px;">🔷</span> Atlassian Rovo
+            </button>
+            <button class="chat-action-btn" id="btn-import-mcp" style="font-size:11px;" title="Import mcp.json">📥 Import</button>
+            <button class="chat-action-btn" id="btn-export-mcp" style="font-size:11px;" title="Export mcp.json">📤 Export</button>
+        </div>
+    </div>
+    <div id="mcp-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:20px;">
+        <!-- MCP server cards rendered dynamically -->
+    </div>
+    <div id="mcp-empty" style="display:none; text-align:center; padding:40px; opacity:0.4;">
+        <div style="font-size:32px; margin-bottom:12px;">🔧</div>
+        <div style="font-size:13px;">No MCP servers registered. Click "Add MCP Server" to get started.</div>
+    </div>
+</section>
+
+<!-- ── MCP Config Modal ─────────────────────────────────────── -->
+<div id="mcp-modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); z-index:2000; align-items:center; justify-content:center;">
+    <div id="mcp-modal-content" class="glass-card" style="max-width:560px; width:90%; max-height:80vh; overflow-y:auto; position:relative; padding:40px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+            <div style="font-size:16px; font-weight:600;" id="mcp-modal-title">Add MCP Server</div>
+            <button id="mcp-modal-close" style="background:none; border:none; color:var(--text-sub); font-size:20px; cursor:pointer;">✕</button>
+        </div>
+        <!-- Toggle: Form / JSON -->
+        <div style="display:flex; gap:8px; margin-bottom:20px;">
+            <button id="mcp-mode-form" class="chat-action-btn" style="font-size:10px;">Form</button>
+            <button id="mcp-mode-json" class="chat-action-btn" style="font-size:10px;">JSON</button>
+        </div>
+        <!-- Form Mode -->
+        <div id="mcp-form-mode">
+            <div class="settings-field" style="margin-bottom:16px;">
+                <label class="field-label">SERVER NAME</label>
+                <input type="text" class="field-input" id="mcp-name" placeholder="e.g. aws-docs">
+            </div>
+            <div class="settings-field" style="margin-bottom:16px;">
+                <label class="field-label">TYPE</label>
+                <select class="field-input" id="mcp-type" style="padding:10px 14px;cursor:pointer;">
+                    <option value="stdio" selected>stdio (local process)</option>
+                    <option value="sse">sse (Server-Sent Events)</option>
+                    <option value="streamable-http">streamable-http</option>
+                </select>
+            </div>
+            <div class="settings-field" style="margin-bottom:16px;" id="mcp-command-field">
+                <label class="field-label">COMMAND (for stdio)</label>
+                <input type="text" class="field-input" id="mcp-command" placeholder="e.g. uvx, npx, node">
+            </div>
+            <div class="settings-field" style="margin-bottom:16px;display:none;" id="mcp-url-field">
+                <label class="field-label">URL (for sse/http)</label>
+                <input type="text" class="field-input" id="mcp-url" placeholder="e.g. http://localhost:3001/sse">
+            </div>
+            <div class="settings-field" style="margin-bottom:16px;">
+                <label class="field-label">ARGS (comma-separated)</label>
+                <input type="text" class="field-input" id="mcp-args" placeholder="e.g. package@latest">
+            </div>
+            <div class="settings-field" style="margin-bottom:16px;">
+                <label class="field-label">ENV VARS (key=value, one per line)</label>
+                <textarea class="field-input" id="mcp-env" rows="3" placeholder="KEY=value"></textarea>
+            </div>
+            <div class="settings-field" style="margin-bottom:16px;">
+                <label class="field-label">AUTO APPROVE TOOLS (comma-separated)</label>
+                <input type="text" class="field-input" id="mcp-auto-approve" placeholder="tool1, tool2">
+            </div>
+        </div>
+        <!-- JSON Mode (hidden by default) -->
+        <div id="mcp-json-mode" style="display:none;">
+            <textarea class="field-input" id="mcp-json-editor" rows="12" style="font-family:'JetBrains Mono',monospace; font-size:12px;" placeholder='{"command":"uvx","args":[]}'></textarea>
+        </div>
+        <!-- Actions -->
+        <div style="display:flex; gap:8px; margin-top:20px;">
+            <button class="btn-vibrant" id="btn-mcp-save" style="flex:1; padding:14px; font-size:12px;">SAVE</button>
+            <button class="chat-action-btn" id="btn-mcp-test" style="padding:14px 20px; font-size:12px;">TEST</button>
+        </div>
+        <div id="mcp-modal-status" style="display:none; margin-top:12px; font-size:12px; text-align:center; padding:8px; border-radius:8px;"></div>
+    </div>
+</div>
+
+<!-- ── Jira Config Modal ────────────────────────────────────── -->
+<div id="jira-config-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); z-index:2000; align-items:center; justify-content:center;">
+    <div id="jira-modal-content" class="glass-card" style="max-width:520px; width:90%; max-height:80vh; overflow-y:auto; position:relative; padding:40px;">
+
+        <!-- Modal Header -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:32px;">
+            <div>
+                <div style="font-size:18px; font-weight:600;">Jira Cloud Services</div>
+                <div style="font-size:11px; opacity:0.4; letter-spacing:1px; margin-top:4px;">Connection Configuration</div>
+            </div>
+            <button id="jira-modal-close" style="background:none; border:none; color:var(--text-sub); font-size:20px; cursor:pointer; padding:8px;" aria-label="Close Jira config modal">✕</button>
+        </div>
+
+        <!-- Config Fields -->
+        <div style="display:flex; flex-direction:column; gap:20px;">
+
+            <!-- Jira Domain URL -->
+            <div class="settings-field">
+                <label class="field-label" for="jira-domain">JIRA DOMAIN URL</label>
+                <input type="text"
+                       class="field-input integ-config-input"
+                       id="jira-domain"
+                       placeholder="https://yourorg.atlassian.net"
+                       autocomplete="url">
+            </div>
+
+            <!-- Email / Service Account -->
+            <div class="settings-field">
+                <label class="field-label" for="jira-email">EMAIL / SERVICE ACCOUNT</label>
+                <input type="email"
+                       class="field-input integ-config-input"
+                       id="jira-email"
+                       placeholder="user@example.com"
+                       autocomplete="email">
+            </div>
+
+            <!-- API Token -->
+            <div class="settings-field">
+                <label class="field-label" for="jira-api-token">API TOKEN</label>
+                <div style="position: relative;">
+                    <input type="password"
+                           class="field-input integ-config-input masked"
+                           id="jira-api-token"
+                           placeholder="Your Jira API token"
+                           autocomplete="off">
+                    <button type="button"
+                            id="jira-toggle-token"
+                            style="position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-sub); cursor:pointer; font-size:16px; padding:4px;"
+                            aria-label="Toggle API token visibility">👁</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SAVE & TEST Button -->
+        <button class="btn-vibrant" id="btn-jira-save-test" style="width:100%; padding:16px; font-size:13px; letter-spacing:1.5px; margin-top:24px; text-align:center;">
+            SAVE &amp; TEST
+        </button>
+
+        <!-- Progress Bar (hidden by default) -->
+        <div id="jira-config-progress" style="display:none; margin-top:12px;">
+            <div class="neural-loader" style="height:3px;">
+                <div class="neural-progress" id="jira-config-progress-bar" style="width:0%;"></div>
+            </div>
+        </div>
+
+        <!-- Status Indicator (hidden by default) -->
+        <div id="jira-config-status" style="display:none; margin-top:12px; font-size:12px; letter-spacing:1px; text-align:center; padding:10px 16px; border-radius:10px;"></div>
+
+    </div>
+</div>
+
+<!-- ── Atlassian Rovo MCP Config Modal ──────────────────────── -->
+<div id="atlassian-rovo-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); z-index:2000; align-items:center; justify-content:center;">
+    <div id="atlassian-rovo-modal-content" class="glass-card" style="max-width:520px; width:90%; max-height:80vh; overflow-y:auto; position:relative; padding:40px;">
+
+        <!-- Modal Header -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:32px;">
+            <div>
+                <div style="font-size:18px; font-weight:600;">
+                    <span style="font-size:20px;">🔷</span> Atlassian Rovo MCP Server
+                </div>
+                <div style="font-size:11px; opacity:0.4; letter-spacing:1px; margin-top:4px;">Model Context Protocol — Jira &amp; Confluence AI tools</div>
+            </div>
+            <button id="atlassian-rovo-close" style="background:none; border:none; color:var(--text-sub); font-size:20px; cursor:pointer; padding:8px;" aria-label="Close Atlassian Rovo config modal">✕</button>
+        </div>
+
+        <!-- Server URL (pre-filled, readonly) -->
+        <div class="settings-field" style="margin-bottom:20px;">
+            <label class="field-label">MCP SERVER URL</label>
+            <input type="text" class="field-input integ-config-input" id="atlassian-rovo-url" value="https://mcp.atlassian.com/v1/mcp" readonly>
+        </div>
+
+        <!-- Auth Type Toggle -->
+        <div class="settings-field" style="margin-bottom:20px;">
+            <label class="field-label">AUTHENTICATION METHOD</label>
+            <div style="display:flex; gap:8px;">
+                <button id="atlassian-auth-oauth" class="chat-action-btn atlassian-auth-toggle active" style="flex:1; font-size:11px; padding:10px;">OAuth 2.1</button>
+                <button id="atlassian-auth-token" class="chat-action-btn atlassian-auth-toggle" style="flex:1; font-size:11px; padding:10px;">API Token</button>
+            </div>
+        </div>
+
+        <!-- OAuth 2.1 Fields -->
+        <div id="atlassian-oauth-fields">
+            <div class="settings-field" style="margin-bottom:16px;">
+                <label class="field-label" for="atlassian-client-id">CLIENT ID</label>
+                <input type="text" class="field-input integ-config-input" id="atlassian-client-id" placeholder="Your OAuth 2.1 Client ID" autocomplete="off">
+            </div>
+            <div class="settings-field" style="margin-bottom:16px;">
+                <label class="field-label" for="atlassian-client-secret">CLIENT SECRET</label>
+                <div style="position:relative;">
+                    <input type="password" class="field-input integ-config-input masked" id="atlassian-client-secret" placeholder="Your OAuth 2.1 Client Secret" autocomplete="off">
+                    <button type="button" id="atlassian-toggle-secret" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-sub); cursor:pointer; font-size:16px; padding:4px;" aria-label="Toggle secret visibility">👁</button>
+                </div>
+            </div>
+            <div class="settings-field" style="margin-bottom:16px;">
+                <label class="field-label" for="atlassian-scopes">SCOPES</label>
+                <input type="text" class="field-input integ-config-input" id="atlassian-scopes" value="read:jira-work write:jira-work read:confluence-content.all" placeholder="OAuth scopes (space-separated)">
+            </div>
+        </div>
+
+        <!-- API Token Fields (hidden by default) -->
+        <div id="atlassian-token-fields" style="display:none;">
+            <div class="settings-field" style="margin-bottom:16px;">
+                <label class="field-label" for="atlassian-site-url">ATLASSIAN SITE URL</label>
+                <input type="text" class="field-input integ-config-input" id="atlassian-site-url" placeholder="https://yourorg.atlassian.net" autocomplete="url">
+            </div>
+            <div class="settings-field" style="margin-bottom:16px;">
+                <label class="field-label" for="atlassian-email">EMAIL</label>
+                <input type="email" class="field-input integ-config-input" id="atlassian-email" placeholder="user@example.com" autocomplete="email">
+            </div>
+            <div class="settings-field" style="margin-bottom:16px;">
+                <label class="field-label" for="atlassian-api-token">API TOKEN</label>
+                <div style="position:relative;">
+                    <input type="password" class="field-input integ-config-input masked" id="atlassian-api-token" placeholder="Your Atlassian API token" autocomplete="off">
+                    <button type="button" id="atlassian-toggle-token" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-sub); cursor:pointer; font-size:16px; padding:4px;" aria-label="Toggle token visibility">👁</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auto Approve Tools -->
+        <div class="settings-field" style="margin-bottom:16px;">
+            <label class="field-label">AUTO APPROVE TOOLS (comma-separated)</label>
+            <input type="text" class="field-input integ-config-input" id="atlassian-auto-approve" placeholder="e.g. search_issues, get_issue">
+        </div>
+
+        <!-- Save Button -->
+        <button class="btn-vibrant" id="btn-atlassian-rovo-save" style="width:100%; padding:16px; font-size:13px; letter-spacing:1.5px; margin-top:8px;">
+            SAVE &amp; ADD SERVER
+        </button>
+
+        <!-- Status -->
+        <div id="atlassian-rovo-status" style="display:none; margin-top:12px; font-size:12px; letter-spacing:1px; text-align:center; padding:10px 16px; border-radius:10px;"></div>
+    </div>
+</div>

@@ -1,0 +1,16 @@
+/* Dashboard Page — Obsidian Kinetic page-specific styles */
+/* Supplements master_style.css for DashboardPage.kt */
+
+/* Network Preview SVG container */
+.network-svg-container {
+    height: 140px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    overflow: hidden;
+}
+
+/* Drift Chart card accent */
+.drift-chart-card {
+    background: rgba(190, 157, 255, 0.05);
+}

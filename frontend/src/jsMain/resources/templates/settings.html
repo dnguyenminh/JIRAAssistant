@@ -1,0 +1,84 @@
+<!-- Access Denied view (hidden by default, shown via Kotlin for non-admins) -->
+<div id="settings-access-denied" style="display:none;">
+    <header style="margin-bottom:40px;">
+        <h1 class="page-title">APP SETTINGS</h1>
+    </header>
+    <div class="glass-card" style="text-align:center;padding:64px;">
+        <div style="font-size:48px;margin-bottom:24px;">🔒</div>
+        <div style="font-size:20px;font-weight:300;margin-bottom:12px;color:var(--danger);">Access Denied</div>
+        <div style="font-size:13px;opacity:0.5;">Only administrators can modify settings</div>
+    </div>
+</div>
+
+<!-- Main content (hidden by default, shown via Kotlin for admins) -->
+<div id="settings-main-content" style="display:none;">
+    <header style="margin-bottom: 40px;">
+        <h1 class="page-title">APP SETTINGS</h1>
+        <p style="opacity: 0.5; font-size: 13px; letter-spacing: 1px;">Server configuration management</p>
+    </header>
+
+    <div class="glass-card settings-form">
+        <!-- JIRA_HOST -->
+        <div class="settings-field">
+            <label class="field-label" for="input-jira-host">JIRA_HOST</label>
+            <input type="text" class="field-input" id="input-jira-host" placeholder="https://company.atlassian.net">
+        </div>
+
+        <!-- AI_PROVIDER_URL -->
+        <div class="settings-field">
+            <label class="field-label" for="input-ai-provider-url">AI_PROVIDER_URL</label>
+            <input type="text" class="field-input" id="input-ai-provider-url" placeholder="http://localhost:11434">
+        </div>
+
+        <!-- DB_PATH (readonly) -->
+        <div class="settings-field">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <label class="field-label" for="input-db-path" style="margin-bottom: 0;">DB_PATH</label>
+                <span class="field-badge">ENV ONLY</span>
+            </div>
+            <input type="text" class="field-input readonly" id="input-db-path" readonly placeholder="./data/assistant.db">
+        </div>
+
+        <!-- JWT_SECRET (password, masked) -->
+        <div class="settings-field">
+            <label class="field-label" for="input-jwt-secret">JWT_SECRET</label>
+            <div style="position: relative;">
+                <input type="password" class="field-input masked" id="input-jwt-secret" placeholder="••••••••••••">
+                <button type="button" class="btn-toggle-visibility" id="toggle-jwt-secret" data-target="input-jwt-secret" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-sub); cursor: pointer; font-size: 16px; padding: 4px;" aria-label="Toggle JWT secret visibility">👁</button>
+            </div>
+        </div>
+
+        <!-- ENCRYPTION_KEY (password, masked) -->
+        <div class="settings-field">
+            <label class="field-label" for="input-encryption-key">ENCRYPTION_KEY</label>
+            <div style="position: relative;">
+                <input type="password" class="field-input masked" id="input-encryption-key" placeholder="••••••••••••">
+                <button type="button" class="btn-toggle-visibility" id="toggle-encryption-key" data-target="input-encryption-key" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-sub); cursor: pointer; font-size: 16px; padding: 4px;" aria-label="Toggle encryption key visibility">👁</button>
+            </div>
+        </div>
+
+        <!-- PORT (readonly) -->
+        <div class="settings-field">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <label class="field-label" for="input-port" style="margin-bottom: 0;">PORT</label>
+                <span class="field-badge">ENV ONLY</span>
+            </div>
+            <input type="number" class="field-input readonly" id="input-port" readonly placeholder="8080">
+        </div>
+
+        <!-- Save Button -->
+        <button class="btn-vibrant" id="btn-save-settings" style="width: 100%; margin-top: 12px; text-align: center; font-size: 13px; letter-spacing: 2px;">
+            SAVE SETTINGS
+        </button>
+
+        <!-- Progress Bar (hidden by default) -->
+        <div id="settings-progress" style="display: none; margin-top: 16px;">
+            <div class="neural-loader">
+                <div class="neural-progress" id="settings-progress-bar" style="width: 0%;"></div>
+            </div>
+        </div>
+
+        <!-- Status Message (hidden by default) -->
+        <div id="settings-status-msg" class="settings-save-msg" style="display: none; margin-top: 12px; font-size: 12px; letter-spacing: 1px; text-align: center;"></div>
+    </div>
+</div>

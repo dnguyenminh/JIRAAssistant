@@ -1,0 +1,58 @@
+<header style="margin-bottom:40px;">
+    <h1 class="page-title">Ticket Intelligence</h1>
+    <p style="opacity:0.5;">AI-powered deep analysis with Knowledge Base integration.</p>
+</header>
+
+<!-- Input Section -->
+<div id="ti-input-section" class="glass-card" style="padding:32px;margin-bottom:32px;position:relative;">
+
+    <!-- Error Banner (hidden by default) -->
+    <div id="ticket-error" style="display:none; padding:16px; margin-bottom:16px; border-radius:10px; background:rgba(255,110,132,0.08); border:1px solid rgba(255,110,132,0.2);">
+        <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:16px;">⚠️</span>
+            <span id="ticket-error-msg" style="font-size:13px;color:var(--danger);">Failed to load tickets.</span>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px;">
+            <button class="btn-vibrant" id="ticket-retry-btn" style="padding:6px 16px;font-size:11px;">RETRY</button>
+            <button id="ticket-project-btn" style="padding:6px 16px;font-size:11px;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);color:var(--text-sub);border-radius:8px;cursor:pointer;font-weight:600;">SWITCH PROJECT</button>
+        </div>
+    </div>
+
+    <div style="display:flex;gap:16px;align-items:flex-end;">
+        <div style="flex:1;">
+            <label style="font-size:11px;font-weight:700;letter-spacing:2px;opacity:0.5;display:block;margin-bottom:8px;">TICKET</label>
+            <div id="ticket-combobox" class="ticket-combobox">
+                <input id="ticket-search" class="field-input" type="text" placeholder="Search tickets by ID or summary..." style="width:100%;" autocomplete="off" />
+                <div id="ticket-dropdown" class="ticket-dropdown"></div>
+            </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <span id="ticket-status-badge"></span>
+            <button id="btn-action" class="btn-vibrant" style="white-space:nowrap;" disabled>ANALYZE</button>
+        </div>
+    </div>
+
+    <!-- Progress Section -->
+    <div id="ti-progress-section" style="display:none;margin-top:24px;">
+        <div class="progress-label">
+            <span id="ti-progress-phase" style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1.5px;color:var(--primary);">Consolidating Ticket Metadata...</span>
+            <span id="ti-progress-percent" style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--primary);">0%</span>
+        </div>
+        <div class="neural-loader" style="height:4px;margin-top:8px;">
+            <div id="ti-progress-bar" class="neural-progress" style="width:0%;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Results Section (hidden until analysis completes) -->
+<div id="ti-results-section" style="display:none;">
+    <!-- Tabs -->
+    <div style="display:flex;gap:4px;margin-bottom:24px;">
+        <button class="ti-tab active" data-tab="context" style="background:rgba(45,254,207,0.15);border:1px solid rgba(45,254,207,0.3);color:var(--primary);padding:10px 24px;border-radius:8px;font-size:12px;font-weight:700;letter-spacing:1.5px;cursor:pointer;transition:0.3s;">CONTEXT</button>
+        <button class="ti-tab" data-tab="evolution" style="background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);color:var(--text-sub);padding:10px 24px;border-radius:8px;font-size:12px;font-weight:700;letter-spacing:1.5px;cursor:pointer;transition:0.3s;">EVOLUTION</button>
+        <button class="ti-tab" data-tab="complexity" style="background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);color:var(--text-sub);padding:10px 24px;border-radius:8px;font-size:12px;font-weight:700;letter-spacing:1.5px;cursor:pointer;transition:0.3s;">COMPLEXITY</button>
+    </div>
+
+    <!-- Tab Content -->
+    <div id="ti-tab-content" style="animation:fadeIn 0.5s ease;"></div>
+</div>

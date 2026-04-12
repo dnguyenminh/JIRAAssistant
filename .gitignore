@@ -1,0 +1,52 @@
+# ═══════════════════════════════════════════════════════════════
+# Jira Assistant — Git Ignore
+# ═══════════════════════════════════════════════════════════════
+
+# ── Secrets & Environment ──
+.env
+.env.*
+!.env.example
+
+# ── Build outputs ──
+build/
+out/
+bin/
+*.jar
+*.class
+
+# ── Gradle ──
+.gradle/
+gradle/wrapper/gradle-wrapper.jar
+
+# ── IDE ──
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# ── Kotlin ──
+.kotlin/
+
+# ── Node / JS ──
+node_modules/
+package-lock.json
+yarn.lock
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Database ──
+*.db
+*.sqlite
+data/
+
+# ── Test outputs ──
+e2e-tests/target/
+e2e-tests/build/
+e2e-tests/bin/
+
+# ── Docker ──
+docker-compose.override.yml

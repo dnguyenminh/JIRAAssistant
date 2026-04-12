@@ -1,0 +1,13 @@
+# Air-gapped deployment — no internet required for AI.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.airgapped.yml up
+#
+# This override forces the backend to use only Ollama (local AI).
+# Cloud providers (Gemini, etc.) are disabled.
+
+services:
+  backend:
+    environment:
+      AI_PROVIDER_URL: http://ollama:11434
+      AI_PROVIDER_MODE: airgapped

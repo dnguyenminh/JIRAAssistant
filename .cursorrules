@@ -1,0 +1,25 @@
+# Jira Assistant Project Rules
+
+## Kotlin Multiplatform (KMP)
+-   **Frontend**: Use Compose HTML for the web application.
+-   **Architecture**: Follow the Clean Architecture pattern (Data -> Domain <- UI).
+-   **Dependency Injection**: Use **Koin** for all modules.
+-   **Networking**: Use **Ktor Client** for Jira API and AI Agent communication.
+-   **Concurrency**: Use **Kotlin Coroutines** (Flows for UI state).
+
+## AI Agent Integration
+-   **Abstraction**: All AI interactions must implement the `AIAgent` interface in the `shared` module.
+-   **Local Agents**: Connect to Ollama/LMStudio via REST API (default ports: 11434, 1234).
+-   **Cloud Agents**: Use Gemini for complex logic and large context.
+-   **Privacy**: Avoid sending identifiable Jira data (names, sensitive descriptions) to cloud agents without user consent.
+
+## Serenity BDD (Quality Assurance)
+-   **Pattern**: Use the **Screenplay Pattern** (Actors, Tasks, Interactions, Questions).
+-   **Naming**: Features must be named following the `[Requirement ID] - [Description]` format.
+-   **Reports**: Ensure `gradle aggregate` is run after all E2E tests to generate the Serenity report.
+
+## General Coding Standards
+-   **Language**: Kotlin (Strictly).
+-   **Naming**: PascalCase for Classes, camelCase for methods/variables.
+-   **Documentation**: KDoc for public APIs in the `shared` module.
+-   **Error Handling**: Use `Result<T>` or a sealed `Outcome` class instead of throwing exceptions in the Domain layer.

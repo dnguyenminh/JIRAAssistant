@@ -1,0 +1,95 @@
+/* Integrations Page — Obsidian Kinetic page-specific styles */
+/* Supplements master_style.css for IntegrationsPage.kt */
+
+/* Status dot variants */
+.status-dot-active { background: #2dfecf; box-shadow: 0 0 12px rgba(45, 254, 207, 0.6); }
+.status-dot-standby { background: #3386ff; box-shadow: 0 0 12px rgba(51, 134, 255, 0.6); }
+.status-dot-offline { background: #ff6e84; box-shadow: 0 0 12px rgba(255, 110, 132, 0.6); }
+
+/* Provider card interactions */
+.integ-card { cursor: pointer; position: relative; }
+.integ-card:hover { border-color: rgba(45, 254, 207, 0.2); }
+
+/* Priority reorder arrow buttons */
+.integ-arrow-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+    transition: 0.2s;
+}
+.integ-arrow-btn:hover { background: rgba(45, 254, 207, 0.15); border-color: rgba(45, 254, 207, 0.3); }
+.integ-arrow-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+
+/* Config input fields */
+.integ-config-input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px 14px;
+    border-radius: 10px;
+    color: #fff;
+    font-family: 'Be Vietnam Pro', sans-serif;
+    font-size: 13px;
+    width: 100%;
+    transition: border-color 0.3s;
+}
+.integ-config-input:focus { border-color: var(--primary); outline: none; background: rgba(45, 254, 207, 0.05); }
+.integ-config-input:disabled { opacity: 0.4; cursor: not-allowed; }
+.integ-config-input[readonly] { opacity: 0.6; cursor: default; }
+
+/* Temperature slider */
+.integ-slider {
+    -webkit-appearance: none;
+    width: 100%; height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+}
+.integ-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(45, 254, 207, 0.4);
+}
+.integ-slider:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Select dropdown */
+.integ-select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px 14px;
+    border-radius: 10px;
+    color: #fff;
+    font-family: 'Be Vietnam Pro', sans-serif;
+    font-size: 13px;
+    width: 100%;
+}
+.integ-select:disabled { opacity: 0.4; cursor: not-allowed; }
+.integ-select option { background: #1a1b2e; color: #fff; }
+
+/* Atlassian Rovo MCP preset button */
+.atlassian-preset-btn {
+    border-color: rgba(0, 101, 255, 0.35) !important;
+    transition: 0.2s;
+}
+.atlassian-preset-btn:hover {
+    background: rgba(0, 101, 255, 0.12) !important;
+    border-color: rgba(0, 101, 255, 0.5) !important;
+}
+
+/* Auth method toggle buttons */
+.atlassian-auth-toggle {
+    transition: 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.atlassian-auth-toggle.active {
+    background: rgba(45, 254, 207, 0.12);
+    border-color: var(--primary);
+    color: var(--primary);
+}

@@ -1,0 +1,43 @@
+<div class="project-select-page" id="project-select-page">
+    <div style="width:100%;max-width:1400px;margin:0 auto;padding:40px 48px;">
+        <h1 class="login-title" style="margin-bottom:4px;text-align:center;">SELECT PROJECT</h1>
+        <p class="login-subtitle" style="margin-bottom:32px;text-align:center;">Choose a Jira project to work with</p>
+
+        <!-- Search -->
+        <div style="margin-bottom:20px;">
+            <input type="text" id="project-search" class="field-input"
+                   placeholder="🔍 Search by project key or name..."
+                   style="width:100%;padding:12px 20px;font-size:14px;border-radius:12px;"
+                   autocomplete="off">
+        </div>
+
+        <!-- Table -->
+        <div class="glass-card" style="padding:0;overflow:hidden;border-radius:12px;">
+            <table id="project-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead>
+                    <tr style="border-bottom:1px solid var(--glass-border);text-align:left;">
+                        <th data-sort="key" style="padding:16px 20px;cursor:pointer;letter-spacing:1.5px;font-size:11px;font-weight:700;opacity:0.5;user-select:none;width:120px;">
+                            KEY ▲
+                        </th>
+                        <th data-sort="name" style="padding:16px 20px;cursor:pointer;letter-spacing:1.5px;font-size:11px;font-weight:700;opacity:0.5;user-select:none;">
+                            PROJECT NAME
+                        </th>
+                        <th data-sort="type" style="padding:16px 20px;cursor:pointer;letter-spacing:1.5px;font-size:11px;font-weight:700;opacity:0.5;user-select:none;width:140px;">
+                            TYPE
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="project-table-body">
+                    <tr><td colspan="3" style="text-align:center;padding:48px;opacity:0.4;">Loading projects...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div id="project-pagination" style="display:flex;align-items:center;justify-content:center;gap:16px;margin-top:20px;font-size:12px;">
+            <button id="btn-prev-page" class="chat-action-btn" style="padding:8px 20px;" disabled>← Previous</button>
+            <span id="page-info" style="opacity:0.5;letter-spacing:1px;">Page 1 of 1</span>
+            <button id="btn-next-page" class="chat-action-btn" style="padding:8px 20px;" disabled>Next →</button>
+        </div>
+    </div>
+</div>

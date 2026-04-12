@@ -1,0 +1,77 @@
+<!-- ============================================================
+     AI CHAT SIDEBAR — HTML Template
+     Obsidian Kinetic Design System (Luminous V3)
+     Requirements: 19.1–19.3, 19.7, 19.18, 19.26, 19.30, 19.37, 19.44, 19.53
+     ============================================================ -->
+
+<div class="ai-chat-sidebar" id="ai-chat-sidebar">
+
+    <!-- ── Header ───────────────────────────────────────────── -->
+    <div class="chat-header">
+        <div class="chat-header-info">
+            <div class="chat-header-title">AI Assistant</div>
+            <div class="chat-header-subtitle" id="chat-config-badge">KNOWLEDGE-AWARE CHAT</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+            <button id="btn-chat-config" class="chat-close-btn" aria-label="AI Config" title="AI Personalization">⚙️</button>
+            <button id="btn-close-chat" class="chat-close-btn" aria-label="Close AI Chat Sidebar">✕</button>
+        </div>
+    </div>
+
+    <!-- ── Conversation List (collapsible) ──────────────────── -->
+    <div class="conversation-list" id="conversation-list">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;">
+            <span style="font-size:10px;letter-spacing:1.5px;opacity:0.4;text-transform:uppercase;">Conversations</span>
+            <button id="btn-new-chat" class="chat-action-btn" style="font-size:10px;padding:4px 10px;">➕ New Chat</button>
+        </div>
+        <div id="conversation-items" class="conversation-items">
+            <!-- Rendered dynamically -->
+        </div>
+    </div>
+
+    <!-- ── Error Banner (hidden by default) ─────────────────── -->
+    <div id="chat-error-banner" class="chat-error-banner" style="display:none;"></div>
+
+    <!-- ── Message Area (scrollable) ────────────────────────── -->
+    <div class="chat-messages" id="chat-messages"></div>
+
+    <!-- ── Typing Indicator (hidden by default) ─────────────── -->
+    <div class="typing-indicator" id="typing-indicator" style="display:none;">
+        <span class="typing-dot"></span>
+        <span class="typing-dot"></span>
+        <span class="typing-dot"></span>
+    </div>
+
+    <!-- ── File Preview Area (hidden by default) ────────────── -->
+    <div id="chat-file-preview" class="file-preview" style="display:none;"></div>
+
+    <!-- ── Input Area ───────────────────────────────────────── -->
+    <div class="chat-input-area">
+        <textarea id="chat-input" class="chat-input" placeholder="Ask about your project..." rows="3"
+                  aria-label="Chat message input"></textarea>
+        <div class="chat-input-buttons">
+            <button id="btn-attach-file" class="attach-btn" aria-label="Attach file" title="Attach file">📎</button>
+            <button id="btn-voice-input" class="voice-btn" aria-label="Voice input" title="Voice input">🎤</button>
+            <button id="btn-tools-picker" class="tools-btn" aria-label="Tools" title="Tools" style="display:none;">🔧</button>
+            <button id="btn-send-chat" class="chat-send-btn" aria-label="Send message">➤</button>
+        </div>
+    </div>
+
+    <!-- ── Tools Dropdown (hidden) ──────────────────────────── -->
+    <div id="tools-dropdown" class="tools-dropdown" style="display:none;"></div>
+
+    <!-- ── Context Indicator + Model Badge ──────────────────── -->
+    <div class="chat-footer-bar">
+        <div id="context-indicator" class="context-indicator" title="Context usage">
+            <svg width="24" height="24" viewBox="0 0 36 36">
+                <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3"/>
+                <circle id="ctx-progress-circle" cx="18" cy="18" r="15.9" fill="none"
+                        stroke="var(--primary)" stroke-width="3" stroke-dasharray="0 100"
+                        stroke-linecap="round" transform="rotate(-90 18 18)"/>
+            </svg>
+            <span id="ctx-percent" style="font-size:8px;position:absolute;opacity:0.5;">0%</span>
+        </div>
+        <span id="model-name-badge" class="model-name-badge">—</span>
+    </div>
+
+</div>

@@ -1,0 +1,363 @@
+/* Knowledge Graph Page — Obsidian Kinetic page-specific styles */
+/* Supplements master_style.css for KnowledgeGraphPage.kt */
+
+/* Search combobox dropdown */
+.search-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    min-width: 420px;
+    max-height: 360px;
+    overflow-y: auto;
+    background: rgba(12, 14, 22, 0.97);
+    border: 1px solid var(--glass-border);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    z-index: 100;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.search-dropdown-item {
+    padding: 8px 16px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.1s ease;
+}
+
+.search-dropdown-item:hover,
+.search-dropdown-item.active {
+    background: rgba(45, 254, 207, 0.08);
+}
+
+.search-dropdown-item .item-key {
+    color: var(--primary);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.search-dropdown-item .item-summary {
+    color: rgba(255, 255, 255, 0.5);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.search-dropdown::-webkit-scrollbar { width: 4px; }
+.search-dropdown::-webkit-scrollbar-track { background: transparent; }
+.search-dropdown::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+
+/* Cytoscape.js canvas container */
+#graphCyContainer {
+    width: 100%;
+    height: 100%;
+}
+
+/* Legend */
+.legend-box {
+    position: absolute;
+    bottom: 40px;
+    right: 16px;
+    background: rgba(13, 17, 23, 0.6);
+    border: 1px solid var(--glass-border);
+    padding: 8px 16px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* Navigation control buttons */
+#graphZoomControls button {
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+#graphZoomControls button:hover {
+    background: rgba(45, 254, 207, 0.12);
+    border-color: rgba(45, 254, 207, 0.3);
+    color: var(--primary);
+}
+
+#graphZoomControls button:active {
+    background: rgba(45, 254, 207, 0.22);
+    border-color: rgba(45, 254, 207, 0.5);
+    transform: scale(0.93);
+}
+
+/* ============================================================
+   FILTER PANEL — Graph Filter & Focus Mode
+   Requirements: 1.5, 2.6, 4.3
+   ============================================================ */
+
+/* Filter panel container — subtle hover lift */
+#filter-panel {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#filter-panel:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* --- Show All Button --- */
+#btn-show-all:hover:not(:disabled) {
+    background: rgba(45, 254, 207, 0.1);
+    border-color: rgba(45, 254, 207, 0.35);
+    color: var(--primary);
+    box-shadow: 0 0 12px rgba(45, 254, 207, 0.15);
+}
+
+#btn-show-all:active:not(:disabled) {
+    transform: scale(0.96);
+}
+
+#btn-show-all:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* --- Focus Mode Indicator — slide-in animation --- */
+#focus-indicator {
+    animation: focusSlideIn 0.25s ease-out;
+}
+
+@keyframes focusSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+#focus-indicator-close:hover {
+    color: var(--danger);
+}
+
+/* --- Depth Slider — dark theme range input --- */
+#filter-depth {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+    transition: opacity 0.2s ease;
+}
+
+#filter-depth:not(:disabled) {
+    opacity: 1 !important;
+}
+
+#filter-depth::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(45, 254, 207, 0.4);
+    transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+#filter-depth:not(:disabled)::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 12px rgba(45, 254, 207, 0.6);
+    transform: scale(1.15);
+}
+
+#filter-depth::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--primary);
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(45, 254, 207, 0.4);
+}
+
+#filter-depth::-moz-range-track {
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* --- Cluster Dropdown — focus state --- */
+#filter-cluster:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 8px rgba(45, 254, 207, 0.15);
+}
+
+#filter-cluster:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Cluster dropdown options — dark theme override */
+#filter-cluster option {
+    background: #0c0e16;
+    color: #e0e0e0;
+    padding: 8px 12px;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+#filter-cluster option:checked {
+    background: rgba(45, 254, 207, 0.15);
+    color: var(--primary);
+}
+
+/* Active cluster selection — highlight the dropdown */
+#filter-cluster.has-selection {
+    border-color: rgba(45, 254, 207, 0.35);
+    color: var(--primary);
+}
+
+/* --- Checkbox labels — hover feedback --- */
+#filter-panel label:hover span:last-child {
+    color: var(--text-main);
+}
+
+#filter-panel input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+/* ============================================================
+   DETAIL PANEL — Ticket Information Panel sections
+   Requirements: 20.1, 20.4, 20.6
+   ============================================================ */
+
+/* --- Section container --- */
+.detail-section {
+    margin-top: 16px;
+}
+
+.detail-section-header {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    opacity: 0.4;
+    margin-bottom: 8px;
+}
+
+/* --- DESCRIPTION section --- */
+.detail-description-text {
+    font-size: 13px;
+    opacity: 0.6;
+    line-height: 1.6;
+    max-height: 200px;
+    overflow-y: auto;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+/* Scrollbar styling for description */
+.detail-description-text::-webkit-scrollbar {
+    width: 4px;
+}
+
+.detail-description-text::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.detail-description-text::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+}
+
+.detail-description-text::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* --- LINKED TICKETS & SUB-TASKS list containers --- */
+.detail-linked-list,
+.detail-subtasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* --- Linked ticket row --- */
+.detail-linked-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+}
+
+.detail-linked-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* --- Relationship badge (pill style) --- */
+.linked-relationship-badge {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.5);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* --- Clickable ticket key --- */
+.linked-ticket-key {
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: opacity 0.15s ease;
+}
+
+.linked-ticket-key:hover {
+    text-decoration: underline;
+    opacity: 0.85;
+}
+
+/* --- Ticket summary text --- */
+.linked-ticket-summary {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+/* --- Sub-task row --- */
+.detail-subtask-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+}
+
+.detail-subtask-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* --- Sub-task status indicator --- */
+.subtask-status-indicator {
+    font-size: 11px;
+    flex-shrink: 0;
+    width: 16px;
+    text-align: center;
+}

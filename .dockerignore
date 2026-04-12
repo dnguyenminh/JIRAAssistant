@@ -1,0 +1,37 @@
+# Build outputs
+build/
+**/build/
+**/bin/
+**/out/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.kotlin/
+
+# Gradle caches (wrapper JARs are needed)
+.gradle/
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Docs & non-essential
+docs/
+history/
+.agents/
+.clinerules/
+.cursorrules
+.kiro/
+e2e-tests/target/
+anythingllm-mcp-wrapper-server.*
+
+# OS
+.DS_Store
+Thumbs.db

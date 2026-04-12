@@ -1,0 +1,57 @@
+/* Analysis Page — Obsidian Kinetic page-specific styles */
+/* Supplements master_style.css for AnalysisPage.kt */
+
+/* Velocity bar hover effect */
+.v-bar {
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    transform-origin: bottom;
+}
+
+.v-bar:hover {
+    transform: scaleY(1.05);
+    opacity: 0.85;
+}
+
+/* Bottleneck alert cards */
+.ai-alert {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.ai-alert.risk {
+    border-left: 3px solid var(--danger);
+}
+
+.ai-alert.optimization {
+    border-left: 3px solid var(--primary);
+}
+
+/* Alert severity badges */
+.alert-severity {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.alert-severity.high {
+    background: rgba(255, 110, 132, 0.15);
+    color: var(--danger);
+}
+
+.alert-severity.medium {
+    background: rgba(249, 212, 35, 0.15);
+    color: #f9d423;
+}
+
+.alert-severity.low {
+    background: rgba(45, 254, 207, 0.15);
+    color: var(--primary);
+}

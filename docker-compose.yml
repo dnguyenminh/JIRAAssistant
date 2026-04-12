@@ -1,0 +1,25 @@
+services:
+  # ── Backend + Frontend ──────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-8080}:8080"
+    environment:
+      PORT: "8080"
+      DB_PATH: /app/data/jira-assistant.db
+      AI_PROVIDER_URL: ${AI_PROVIDER_URL:-http://host.docker.internal:11434}
+      JIRA_HOST: ${JIRA_HOST:-https://jira.example.com}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-change-me-in-production}
+      STATIC_DIR: /app/static
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - db-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  db-data:
+    driver: local

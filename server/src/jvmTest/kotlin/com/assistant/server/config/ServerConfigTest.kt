@@ -1,0 +1,106 @@
+package com.assistant.server.config
+
+import com.assistant.settings.SettingsRepository
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
+
+/**
+ * Tests for ServerConfig.loadFromDb — verifies DB-first fallback to env vars.
+ */
+class ServerConfigTest {
+
+    /** Simple in-memory SettingsRepository for testing. */
+    private class FakeSettingsRepository(
+        private val store: MutableMap<String, String> = mutableMapOf()
+    ) : SettingsRepository {
+        override suspend fun getAll(): Map<String, String> = store.toMap()
+        override suspend fun get(key: String): String? = store[key]
+        override suspend fun put(key: String, value: String) { store[key] = value }
+        override suspend fun putAll(settings: Map<String, String>) { store.putAll(settings) }
+    }
+
+    @Test
+    fun `loadFromDb uses DB values when present`() = runBlocking {
+        val repo = FakeSettingsRepository(mutableMapOf(
+            "JIRA_HOST" to "https://db-jira.example.com",
+            "AI_PROVIDER_URL" to "http://db-ai:1234",
+            "JWT_SECRET" to "db-secret",
+            "ENCRYPTION_KEY" to "db-enc-key",
+            "PORT" to "9090"
+        ))
+
+        val config = ServerConfig.loadFromDb(repo)
+
+        assertEquals("https://db-jira.example.com", config.jiraHost)
+        assertEquals("http://db-ai:1234", config.aiProviderUrl)
+        assertEquals("db-secret", config.jwtSecret)
+        assertEquals("db-enc-key", config.encryptionKey)
+        assertEquals(9090, config.port)
+    }
+
+    @Test
+    fun `loadFromDb falls back to defaults when DB is empty`() = runBlocking {
+        val repo = FakeSettingsRepository()
+
+        val config = ServerConfig.loadFromDb(repo)
+
+        // Falls back to env vars or defaults
+        assertNotNull(config.jiraHost)
+        assertNotNull(config.aiProviderUrl)
+        assertNotNull(config.dbPath)
+        assertNotNull(config.jwtSecret)
+        assertNotNull(config.encryptionKey)
+        assertNotNull(config.staticDir)
+        assertTrue(config.port > 0)
+    }
+
+    @Test
+    fun `loadFromDb always reads dbPath from env, not DB`() = runBlocking {
+        val repo = FakeSettingsRepository(mutableMapOf(
+            "DB_PATH" to "/should/be/ignored"
+        ))
+
+        val config = ServerConfig.loadFromDb(repo)
+
+        // dbPath must NOT be the DB value — it always comes from env
+        assertNotEquals("/should/be/ignored", config.dbPath)
+    }
+
+    @Test
+    fun `loadFromDb always reads staticDir from env, not DB`() = runBlocking {
+        val repo = FakeSettingsRepository(mutableMapOf(
+            "STATIC_DIR" to "/should/be/ignored"
+        ))
+
+        val config = ServerConfig.loadFromDb(repo)
+
+        // staticDir must NOT be the DB value — it always comes from env
+        assertNotEquals("/should/be/ignored", config.staticDir)
+    }
+
+    @Test
+    fun `loadFromDb handles invalid PORT in DB gracefully`() = runBlocking {
+        val repo = FakeSettingsRepository(mutableMapOf(
+            "PORT" to "not-a-number"
+        ))
+
+        val config = ServerConfig.loadFromDb(repo)
+
+        // Should fall back to env var or default (8080)
+        assertTrue(config.port > 0)
+    }
+
+    @Test
+    fun `load returns config from env vars only`() {
+        val config = ServerConfig.load()
+
+        assertNotNull(config.jiraHost)
+        assertNotNull(config.aiProviderUrl)
+        assertNotNull(config.dbPath)
+        assertNotNull(config.jwtSecret)
+        assertNotNull(config.encryptionKey)
+        assertNotNull(config.staticDir)
+        assertTrue(config.port > 0)
+    }
+}

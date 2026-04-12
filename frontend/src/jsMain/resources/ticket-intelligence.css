@@ -1,0 +1,28 @@
+/* Ticket Intelligence Page — Obsidian Kinetic page-specific styles */
+/* Supplements master_style.css for TicketIntelligencePage.kt */
+
+/* Tab content fade-in animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Tab button styles */
+.ti-tab {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    color: var(--text-sub);
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.ti-tab.active {
+    background: rgba(45, 254, 207, 0.15);
+    border-color: rgba(45, 254, 207, 0.3);
+    color: var(--primary);
+}

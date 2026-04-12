@@ -1,0 +1,95 @@
+# Implementation Plan
+
+- [x] 1. Write bug condition exploration test
+  - **Property 1: Bug Condition** - Race condition trong processBatchParallel và truncation trong progressPercent
+  - **CRITICAL**: Test này PHẢI FAIL trên code chưa fix — failure xác nhận bug tồn tại
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: Test này encode expected behavior — nó sẽ validate fix khi pass sau implementation
+  - **GOAL**: Surface counterexamples chứng minh race condition và truncation bug tồn tại
+  - **Scoped PBT Approach**: Scope property vào 2 concrete failing cases:
+    - (a) `processBatchParallel()` với batch >1 ticket, mock `processTicket()` với delay khác nhau → assert `processedCount == startIdx + batch.size` (FAILS do race condition — coroutine index thấp ghi đè giá trị cao hơn)
+    - (b) `ScanState` với `processedCount/totalTickets ≥ 99.5%` → assert `progressPercent == 100` (FAILS do `.toInt()` truncation)
+    - (c) `ScanState` với `status == COMPLETED` → assert `progressPercent == 100` (FAILS do không force 100% khi COMPLETED)
+  - Tạo file test: `shared/src/jvmTest/kotlin/com/assistant/scan/ScanProgressBugConditionPropertyTest.kt`
+  - Sử dụng kotest property-based testing (Arb generators) theo pattern hiện có trong `CompleteScanBugConditionPropertyTest.kt`
+  - Reuse test doubles từ `CompleteScanBugConditionPropertyTest` (InMemoryScanStateRepo, InMemoryScanLogRepo, StubAIOrchestratorForScan, StubJiraClientForScan, StubAIAgentForScan, TrackingKBRepository)
+  - **Test 1 — Race condition**: Generate random batch sizes (2-5) và random projectKey, mock `processTicket()` với delay ngẫu nhiên để force thứ tự hoàn thành không xác định, assert `processedCount == startIdx + batch.size` sau batch
+  - **Test 2 — Truncation**: Generate random ScanState với `processedCount` và `totalTickets` sao cho tỷ lệ ≥ 99.5% và < 100%, assert `progressPercent == 100`
+  - **Test 3 — COMPLETED force 100%**: Generate random ScanState với `status == COMPLETED` và `processedCount < totalTickets`, assert `progressPercent == 100`
+  - Run test trên code CHƯA FIX
+  - **EXPECTED OUTCOME**: Test FAILS (xác nhận bug tồn tại)
+  - Document counterexamples: ví dụ `processedCount = 1306` thay vì `1308` sau batch 3 ticket; `progressPercent = 99` thay vì `100` cho 1307/1308
+  - Mark task complete khi test đã viết, chạy, và failure đã document
+  - _Requirements: 1.1, 1.2, 1.3, 1.4_
+
+- [x] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - SCANNING/PAUSED progress, batch completeness, và zero tickets không thay đổi
+  - **IMPORTANT**: Follow observation-first methodology
+  - Tạo file test: `shared/src/jvmTest/kotlin/com/assistant/scan/ScanProgressPreservationPropertyTest.kt`
+  - Sử dụng kotest property-based testing theo pattern hiện có
+  - Reuse test doubles từ `CompleteScanBugConditionPropertyTest`
+  - **Observe behavior trên code CHƯA FIX cho non-buggy inputs:**
+    - Observe: `ScanState(status=SCANNING, processedCount=50, totalTickets=200)` → `progressPercent = 25`
+    - Observe: `ScanState(status=PAUSED, processedCount=100, totalTickets=200)` → `progressPercent = 50`
+    - Observe: `ScanState(status=SCANNING, processedCount=0, totalTickets=100)` → `progressPercent = 0`
+    - Observe: `ScanState(totalTickets=0)` → `progressPercent = 0`
+    - Observe: `processBatchParallel()` với batch 3 ticket → `processTicket()` được gọi 3 lần
+  - **Write property-based tests capturing observed behavior:**
+    - Property: For all ScanState với `status` là SCANNING hoặc PAUSED và `processedCount/totalTickets < 0.995`, `progressPercent` phải bằng `((processedCount.toDouble() / totalTickets) * 100).toInt()` (behavior hiện tại trên code chưa fix)
+    - Property: For all ScanState với `totalTickets == 0`, `progressPercent == 0`
+    - Property: For all batch processing input, `processTicket()` được gọi cho mọi ticket trong batch (không bỏ sót)
+  - Run tests trên code CHƯA FIX
+  - **EXPECTED OUTCOME**: Tests PASS (xác nhận baseline behavior cần preserve)
+  - Mark task complete khi tests đã viết, chạy, và passing trên code chưa fix
+  - _Requirements: 3.1, 3.2, 3.4, 3.5, 3.6_
+
+- [x] 3. Fix race condition trong processBatchParallel và truncation trong progressPercent
+
+  - [x] 3.1 Implement fix trong BatchScanEngine.kt — di chuyển updateProcessedCount sau join
+    - File: `shared/src/commonMain/kotlin/com/assistant/scan/BatchScanEngine.kt`
+    - Function: `processBatchParallel(projectKey, batch, startIdx)`
+    - Xóa `updateProcessedCount(projectKey, startIdx + idx + 1)` khỏi bên trong `launch { }` block
+    - Thêm `updateProcessedCount(projectKey, startIdx + batch.size)` SAU `.forEach { it.join() }`
+    - Giữ nguyên `processTicket()` và `updateCurrentTicket()` bên trong `launch { }`
+    - Không thay đổi bất kỳ hàm nào khác (`processTicket`, `pauseScan`, `resumeScan`, `cancelScan`, `scanLoop`, `completeScan`)
+    - _Bug_Condition: isBugCondition(input) where batch.size > 1 AND lastFinishedCoroutineIndex ≠ batch.size - 1_
+    - _Expected_Behavior: processedCount == startIdx + batch.size, updated exactly once after all coroutines complete_
+    - _Preservation: processTicket() vẫn được gọi cho mọi ticket; pauseScan/resumeScan/cancelScan không thay đổi_
+    - _Requirements: 1.1, 2.1, 2.2, 3.5, 3.6_
+
+  - [x] 3.2 Implement fix trong ScanState.kt — roundToInt + force 100% khi COMPLETED
+    - File: `shared/src/commonMain/kotlin/com/assistant/scan/ScanState.kt`
+    - Property: `progressPercent`
+    - Thêm import `kotlin.math.roundToInt`
+    - Đổi `progressPercent` thành `when` expression:
+      - `status == ScanStatus.COMPLETED` → return `100`
+      - `totalTickets > 0` → return `((processedCount.toDouble() / totalTickets) * 100).roundToInt()`
+      - else → return `0`
+    - _Bug_Condition: (processedCount/totalTickets * 100) ≥ 99.5 AND < 100, OR status == COMPLETED AND processedCount < totalTickets_
+    - _Expected_Behavior: COMPLETED → 100; totalTickets > 0 → roundToInt(); else → 0_
+    - _Preservation: SCANNING/PAUSED với processedCount/totalTickets < 99.5% trả về cùng giá trị (roundToInt == toInt cho giá trị < 99.5%); totalTickets=0 → 0_
+    - _Requirements: 1.3, 1.4, 2.3, 2.4, 3.1, 3.2, 3.4_
+
+  - [x] 3.3 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - Race condition fixed và progressPercent chính xác
+    - **IMPORTANT**: Re-run SAME test từ task 1 — KHÔNG viết test mới
+    - Test từ task 1 encode expected behavior: `processedCount == startIdx + batch.size` và `progressPercent == 100` cho tỷ lệ ≥ 99.5%
+    - Khi test PASS, nó xác nhận expected behavior đã được satisfy
+    - Run `ScanProgressBugConditionPropertyTest` từ step 1
+    - **EXPECTED OUTCOME**: Test PASSES (xác nhận bug đã fix)
+    - _Requirements: 2.1, 2.2, 2.3, 2.4_
+
+  - [x] 3.4 Verify preservation tests still pass
+    - **Property 2: Preservation** - SCANNING/PAUSED progress, batch completeness, và zero tickets không thay đổi
+    - **IMPORTANT**: Re-run SAME tests từ task 2 — KHÔNG viết tests mới
+    - Run `ScanProgressPreservationPropertyTest` từ step 2
+    - **EXPECTED OUTCOME**: Tests PASS (xác nhận không có regression)
+    - Confirm tất cả preservation tests vẫn pass sau fix
+    - _Requirements: 3.1, 3.2, 3.4, 3.5, 3.6_
+
+- [x] 4. Checkpoint - Ensure all tests pass
+  - Run toàn bộ test suite: `./gradlew :shared:jvmTest`
+  - Verify `ScanProgressBugConditionPropertyTest` PASSES (bug fixed)
+  - Verify `ScanProgressPreservationPropertyTest` PASSES (no regression)
+  - Verify existing tests không bị break (đặc biệt `CompleteScanBugConditionPropertyTest`, `CompleteScanPreservationPropertyTest`, `GraphEnginePropertyTest`)
+  - Ensure all tests pass, ask the user if questions arise.
