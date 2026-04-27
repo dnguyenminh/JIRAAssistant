@@ -52,5 +52,8 @@ e2e-tests/target/
 e2e-tests/build/
 e2e-tests/bin/
 
+# ── Proof of Concept ──
+poc/
+
 # ── Docker ──
 docker-compose.override.yml
