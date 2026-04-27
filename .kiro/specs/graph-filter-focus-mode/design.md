@@ -678,6 +678,14 @@ class HttpMcpProtocolClient(
 
 **Transport**: HTTP POST với JSON-RPC 2.0 body → JSON-RPC response. Session tracking via `Mcp-Session-Id` header.
 
+**JSON-RPC Body Building**: `buildRequestBody()` và `buildNotificationBody()` xây dựng JSON-RPC body thủ công bằng `buildJsonObject {}` thay vì `Json.encodeToString(JsonRpcRequest)`. Lý do: omit `"params"` field khi null — một số MCP servers (Atlassian) reject request nếu `params: null` xuất hiện trong body. Notifications không có `id` field.
+
+**SSE Response Parsing**: `extractJsonFromResponse()` xử lý 2 format response:
+- Plain JSON: body bắt đầu bằng `{` hoặc `[` → trả về trực tiếp
+- SSE format: parse các dòng `data:` và join lại thành JSON string (một số MCP servers trả về response dạng `event: message\ndata: {json}\n\n`)
+
+**HTTP Content-Type Fix**: `doPost()` sử dụng `TextContent(body, ContentType.Application.Json)` thay vì `contentType()` + `setBody()` riêng biệt — đảm bảo Content-Type header `application/json` luôn được gửi đúng cách với Ktor HttpClient.
+
 **Authentication**: `buildAuthHeaders(env)` tạo Authorization header từ env config:
 - API Token mode: `Basic base64(email:api_token)`
 - OAuth mode: `Basic base64(client_id:client_secret)` (client credentials)

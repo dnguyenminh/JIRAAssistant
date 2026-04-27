@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 enum class TicketAnalysisState {
-    NOT_ANALYZED, ANALYZED, HAS_UPDATES, ANALYZING
+    NOT_ANALYZED, SCANNED, ANALYZED, HAS_UPDATES, ANALYZING
 }
 
 @Serializable

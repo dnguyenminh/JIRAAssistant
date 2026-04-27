@@ -19,7 +19,8 @@ data class McpServerConfig(
     val disabled: Boolean = false,
     val status: String = "OFFLINE",
     val createdAt: String = "",
-    val updatedAt: String = ""
+    val updatedAt: String = "",
+    val internal: Boolean = false
 )
 
 /**

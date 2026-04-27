@@ -9,6 +9,9 @@ import com.assistant.jira.JiraProject
 import com.assistant.jira.JiraRestClient
 import com.assistant.kb.ProviderConfigRepository
 import com.assistant.rbac.Permission
+import com.assistant.server.ai.CopilotCliAgent
+import com.assistant.server.ai.GeminiCliAgent
+import com.assistant.server.ai.KiroCliAgent
 import com.assistant.server.middleware.withPermission
 import io.ktor.client.*
 import io.ktor.client.request.*
@@ -47,6 +50,11 @@ data class JiraConfigResponse(
 data class ProviderTestRequest(
     val endpoint: String = "",
     val model: String = ""
+)
+
+@Serializable
+data class ProviderStatusUpdateRequest(
+    val status: String
 )
 
 @Serializable
@@ -122,6 +130,8 @@ fun Routing.integrationRoutes() {
                     ProviderConfig(providerId = "gemini", name = "Google Gemini API", type = ProviderType.GEMINI, endpoint = "", model = "gemini-1.5-pro", priority = 2, status = ConnectionStatus.OFFLINE),
                     ProviderConfig(providerId = "lm_studio", name = "LM Studio", type = ProviderType.LM_STUDIO, endpoint = "http://localhost:1234", priority = 3, status = ConnectionStatus.OFFLINE),
                     ProviderConfig(providerId = "gemini_cli", name = "Gemini CLI Interface", type = ProviderType.GEMINI_CLI, endpoint = "", priority = 4, status = ConnectionStatus.OFFLINE),
+                    ProviderConfig(providerId = "copilot_cli", name = "Copilot CLI (GitHub)", type = ProviderType.COPILOT_CLI, endpoint = "", priority = 5, status = ConnectionStatus.OFFLINE),
+                    ProviderConfig(providerId = "kiro_cli", name = "Kiro CLI (Amazon)", type = ProviderType.KIRO_CLI, endpoint = "", priority = 6, status = ConnectionStatus.OFFLINE),
                     ProviderConfig(providerId = "embedding", name = "Embedding Model", type = ProviderType.EMBEDDING, endpoint = "http://localhost:11434", model = "nomic-embed-text", priority = 10, status = ConnectionStatus.ACTIVE)
                 )
 
@@ -151,6 +161,20 @@ fun Routing.integrationRoutes() {
                 } catch (e: Exception) {
                     call.respond(HttpStatusCode.OK, OllamaModelsResponse(emptyList(), error = "Cannot connect to Ollama: ${e.message}"))
                 }
+            }
+
+            // PUT /api/integrations/{providerId}/status — update provider status (start/stop)
+            put("/{providerId}/status") {
+                val providerId = call.parameters["providerId"]
+                    ?: return@put call.respond(HttpStatusCode.BadRequest, ErrorResponse("providerId is required"))
+                val body = call.receive<ProviderStatusUpdateRequest>()
+                val newStatus = try {
+                    ConnectionStatus.valueOf(body.status.uppercase())
+                } catch (_: Exception) {
+                    return@put call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid status: ${body.status}"))
+                }
+                providerConfigRepo.updateStatus(providerId, newStatus)
+                call.respond(HttpStatusCode.OK, mapOf("providerId" to providerId, "status" to newStatus.name))
             }
 
             post("/{providerId}/test") {
@@ -183,6 +207,7 @@ fun Routing.integrationRoutes() {
                             message = "Connected — ${projects.size} projects accessible"
                         ))
                     } catch (e: Exception) {
+                        providerConfigRepo.updateStatus("jira", ConnectionStatus.OFFLINE)
                         call.respond(HttpStatusCode.OK, ProviderTestResult(
                             providerId = "jira",
                             success = false,
@@ -198,7 +223,43 @@ fun Routing.integrationRoutes() {
                         ProviderTestRequest()
                     }
 
-                    if (testRequest.endpoint.isNotBlank()) {
+                    // Gemini CLI: test by spawning process with --version
+                    val isGeminiCli = providerId == "gemini_cli" ||
+                        providerConfigRepo.findById(providerId)?.type == ProviderType.GEMINI_CLI
+
+                    // Copilot CLI: test by spawning process with --version
+                    val isCopilotCli = providerId == "copilot_cli" ||
+                        providerConfigRepo.findById(providerId)?.type == ProviderType.COPILOT_CLI
+
+                    // Kiro CLI: test by spawning process with --version
+                    val isKiroCli = providerId == "kiro_cli" ||
+                        providerConfigRepo.findById(providerId)?.type == ProviderType.KIRO_CLI
+
+                    if (isGeminiCli) {
+                        val cliPath = testRequest.endpoint.ifBlank {
+                            providerConfigRepo.findById(providerId)?.endpoint ?: "gemini"
+                        }
+                        val model = testRequest.model.ifBlank { "gemini-2.0-flash" }
+                        respondCliTest(call, providerId, providerConfigRepo, cliPath) {
+                            GeminiCliAgent(cliPath, model)
+                        }
+                    } else if (isCopilotCli) {
+                        val cliPath = testRequest.endpoint.ifBlank {
+                            providerConfigRepo.findById(providerId)?.endpoint ?: "gh"
+                        }
+                        val model = testRequest.model.ifBlank { "copilot" }
+                        respondCliTest(call, providerId, providerConfigRepo, cliPath) {
+                            CopilotCliAgent(cliPath, model)
+                        }
+                    } else if (isKiroCli) {
+                        val cliPath = testRequest.endpoint.ifBlank {
+                            providerConfigRepo.findById(providerId)?.endpoint ?: "kiro"
+                        }
+                        val model = testRequest.model.ifBlank { "kiro" }
+                        respondCliTest(call, providerId, providerConfigRepo, cliPath) {
+                            KiroCliAgent(cliPath, model)
+                        }
+                    } else if (testRequest.endpoint.isNotBlank()) {
                         // Test with provided endpoint (not saved config)
                         val testEndpoint = testRequest.endpoint
                         val testModel = testRequest.model.ifBlank { "llama3" }
@@ -206,11 +267,14 @@ fun Routing.integrationRoutes() {
                             val agent = OllamaAgent(httpClient, testModel, testEndpoint)
                             val connResult = agent.testConnection()
                             if (connResult != null) {
+                                providerConfigRepo.updateStatus(providerId, ConnectionStatus.ACTIVE)
                                 call.respond(HttpStatusCode.OK, com.assistant.ai.ProviderTestResult(providerId, true, 0, connResult))
                             } else {
+                                providerConfigRepo.updateStatus(providerId, ConnectionStatus.OFFLINE)
                                 call.respond(HttpStatusCode.OK, com.assistant.ai.ProviderTestResult(providerId, false, 0, "Cannot connect to $testEndpoint"))
                             }
                         } catch (e: Exception) {
+                            providerConfigRepo.updateStatus(providerId, ConnectionStatus.OFFLINE)
                             call.respond(HttpStatusCode.OK, com.assistant.ai.ProviderTestResult(providerId, false, 0, "Error: ${e.message}"))
                         }
                     } else {
@@ -235,6 +299,8 @@ fun Routing.integrationRoutes() {
                     "gemini" -> ProviderType.GEMINI
                     "lm_studio" -> ProviderType.LM_STUDIO
                     "gemini_cli" -> ProviderType.GEMINI_CLI
+                    "copilot_cli" -> ProviderType.COPILOT_CLI
+                    "kiro_cli" -> ProviderType.KIRO_CLI
                     else -> ProviderType.OLLAMA
                 }
                 val providerName = existing?.name ?: providerId
@@ -340,5 +406,36 @@ private fun normalizeDomain(domain: String): String {
         trimmed.startsWith("https://") -> trimmed
         trimmed.startsWith("http://") -> trimmed.replaceFirst("http://", "https://")
         else -> "https://$trimmed"
+    }
+}
+
+/**
+ * Test a CLI-based provider connection and respond with the result.
+ */
+private suspend fun respondCliTest(
+    call: io.ktor.server.application.ApplicationCall,
+    providerId: String,
+    providerConfigRepo: ProviderConfigRepository,
+    cliPath: String,
+    agentFactory: () -> com.assistant.ai.AIAgent
+) {
+    try {
+        val agent = agentFactory()
+        val connResult = when (agent) {
+            is GeminiCliAgent -> agent.testConnection()
+            is CopilotCliAgent -> agent.testConnection()
+            is KiroCliAgent -> agent.testConnection()
+            else -> null
+        }
+        if (connResult != null) {
+            providerConfigRepo.updateStatus(providerId, ConnectionStatus.ACTIVE)
+            call.respond(HttpStatusCode.OK, com.assistant.ai.ProviderTestResult(providerId, true, 0, connResult))
+        } else {
+            providerConfigRepo.updateStatus(providerId, ConnectionStatus.OFFLINE)
+            call.respond(HttpStatusCode.OK, com.assistant.ai.ProviderTestResult(providerId, false, 0, "CLI not found or not executable: $cliPath"))
+        }
+    } catch (e: Exception) {
+        providerConfigRepo.updateStatus(providerId, ConnectionStatus.OFFLINE)
+        call.respond(HttpStatusCode.OK, com.assistant.ai.ProviderTestResult(providerId, false, 0, "Error: ${e.message}"))
     }
 }

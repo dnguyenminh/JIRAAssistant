@@ -62,7 +62,7 @@ class FirstLaunchRedirectSteps {
     @When("the Frontend_App calls {string}")
     fun frontendAppCalls(apiCall: String) {
         val path = apiCall.removePrefix("GET ").removePrefix("POST ").removePrefix("PUT ")
-        runBlocking { TestHelper.get(path, TestHelper.TEST_JWT) }
+        runBlocking { TestHelper.get(path, TestHelper.TEST_JWT.ifBlank { null }) }
     }
 
     // ── Then ──

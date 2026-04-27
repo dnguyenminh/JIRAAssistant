@@ -4,6 +4,7 @@ import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.utils.io.*
 import kotlinx.serialization.*
 import kotlinx.serialization.json.*
 
@@ -51,13 +52,7 @@ class OllamaAgent(
 
     override suspend fun analyze(prompt: String, context: AIContext?): AIResult {
         return try {
-            // Enhanced prompt with context (Follows DRY/SOLID)
-            val fullPrompt = if (context != null) {
-                "Context:\n${context.tickets.joinToString("\n") { "[${it.id}] ${it.summary}: ${it.description}" }}\n\nUser Request: $prompt"
-            } else {
-                prompt
-            }
-
+            val fullPrompt = buildFullPrompt(prompt, context)
             val httpResponse = httpClient.post("$endpoint/api/generate") {
                 contentType(ContentType.Application.Json)
                 val jsonBody = Json.encodeToString(OllamaRequest.serializer(), OllamaRequest(model, fullPrompt))
@@ -84,6 +79,56 @@ class OllamaAgent(
         } catch (e: Exception) {
             AIResult.Failure("Ollama Connection Error: ${e.message}")
         }
+    }
+
+    /**
+     * Streaming analysis: sends prompt with stream=true, reads NDJSON lines,
+     * accumulates response text, reports progress via callback.
+     *
+     * Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6
+     */
+    suspend fun analyzeStreaming(
+        prompt: String,
+        onProgress: (Int) -> Unit,
+        context: AIContext? = null
+    ): AIResult {
+        return try {
+            val fullPrompt = buildFullPrompt(prompt, context)
+            val body = Json.encodeToString(
+                OllamaRequest.serializer(),
+                OllamaRequest(model, fullPrompt, stream = true)
+            )
+            executeStreamingRequest(body, onProgress)
+        } catch (e: Exception) {
+            AIResult.Failure("Ollama Streaming Error: ${e.message}")
+        }
+    }
+
+    private suspend fun executeStreamingRequest(
+        body: String,
+        onProgress: (Int) -> Unit
+    ): AIResult {
+        val statement = httpClient.preparePost("$endpoint/api/generate") {
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }
+        return statement.execute { response ->
+            if (!response.status.isSuccess()) {
+                return@execute AIResult.Failure("Ollama HTTP Error: ${response.status}")
+            }
+            val channel: ByteReadChannel = response.bodyAsChannel()
+            val reader = OllamaStreamReader()
+            val result = reader.readStream(channel, onProgress)
+            AIResult.Success(result)
+        }
+    }
+
+    private fun buildFullPrompt(prompt: String, context: AIContext?): String {
+        if (context == null) return prompt
+        val ctxText = context.tickets.joinToString("\n") {
+            "[${it.id}] ${it.summary}: ${it.description}"
+        }
+        return "Context:\n$ctxText\n\nUser Request: $prompt"
     }
 
     override fun getAgentName(): String = "Local Ollama - $model"

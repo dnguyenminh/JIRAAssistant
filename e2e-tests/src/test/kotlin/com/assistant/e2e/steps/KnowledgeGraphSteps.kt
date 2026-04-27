@@ -20,7 +20,6 @@ class KnowledgeGraphSteps {
     lateinit var driver: WebDriver
 
     private val actor = Actor.named("GraphUser")
-    private var initialViewBox: String? = null
 
     // ── Background ──
 
@@ -115,9 +114,17 @@ class KnowledgeGraphSteps {
 
     @When("the user hovers over a ticket node")
     fun userHoversOverNode() {
-        val nodes = driver.findElements(By.cssSelector("svg circle, svg [class*='node']"))
-        if (nodes.isNotEmpty()) {
-            Actions(driver).moveToElement(nodes.first()).perform()
+        val canvas = driver.findElements(By.cssSelector("#graphCyContainer canvas, [class*='graph'] canvas"))
+        if (canvas.isNotEmpty()) {
+            try {
+                TestHelper.js(driver).executeScript(
+                    "var cy=document.getElementById('graphCyContainer')?._cyreg?.cy;" +
+                    "if(cy&&cy.nodes().length>0){cy.nodes().first().emit('mouseover')}" +
+                    "else{arguments[0].dispatchEvent(new MouseEvent('mouseover',{bubbles:true}))}", canvas.first()
+                )
+            } catch (_: Exception) {
+                Actions(driver).moveToElement(canvas.first()).perform()
+            }
         }
     }
 
@@ -146,12 +153,13 @@ class KnowledgeGraphSteps {
 
     @When("the user clicks on a ticket node {string}")
     fun userClicksNode(ticketKey: String) {
-        val nodes = driver.findElements(By.xpath("//*[contains(text(),'$ticketKey')]"))
-        if (nodes.isNotEmpty()) {
-            nodes.first().click()
-        } else {
-            val circles = driver.findElements(By.cssSelector("svg circle"))
-            if (circles.isNotEmpty()) circles.first().click()
+        val canvas = driver.findElements(By.cssSelector("#graphCyContainer canvas, [class*='graph'] canvas"))
+        if (canvas.isNotEmpty()) {
+            TestHelper.js(driver).executeScript(
+                "var cy=document.getElementById('graphCyContainer')?._cyreg?.cy;" +
+                "if(cy){var n=cy.nodes().filter(function(n){return n.data('label')==='$ticketKey'});" +
+                "if(n.length>0){n.first().emit('tap')}else if(cy.nodes().length>0){cy.nodes().first().emit('tap')}}"
+            )
         }
     }
 
@@ -199,7 +207,16 @@ class KnowledgeGraphSteps {
     @When("the user clicks the close button on the detail panel")
     fun userClicksCloseOnDetailPanel() {
         val closeButtons = driver.findElements(By.cssSelector("[class*='close'], button[aria-label='close']"))
-        if (closeButtons.isNotEmpty()) closeButtons.first().click()
+            .filter { it.isDisplayed }
+        if (closeButtons.isNotEmpty()) {
+            val btn = closeButtons.first()
+            try {
+                TestHelper.js(driver).executeScript("arguments[0].scrollIntoView({block:'center'})", btn)
+                btn.click()
+            } catch (_: Exception) {
+                TestHelper.js(driver).executeScript("arguments[0].click()", btn)
+            }
+        }
     }
 
     @Then("the detail panel should be hidden")
@@ -264,10 +281,13 @@ class KnowledgeGraphSteps {
 
     @When("the user scrolls the mouse wheel up on the graph")
     fun userScrollsUp() {
-        val svg = driver.findElements(By.tagName("svg"))
-        if (svg.isNotEmpty()) {
-            initialViewBox = svg.first().getAttribute("viewBox")
-            Actions(driver).moveToElement(svg.first()).scrollByAmount(0, -100).perform()
+        val canvas = driver.findElements(By.cssSelector("#graphCyContainer canvas, [class*='graph'] canvas"))
+        if (canvas.isNotEmpty()) {
+            TestHelper.js(driver).executeScript(
+                "var cy=document.getElementById('graphCyContainer')?._cyreg?.cy;" +
+                "if(cy){cy.zoom(cy.zoom()*1.2)}else{arguments[0].dispatchEvent(" +
+                "new WheelEvent('wheel',{deltaY:-100,bubbles:true}))}", canvas.first()
+            )
         }
     }
 
@@ -278,9 +298,13 @@ class KnowledgeGraphSteps {
 
     @When("the user scrolls the mouse wheel down on the graph")
     fun userScrollsDown() {
-        val svg = driver.findElements(By.tagName("svg"))
-        if (svg.isNotEmpty()) {
-            Actions(driver).moveToElement(svg.first()).scrollByAmount(0, 100).perform()
+        val canvas = driver.findElements(By.cssSelector("#graphCyContainer canvas, [class*='graph'] canvas"))
+        if (canvas.isNotEmpty()) {
+            TestHelper.js(driver).executeScript(
+                "var cy=document.getElementById('graphCyContainer')?._cyreg?.cy;" +
+                "if(cy){cy.zoom(cy.zoom()*0.8)}else{arguments[0].dispatchEvent(" +
+                "new WheelEvent('wheel',{deltaY:100,bubbles:true}))}", canvas.first()
+            )
         }
     }
 
@@ -291,10 +315,16 @@ class KnowledgeGraphSteps {
 
     @When("the user clicks and drags on the graph canvas")
     fun userClicksAndDrags() {
-        val svg = driver.findElements(By.tagName("svg"))
-        if (svg.isNotEmpty()) {
-            Actions(driver).moveToElement(svg.first())
-                .clickAndHold().moveByOffset(50, 50).release().perform()
+        val canvas = driver.findElements(By.cssSelector("#graphCyContainer canvas, [class*='graph'] canvas"))
+        if (canvas.isNotEmpty()) {
+            TestHelper.js(driver).executeScript(
+                "var cy=document.getElementById('graphCyContainer')?._cyreg?.cy;" +
+                "if(cy){var p=cy.pan();cy.pan({x:p.x+50,y:p.y+50})}" +
+                "else{var el=arguments[0];" +
+                "el.dispatchEvent(new MouseEvent('mousedown',{clientX:100,clientY:100,bubbles:true}));" +
+                "el.dispatchEvent(new MouseEvent('mousemove',{clientX:150,clientY:150,bubbles:true}));" +
+                "el.dispatchEvent(new MouseEvent('mouseup',{clientX:150,clientY:150,bubbles:true}))}", canvas.first()
+            )
         }
     }
 

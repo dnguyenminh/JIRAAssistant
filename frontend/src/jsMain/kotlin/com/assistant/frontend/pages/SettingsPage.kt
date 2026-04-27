@@ -3,6 +3,8 @@ package com.assistant.frontend.pages
 import com.assistant.auth.UserRole
 import com.assistant.frontend.api.ApiClient
 import com.assistant.frontend.pages.settings.SettingsSaveHandler
+import com.assistant.frontend.pages.settings.SettingsCurationToggle
+import com.assistant.frontend.pages.settings.SettingsAgentPipelineToggle
 import com.assistant.frontend.services.ValidationService
 import com.assistant.settings.AppSettingsResponse
 import io.ktor.client.statement.*
@@ -20,7 +22,7 @@ import org.w3c.dom.HTMLInputElement
  */
 object SettingsPage {
 
-    private val scope = MainScope()
+    internal val scope = MainScope()
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
     fun render(container: Element) {
@@ -36,6 +38,8 @@ object SettingsPage {
             showMainContent()
             bindEvents()
             loadSettings()
+            SettingsCurationToggle.init()
+            SettingsAgentPipelineToggle.init()
         }
     }
 
@@ -98,7 +102,6 @@ object SettingsPage {
         setInput("input-ai-provider-url", settings.aiProviderUrl ?: "")
         setMaskedInput("input-jwt-secret", settings.jwtSecret)
         setMaskedInput("input-encryption-key", settings.encryptionKey)
-        setReadonlyInput("input-db-path", settings.dbPath ?: "")
         setReadonlyInput("input-port", settings.port?.toString() ?: "")
     }
 

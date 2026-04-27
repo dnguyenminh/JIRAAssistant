@@ -48,7 +48,22 @@ data class ChatContext(
     val currentScreen: String,
     val userRole: String,
     val userId: String,
-    val graphContext: GraphChatContext? = null
+    val graphContext: GraphChatContext? = null,
+    val ticketContext: TicketChatContext? = null
+)
+
+/**
+ * Ticket Intelligence screen context sent when user has a ticket selected.
+ * Allows AI to answer questions about the currently viewed ticket.
+ * Requirements: 19.5, 22.1
+ */
+@Serializable
+data class TicketChatContext(
+    val selectedTicketId: String,
+    val ticketSummary: String = "",
+    val analysisState: String = "",
+    val hasAnalysisResult: Boolean = false,
+    val activeTab: String = "context"
 )
 
 /**

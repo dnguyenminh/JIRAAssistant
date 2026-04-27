@@ -34,13 +34,29 @@ Tất cả credentials được lưu vào database (bảng `provider_configs`) v
 10. THE Frontend_App SHALL hiển thị modal cấu hình cho Ollama gồm: Endpoint URL (text input), Model Name (**dropdown** load từ `GET /api/integrations/ollama/models`), Temperature (slider 0-1), Max Tokens (**slider** range 256–32768), và 2 nút riêng biệt: "TEST CONNECTION" và "SAVE". Nút SAVE bị disable cho đến khi TEST CONNECTION thành công
 11. THE Frontend_App SHALL hiển thị modal cấu hình cho Gemini gồm: API Key (password input), Model Tier (dropdown), Temperature (slider 0-1), Max Tokens (**slider** range 256–32768), và 2 nút riêng biệt: "TEST CONNECTION" và "SAVE". Nút SAVE bị disable cho đến khi TEST CONNECTION thành công
 12. THE Frontend_App SHALL hiển thị modal cấu hình cho LM Studio gồm: Endpoint URL (host:port), Model Name (text input), Temperature (slider 0-1), Max Tokens (**slider** range 256–32768), và 2 nút riêng biệt: "TEST CONNECTION" và "SAVE". Nút SAVE bị disable cho đến khi TEST CONNECTION thành công
-13. THE Frontend_App SHALL hiển thị modal cấu hình cho Gemini CLI gồm: CLI Path (file path input), Model Name (text input), và 2 nút riêng biệt: "TEST CONNECTION" và "SAVE". Nút SAVE bị disable cho đến khi TEST CONNECTION thành công
-14. WHEN Administrator nhấn "SAVE", THE Backend_Server SHALL lưu cấu hình vào database (bảng `provider_configs` với sensitive fields encrypted AES-256-GCM) và cập nhật status. WHEN Administrator nhấn "TEST CONNECTION", THE Backend_Server SHALL test kết nối sử dụng endpoint/model từ request body (chưa lưu vào DB) và trả về kết quả
+13. THE Frontend_App SHALL hiển thị modal cấu hình cho Gemini CLI gồm: CLI Path (file path hoặc command name trên PATH), Model (**dropdown select** với các options: "Auto (CLI decides)", "Gemini 2.5 Pro", "Gemini 2.5 Flash", "Gemini 2.0 Flash"), và 2 nút riêng biệt: "TEST CONNECTION" và "SAVE". Nút SAVE bị disable cho đến khi TEST CONNECTION thành công. Khi chọn "Auto", giá trị `"auto"` được lưu vào DB và GeminiCliAgent không truyền flag `-m` — để Gemini CLI tự chọn model tối ưu cho task
+14. WHEN Administrator nhấn "SAVE", THE Backend_Server SHALL lưu cấu hình vào database (bảng `provider_configs` với sensitive fields encrypted AES-256-GCM) và cập nhật status. WHEN Administrator nhấn "TEST CONNECTION", THE Backend_Server SHALL test kết nối sử dụng endpoint/model từ request body (chưa lưu vào DB), cập nhật status (ACTIVE/OFFLINE) vào bảng `provider_configs`, và trả về kết quả
 15. WHEN cấu hình provider được lưu thành công, THE Frontend_App SHALL cập nhật status dot và hiển thị toast "Configuration saved"
 16. THE Frontend_App SHALL cho phép Administrator kéo thả hoặc dùng nút mũi tên để thay đổi thứ tự ưu tiên failover giữa các AI providers
 17. WHEN Jira credentials được cập nhật qua Integrations, THE Backend_Server SHALL cập nhật credentials trong database và tất cả API calls tới Jira sau đó SHALL sử dụng credentials mới (JiraClient factory pattern đọc credentials từ DB mỗi request)
 18. THE Backend_Server SHALL cung cấp endpoint `GET /api/integrations/ollama/models` trả về danh sách models có sẵn từ Ollama instance (gọi `GET /api/tags` trên Ollama endpoint)
-19. THE Backend_Server SHALL cung cấp endpoint `POST /api/integrations/{providerId}/test` nhận `{endpoint, model}` từ request body để test kết nối với config chưa lưu. OllamaAgent sử dụng `GET /api/tags` (lightweight) cho `testConnection()`
+19. THE Backend_Server SHALL cung cấp endpoint `POST /api/integrations/{providerId}/test` nhận `{endpoint, model}` từ request body để test kết nối với config chưa lưu. Đối với Ollama/LM Studio/Gemini API: sử dụng `OllamaAgent.testConnection()` gọi `GET /api/tags` (lightweight). Đối với Gemini CLI: sử dụng `GeminiCliAgent.testConnection()` spawn process `gemini --version` qua `ProcessBuilder` (hỗ trợ Windows `.cmd` files qua `cmd /c` prefix)
+20. THE Backend_Server SHALL triển khai `GeminiCliAgent` (implement `AIAgent`) tại `server/src/jvmMain/kotlin/com/assistant/server/ai/GeminiCliAgent.kt`. Agent spawn Gemini CLI process per request, gửi prompt qua stdin, đọc response từ stdout. Hỗ trợ cross-platform (Windows `.cmd` files, Linux/macOS binaries). Timeout mặc định 120 giây cho analyze, 15 giây cho test connection
+21. THE ServerModule SHALL tạo `GeminiCliAgent(cliPath, model)` cho `ProviderType.GEMINI_CLI` trong `buildAgentMap()`, thay vì `OllamaAgent`. CLI path lấy từ `config.endpoint`, model lấy từ `config.model`
+22. THE ServerModule `ChatServiceImpl.aiAgentProvider` lambda SHALL chọn AI provider ACTIVE có priority cao nhất từ `buildAgentMap()` thay vì hardcode `OllamaAgent`. Filter theo `status == ACTIVE` và `type in [OLLAMA, LM_STUDIO, GEMINI, GEMINI_CLI]`, sort theo `priority`. Fallback về `OllamaAgent("llama3", "http://localhost:11434")` khi không có provider ACTIVE nào
+23. THE `JobExecutor.resolveAgent()` SHALL tạo đúng loại agent theo `ProviderType` của provider ACTIVE có priority cao nhất: `GeminiCliAgent` cho `GEMINI_CLI`, `OllamaAgent` cho các loại khác. Không hardcode `OllamaAgent` cho mọi provider type
+
+### Provider Status Badge & Start/Stop Control
+
+**6.64** THE Frontend_App SHALL hiển thị **status badge** (pill-shaped label) cạnh tên provider trên mỗi Integration card, với 3 variants: ACTIVE (nền xanh lá `rgba(0,255,136,0.12)`, text `#00ff88`), STANDBY (nền xanh dương `rgba(51,134,255,0.12)`, text `#3386ff`), OFFLINE (nền đỏ hồng `rgba(255,110,132,0.12)`, text `#ff6e84`). Badge hiển thị text trạng thái uppercase (ACTIVE/STANDBY/OFFLINE) giống badge LOCAL/STOP trên MCP server cards.
+
+**6.65** THE Frontend_App SHALL hiển thị nút **START/STOP** cạnh status badge trên mỗi Integration card, chỉ visible cho users có vai trò Administrator. Nút STOP (text đỏ `#ff4444`) hiển thị khi provider đang ACTIVE. Nút START (text xanh lá `#00ff88`) hiển thị khi provider đang STANDBY hoặc OFFLINE.
+
+**6.66** WHEN Administrator nhấn **STOP** trên provider card, THE Frontend_App SHALL gọi `PUT /api/integrations/{providerId}/status` với body `{"status": "OFFLINE"}`, cập nhật status trong local state, re-render card với badge OFFLINE và nút START, và hiển thị toast "✓ {providerName} stopped".
+
+**6.67** WHEN Administrator nhấn **START** trên provider card, THE Frontend_App SHALL gọi `POST /api/integrations/{providerId}/test` để test connection. Nếu thành công → cập nhật status ACTIVE, hiển thị toast "✓ {providerName} started". Nếu thất bại → giữ status OFFLINE, hiển thị toast lỗi.
+
+**6.68** THE Backend_Server SHALL cung cấp endpoint `PUT /api/integrations/{providerId}/status` nhận body `{"status": "ACTIVE|STANDBY|OFFLINE"}`, cập nhật status trong bảng `provider_configs`, và trả về `{"providerId", "status"}`. Endpoint yêu cầu permission `CONFIG_INTEGRATIONS` (Administrator only).
 
 
 ### MCP Server Registration
@@ -137,13 +153,17 @@ Tất cả credentials được lưu vào database (bảng `provider_configs`) v
 
 **6.47** THE Frontend_App SHALL hiển thị danh sách tools trên MCP server card (expandable section) sau khi server ở trạng thái ACTIVE. Mỗi tool hiển thị: icon 🔧, tool name, description (truncated 100 chars), và nút "View Schema" mở modal hiển thị inputSchema dạng formatted JSON.
 
+> ⚠️ **Tool permissions**: Toggle enable/disable per-user đã được triển khai bởi spec `per-user-tool-permissions`. Xem `mcp-servers` spec (6.47a, 6.47b) cho chi tiết.
+
 #### Tool Execution
 
 **6.48** THE Backend_Server SHALL cung cấp endpoint `POST /api/integrations/mcp/tools/call` nhận `{serverId, toolName, arguments}` và route tool call tới MCP server tương ứng qua `tools/call` JSON-RPC request. Response trả về kết quả từ MCP server (content array với type text/image/resource).
 
 **6.49** IF MCP server không phản hồi `tools/call` request trong vòng 60 giây, THEN THE Backend_Server SHALL cancel request, trả về HTTP 504 Gateway Timeout với message "Tool execution timeout", và ghi log chi tiết.
 
-**6.50** IF tool name nằm trong danh sách `autoApprove` của MCP server config, THEN THE Backend_Server SHALL thực thi tool call ngay lập tức mà không cần xác nhận từ người dùng. IF tool name KHÔNG nằm trong `autoApprove`, THEN THE Backend_Server SHALL yêu cầu xác nhận trước khi thực thi (trả về `{requiresApproval: true, toolName, arguments}` để Frontend hiển thị confirmation dialog).
+**6.50** ~~IF tool name nằm trong danh sách `autoApprove` của MCP server config, THEN THE Backend_Server SHALL thực thi tool call ngay lập tức mà không cần xác nhận từ người dùng. IF tool name KHÔNG nằm trong `autoApprove`, THEN THE Backend_Server SHALL yêu cầu xác nhận trước khi thực thi (trả về `{requiresApproval: true, toolName, arguments}` để Frontend hiển thị confirmation dialog).~~
+
+> ✅ **Đã thay thế bởi spec `per-user-tool-permissions` (Requirement 1)**: Chuyển sang mô hình enable/disable per-user. Xem `mcp-servers` spec (6.50) cho chi tiết.
 
 **6.51** THE Frontend_App SHALL hiển thị confirmation dialog khi tool call yêu cầu approval, gồm: tool name, server name, arguments (formatted JSON), và 2 nút "Approve" / "Deny". WHEN người dùng nhấn "Approve", THE Frontend_App SHALL gửi lại request với `{approved: true}`.
 
@@ -169,6 +189,26 @@ Tất cả credentials được lưu vào database (bảng `provider_configs`) v
 
 #### Logging & Diagnostics
 
-**6.60** THE Backend_Server SHALL ghi log tất cả JSON-RPC messages (request/response) với MCP servers vào structured log (SLF4J), bao gồm: timestamp, serverId, method, requestId, duration (ms), và error (nếu có). Log level: DEBUG cho messages thành công, WARN cho errors.
+**6.60** THE Backend_Server SHALL ghi log tất cả JSON-RPC messages (request/response) với MCP servers vào structured log (SLF4J), bao gồm: timestamp, serverId, method, requestId, duration (ms), và error (nếu có). Log level: DEBUG cho messages thành công, WARN cho errors. **Ngoại lệ**: `tools/call` (tool execution) được log ở level **INFO** với format `Agent {serverId} call {serverId}.{toolName}: arguments=... / OK in Xms / FAILED in Xms` để dễ theo dõi MCP tool usage trong production logs.
 
 **6.61** THE Backend_Server SHALL cung cấp endpoint `GET /api/integrations/mcp/{id}/logs` trả về 100 dòng log gần nhất của MCP server process (stderr output + JSON-RPC log). Endpoint yêu cầu vai trò Administrator.
+
+
+---
+
+### Internal MCP Server — Điều khiển ứng dụng qua AI
+
+> **Xem spec `mcp-servers` (requirements 6.70–6.112)** cho phần Internal MCP Server — MCP server tích hợp sẵn expose các tương tác UI của ứng dụng dưới dạng MCP tools, cho phép AI agent điều khiển ứng dụng (navigation, scan control, ticket analysis, chat, settings, user management, integrations, knowledge graph, dashboard). Bao gồm:
+> - Đăng ký & Lifecycle (6.70–6.73): auto-register `jira-assistant-ui`, in-process tool execution
+> - Navigation Tools (6.74–6.76): navigate_to_page, get_current_page, list_available_pages
+> - Scan Control Tools (6.77–6.82): start/pause/resume/cancel scan, get status/log
+> - Ticket Analysis Tools (6.83–6.85): analyze, get analysis, list analyzed tickets
+> - Chat Tools (6.86–6.88): send message, get history, list conversations
+> - Settings Tools (6.89–6.91): get/update settings
+> - User Management Tools (6.92–6.94): list users, update role, get permissions
+> - Integration Management Tools (6.95–6.98): list providers, test provider, manage MCP servers
+> - Knowledge Graph Tools (6.99–6.100): get graph data, search nodes
+> - Dashboard & Project Tools (6.101–6.103): metrics, list projects, analysis summary
+> - RBAC Enforcement (6.104–6.106): permission checks per tool
+> - Tool Discovery & Integration (6.107–6.109): aggregated tools list, inputSchema, AI Chat priority
+> - Error Handling (6.110–6.112): business errors, system errors, argument validation

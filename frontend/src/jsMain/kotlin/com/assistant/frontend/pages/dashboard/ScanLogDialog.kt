@@ -81,7 +81,7 @@ internal object ScanLogDialog {
         val projectKey = ApiClient.getProjectKey() ?: return
         DashboardPage.scope.launch {
             try {
-                val resp = ApiClient.get("/api/projects/$projectKey/scan/log?limit=20&offset=0")
+                val resp = ApiClient.get("/api/projects/$projectKey/scan/log?limit=50&offset=0")
                 if (ApiClient.handleUnauthorized(resp)) return@launch
                 val data = json.decodeFromString<LogResponse>(resp.bodyAsText())
                 totalCount = data.totalCount

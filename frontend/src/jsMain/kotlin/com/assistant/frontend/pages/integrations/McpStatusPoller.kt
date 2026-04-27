@@ -67,6 +67,12 @@ object McpStatusPoller {
         if (info != null) {
             info.textContent = "${formatUptime(s.uptime)} · ${s.toolCount} tools"
         }
+        // Also update the tools section toggle count. Req: 19.75
+        val toolsToggle = card.querySelector(".mcp-tools-section > div") as? HTMLElement
+        if (toolsToggle != null && s.toolCount > 0) {
+            val arrow = if (toolsToggle.textContent?.startsWith("▼") == true) "▼" else "▶"
+            toolsToggle.textContent = "$arrow Tools (${s.toolCount})"
+        }
     }
 
     private fun checkStateTransition(name: String, id: String, status: McpProcessStatusDto) {

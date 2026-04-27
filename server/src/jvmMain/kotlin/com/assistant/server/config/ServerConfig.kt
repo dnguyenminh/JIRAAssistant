@@ -8,7 +8,6 @@ import com.auth0.jwt.algorithms.Algorithm
 data class ServerConfig(
     val jiraHost: String,
     val aiProviderUrl: String,
-    val dbPath: String,
     val jwtSecret: String,
     val encryptionKey: String,
     val port: Int,
@@ -32,7 +31,6 @@ data class ServerConfig(
         fun load(): ServerConfig = ServerConfig(
             jiraHost = System.getenv("JIRA_HOST") ?: "https://jira.example.com",
             aiProviderUrl = System.getenv("AI_PROVIDER_URL") ?: "http://localhost:11434",
-            dbPath = System.getenv("DB_PATH") ?: "./data/jira-assistant.db",
             jwtSecret = System.getenv("JWT_SECRET") ?: "dev-secret-change-in-production",
             encryptionKey = System.getenv("ENCRYPTION_KEY") ?: "dev-encryption-key-change-in-production",
             port = System.getenv("PORT")?.toIntOrNull() ?: 8080,
@@ -42,7 +40,7 @@ data class ServerConfig(
         /**
          * Load config from DB with env-var fallback.
          * DB values take priority; if a key is missing in DB, falls back to System.getenv().
-         * dbPath and staticDir always come from env vars (not configurable via UI).
+         * staticDir always comes from env vars (not configurable via UI).
          */
         suspend fun loadFromDb(settingsRepo: SettingsRepository): ServerConfig = ServerConfig(
             jiraHost = settingsRepo.get("JIRA_HOST")
@@ -51,7 +49,6 @@ data class ServerConfig(
             aiProviderUrl = settingsRepo.get("AI_PROVIDER_URL")
                 ?: System.getenv("AI_PROVIDER_URL")
                 ?: "http://localhost:11434",
-            dbPath = System.getenv("DB_PATH") ?: "./data/jira-assistant.db",
             jwtSecret = settingsRepo.get("JWT_SECRET")
                 ?: System.getenv("JWT_SECRET")
                 ?: "dev-secret-change-in-production",

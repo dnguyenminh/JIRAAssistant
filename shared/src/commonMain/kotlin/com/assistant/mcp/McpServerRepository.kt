@@ -7,6 +7,10 @@ package com.assistant.mcp
 interface McpServerRepository {
     suspend fun getAll(): List<McpServerConfig>
     suspend fun findById(id: String): McpServerConfig?
+    /** Find server by name (case-insensitive). Req: 6.70, 6.72 */
+    suspend fun findByName(name: String): McpServerConfig?
+    /** Check if a server is internal. Req: 6.70, 6.72 */
+    suspend fun isInternal(id: String): Boolean
     suspend fun insert(config: McpServerConfig)
     suspend fun update(config: McpServerConfig)
     suspend fun updateStatus(id: String, status: String)

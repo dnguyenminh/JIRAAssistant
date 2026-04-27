@@ -10,7 +10,7 @@ Attachment Processing Pipeline mở rộng Batch Scan Engine để tự động 
 
 1. **JiraAttachment mở rộng**: Thêm field `content: String?` (download URL từ Jira API v3)
 2. **AttachmentDownloader**: Service mới trong server module, tải binary qua Ktor HttpClient với Jira Basic auth
-3. **Markitdown MCP**: Auto-configure `uvx markitdown` khi chưa có, gọi tool `convert_to_markdown`
+3. **Markitdown MCP**: Auto-configure `uvx markitdown` khi chưa có, gọi tool `convert_to_markdown` với `file://` URI (convert từ local path qua `File.toURI()` — markitdown yêu cầu URI scheme hợp lệ, không chấp nhận absolute path trực tiếp)
 4. **EmbeddingService**: Gọi Ollama `POST /api/embed` (v0.20+) với model `nomic-embed-text`, request `{model, input}`, response `{embeddings: [[float, ...]]}`. Endpoint đọc dynamically từ DB config. Fallback support cho legacy response format
 5. **TextChunker**: Chia markdown thành chunks ~1000 tokens (word-based splitting, ~750 words/chunk)
 6. **VectorStore**: Bảng SQLDelight `attachment_chunks`, cosine similarity search trong Kotlin
@@ -93,7 +93,7 @@ sequenceDiagram
             else Hợp lệ
                 AP->>AD: download(contentUrl, destPath)
                 AD-->>AP: filePath
-                AP->>MCP: convert_to_markdown(filePath)
+                AP->>MCP: convert_to_markdown(file:// URI)
                 MCP-->>AP: markdownText
                 AP->>TC: chunk(markdownText, maxTokens=1000)
                 TC-->>AP: List<TextChunk>
@@ -344,6 +344,33 @@ if (attachments.isNotEmpty()) {
 ```
 
 `AttachmentPipeline` được inject vào `BatchScanEngine` constructor (optional dependency — nullable để backward compatible).
+
+## Tích hợp với Single Ticket Analysis (AnalysisRoutes)
+
+Cập nhật `AnalysisRoutes.runAnalysis()` — thêm gọi AttachmentPipeline sau AI analysis (Req 22.13a):
+
+```kotlin
+// Trong runAnalysis(), sau AnalysisPhase.COMPLETE:
+processTicketAttachments(ticketId, attachmentPipeline, jiraClientProvider)
+
+// Private helper — error isolation: attachment failure không fail analysis response
+private suspend fun processTicketAttachments(
+    ticketId: String, pipeline: AttachmentPipeline, jiraClientProvider: () -> JiraClient
+) {
+    try {
+        val issue = jiraClientProvider().getIssueDetails(ticketId)
+        val attachments = issue?.fields?.attachment.orEmpty()
+        if (attachments.isNotEmpty()) {
+            val projectKey = ticketId.substringBefore("-")
+            pipeline.processAttachments(projectKey, ticketId, attachments)
+        }
+    } catch (e: Exception) {
+        println("[AnalysisRoutes] Attachment processing failed for $ticketId: ${e.message}")
+    }
+}
+```
+
+`AttachmentPipeline` và `JiraClient` (via `JiraCredentialsService` + `HttpClient`) được inject vào `analysisRoutes()` qua Koin, truyền vào `runAnalysis()` as parameters.
 
 ## Tích hợp với AI Chat
 

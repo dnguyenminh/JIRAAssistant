@@ -432,3 +432,9 @@ Triển khai 4 nhóm chức năng: (1) Graph Filters & Focus Mode trên frontend
 - Tuân thủ Kotlin code standards: file ≤ 200 dòng, hàm ≤ 20 dòng, models ở package riêng
 - Frontend tuân thủ HTML template pattern — không tạo HTML trong Kotlin code
 - Tất cả async operations sử dụng BlockingOverlay
+
+- [x] 19. Fix GraphSearchCombobox — search-then-focus bug
+  - [x] 19.1 Fix `GraphSearchCombobox.selectItem()` — clear search text + activate focus mode
+    - Trước fix: selectItem set search text = ticket key → search filter conflict với focus mode → chỉ hiển thị 1 node
+    - Sau fix: clear input text, lookup node by key, gọi `GraphFilterPanel.activateFocusMode(node.id)`
+    - _Requirements: 6.5_

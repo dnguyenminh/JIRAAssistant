@@ -110,7 +110,8 @@ fun Routing.projectRoutes() {
                 val analysisState = when {
                     isScanning && scanState.currentTicketId == ticketId -> TicketAnalysisState.ANALYZING
                     kbRecord != null && ticketUpdatedAt != null && isUpdatedAfterAnalysis(kbRecord.timestamp, ticketUpdatedAt) -> TicketAnalysisState.HAS_UPDATES
-                    kbRecord != null -> TicketAnalysisState.ANALYZED
+                    kbRecord != null && hasDeepAnalysis(kbRecord) -> TicketAnalysisState.ANALYZED
+                    kbRecord != null -> TicketAnalysisState.SCANNED
                     else -> TicketAnalysisState.NOT_ANALYZED
                 }
 
@@ -132,7 +133,7 @@ fun Routing.projectRoutes() {
  * Create a JiraClient by reading credentials from DB via JiraCredentialsService.
  * Returns NoOpJiraClient if Jira is not configured.
  */
-private fun createJiraClientFromDb(credentialsService: JiraCredentialsService, httpClient: HttpClient): JiraClient {
+internal fun createJiraClientFromDb(credentialsService: JiraCredentialsService, httpClient: HttpClient): JiraClient {
     val credentials = credentialsService.getJiraCredentials() ?: return NoOpJiraClient()
     val token = Base64.getEncoder().encodeToString("${credentials.email}:${credentials.apiToken}".toByteArray())
     return JiraRestClient(httpClient, credentials.domain, "Basic $token")
@@ -185,4 +186,11 @@ private fun isUpdatedAfterAnalysis(analysisTimestamp: String, ticketUpdatedAt: S
     val updatedMs = parseIsoDate(ticketUpdatedAt)
     if (updatedMs == 0L) return false
     return updatedMs > analysisMs
+}
+
+/** Check if KB record has deep analysis data (not just basic batch scan). */
+private fun hasDeepAnalysis(record: com.assistant.kb.KBRecord): Boolean {
+    return record.businessSummary.isNotBlank() ||
+        record.technicalDetails.apiSpecifications.isNotEmpty() ||
+        record.acceptanceCriteria.isNotEmpty()
 }

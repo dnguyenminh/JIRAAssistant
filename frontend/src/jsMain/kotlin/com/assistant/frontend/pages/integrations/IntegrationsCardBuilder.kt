@@ -20,13 +20,25 @@ internal object IntegrationsCardBuilder {
         val logo = providerLogo(provider.type)
         val disabledBtn = if (!canConfig) "opacity:0.5;cursor:not-allowed;pointer-events:none;" else ""
         val configBtnClass = if (provider.type == "JIRA") "integ-btn-jira-configure" else "integ-btn-configure"
+        val badgeClass = statusBadgeClass(provider.status)
+        val badgeLabel = provider.status.uppercase()
+        val isActive = provider.status.uppercase() == "ACTIVE"
+        val startStopLabel = if (isActive) "STOP" else "START"
+        val startStopClass = if (isActive) "btn-stop" else "btn-start"
+        val startStopHtml = if (canConfig) {
+            """<button class="integ-startstop-btn $startStopClass integ-btn-startstop" data-provider="${provider.providerId}">$startStopLabel</button>"""
+        } else ""
 
         return """
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
                 <div style="display:flex;align-items:center;gap:14px;">
                     <div style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:18px;">$logo</div>
                     <div>
-                        <div style="font-size:14px;font-weight:600;">${HtmlUtils.escapeHtml(provider.name)}</div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:14px;font-weight:600;">${HtmlUtils.escapeHtml(provider.name)}</span>
+                            <span class="integ-status-badge $badgeClass">$badgeLabel</span>
+                            $startStopHtml
+                        </div>
                         <div style="font-size:11px;opacity:0.4;letter-spacing:1px;margin-top:2px;">${HtmlUtils.escapeHtml(provider.type)}</div>
                     </div>
                 </div>
@@ -56,7 +68,12 @@ internal object IntegrationsCardBuilder {
     }
 
     private fun providerLogo(type: String): String = when (type.uppercase()) {
-        "JIRA" -> "🔷"; "OLLAMA" -> "🦙"; "GEMINI" -> "✦"; "LM_STUDIO" -> "🧪"; "GEMINI_CLI" -> "⌨"; "EMBEDDING" -> "🧬"; else -> "⚡"
+        "JIRA" -> "🔷"; "OLLAMA" -> "🦙"; "GEMINI" -> "✦"; "LM_STUDIO" -> "🧪"; "GEMINI_CLI" -> "⌨"
+        "COPILOT_CLI" -> "🤖"; "KIRO_CLI" -> "🔮"; "EMBEDDING" -> "🧬"; else -> "⚡"
+    }
+
+    fun statusBadgeClass(status: String): String = when (status.uppercase()) {
+        "ACTIVE" -> "badge-active"; "STANDBY" -> "badge-standby"; else -> "badge-offline"
     }
 
     fun bindCardEvents(card: HTMLElement, provider: ProviderInfo, index: Int, canConfig: Boolean) {
@@ -74,6 +91,10 @@ internal object IntegrationsCardBuilder {
         })
         card.querySelector(".integ-arrow-down")?.addEventListener("click", { e ->
             e.stopPropagation(); if (canConfig && index < IntegrationsPage.providers.size - 1) IntegrationsPage.swapPriority(index, index + 1)
+        })
+        card.querySelector(".integ-btn-startstop")?.addEventListener("click", { e ->
+            e.stopPropagation()
+            if (canConfig) IntegrationsStartStop.toggle(provider, card)
         })
         if (canConfig) bindDragDrop(card, provider)
     }

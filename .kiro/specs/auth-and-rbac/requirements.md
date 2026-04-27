@@ -11,7 +11,7 @@
 Hệ thống sử dụng luồng xác thực 3 bước thay vì Onboarding:
 
 1. **Login Page** — Trang đăng nhập standalone (không có Shell/sidebar/navbar). Người dùng nhập username + password. Hệ thống có 2 tài khoản mặc định: `admin/admin123` (ADMINISTRATOR) và `user/user123` (READER). Đăng nhập thành công → tạo JWT token.
-2. **Project Selection Page** — Trang chọn dự án standalone. Hiển thị grid các Jira projects từ `GET /api/projects`. Người dùng chọn 1 project → lưu project key vào sessionStorage.
+2. **Project Selection Page** — Trang chọn dự án render trong Shell (có sidebar/navbar/account dropdown). Hiển thị grid các Jira projects từ `GET /api/projects`. Người dùng chọn 1 project → lưu project key vào sessionStorage. Khi chưa có project key, navbar hiện badge "Select Project" để navigate đến trang này.
 3. **Dashboard** — Sau khi có JWT + project key → hiển thị Dashboard trong Shell.
 
 **First-Launch Flow:**
@@ -29,8 +29,8 @@ Hệ thống sử dụng luồng xác thực 3 bước thay vì Onboarding:
 2. WHEN người dùng nhập username/password hợp lệ và nhấn "SIGN IN", THE Backend_Server SHALL xác thực credentials từ danh sách user mặc định (admin/admin123 → ADMINISTRATOR, user/user123 → READER), tạo JWT token (24 giờ), và trả về JWT + user info (role, email)
 3. IF credentials không hợp lệ hoặc trống, THEN THE Backend_Server SHALL trả về HTTP 401 với message "Invalid username or password"
 4. WHEN đăng nhập thành công VÀ chưa có project key trong sessionStorage, THE Frontend_App SHALL redirect tới trang Project Selection (`#project_select`)
-5. THE Frontend_App SHALL hiển thị trang Project Selection standalone (không Shell) với bảng (table) các Jira projects từ `GET /api/projects`. Bảng hiển thị các cột: Project Key, Project Name, Type. Bảng hỗ trợ: search/filter theo tên hoặc key, sort theo từng cột (click header), phân trang (20 projects/trang) với nút Previous/Next và hiển thị "Page X of Y". Chiếm toàn bộ chiều rộng màn hình (max-width 1200px). Click vào row → lưu project key vào sessionStorage + redirect `#dashboard`
-6. IF `GET /api/projects` trả về danh sách rỗng hoặc lỗi, THEN THE Frontend_App SHALL hiển thị empty state với message và nút "RETRY"
+5. THE Frontend_App SHALL hiển thị trang Project Selection trong Shell (có sidebar/navbar) với bảng (table) các Jira projects từ `GET /api/projects`. Bảng hiển thị các cột: Project Key, Project Name, Type. Bảng hỗ trợ: search/filter theo tên hoặc key, sort theo từng cột (click header), phân trang (20 projects/trang) với nút Previous/Next và hiển thị "Page X of Y". Chiếm toàn bộ chiều rộng màn hình (max-width 1200px). Click vào row → lưu project key vào sessionStorage + redirect `#dashboard`. WHEN chưa có project key trong sessionStorage, navbar project selector SHALL hiển thị badge "Select Project" — click vào navigate đến `#project_select`
+6. IF `GET /api/projects` trả về danh sách rỗng, THEN THE Frontend_App SHALL gọi `GET /api/integrations/jira/status` để xác định nguyên nhân. Nếu Jira chưa cấu hình → hiển thị message hướng dẫn cấu hình Jira kèm nút "Go to Integrations" (cho Admin) hoặc message "Please contact an administrator to configure Jira" (cho non-Admin). Nếu Jira đã cấu hình nhưng không có projects → hiển thị empty state với message và nút "RETRY"
 7. WHEN ứng dụng khởi động, THE Frontend_App SHALL kiểm tra JWT token trong sessionStorage: nếu null → redirect `#login`, nếu có token nhưng không có project key → redirect `#project_select`, nếu có cả hai → kiểm tra Jira status rồi navigate
 8. WHEN ứng dụng khởi động với JWT + project key, THE Frontend_App SHALL gọi `GET /api/integrations/jira/status` để kiểm tra Jira đã cấu hình chưa. Nếu chưa cấu hình + Admin → redirect `#integrations`. Nếu chưa cấu hình + non-Admin → toast "Please ask an administrator to configure Jira" + Dashboard
 9. THE Frontend_App SHALL tạo JWT token (24 giờ) cho user session — JWT chỉ chứa user identity (userId, email, role), không chứa Jira credentials

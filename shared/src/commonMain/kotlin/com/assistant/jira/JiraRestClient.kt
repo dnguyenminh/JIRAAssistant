@@ -83,20 +83,52 @@ class JiraRestClient(
     }
 
     override suspend fun getIssueDetails(issueKey: String): JiraIssue? {
+        val url = "$host/rest/api/3/issue/$issueKey"
         return try {
-            val response = httpClient.get("$host/rest/api/3/issue/$issueKey") {
+            println("[JiraRestClient] getIssueDetails: GET $url")
+            val response = httpClient.get(url) {
                 header(HttpHeaders.Authorization, authHeader)
+                parameter("expand", "changelog")
             }
             if (response.status.isSuccess()) {
                 val body = response.bodyAsText()
                 Json { ignoreUnknownKeys = true }.decodeFromString<JiraIssue>(body)
             } else {
-                println("[JiraRestClient] getIssueDetails: HTTP ${response.status} for $issueKey")
+                val errorBody = response.bodyAsText().take(500)
+                println("[JiraRestClient] getIssueDetails: HTTP ${response.status} for $issueKey — $errorBody")
                 null
             }
         } catch (e: Exception) {
             println("[JiraRestClient] getIssueDetails failed for $issueKey: ${e::class.simpleName}: ${e.message}")
+            e.printStackTrace()
             null
+        }
+    }
+
+    override suspend fun getIssueComments(
+        issueKey: String,
+        startAt: Int,
+        maxResults: Int
+    ): JiraCommentPageResponse {
+        val url = "$host/rest/api/3/issue/$issueKey/comment"
+        return try {
+            val response = httpClient.get(url) {
+                header(HttpHeaders.Authorization, authHeader)
+                parameter("startAt", startAt)
+                parameter("maxResults", maxResults)
+            }
+            if (response.status.isSuccess()) {
+                val body = response.bodyAsText()
+                Json { ignoreUnknownKeys = true }
+                    .decodeFromString<JiraCommentPageResponse>(body)
+            } else {
+                val errorBody = response.bodyAsText().take(500)
+                println("[JiraRestClient] getIssueComments: HTTP ${response.status} for $issueKey — $errorBody")
+                JiraCommentPageResponse()
+            }
+        } catch (e: Exception) {
+            println("[JiraRestClient] getIssueComments failed for $issueKey: ${e::class.simpleName}: ${e.message}")
+            JiraCommentPageResponse()
         }
     }
 }

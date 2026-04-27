@@ -3,6 +3,7 @@ package com.assistant.serialization
 import com.assistant.ai.AIContext
 import com.assistant.ai.AIResult
 import com.assistant.ai.JiraTicketSummary
+import com.assistant.ai.deepanalysis.models.*
 import com.assistant.config.JsonConfig
 import com.assistant.domain.NetworkGraph
 import com.assistant.domain.ScrumEstimation
@@ -146,6 +147,52 @@ class RoundTripTest {
         )
     }
 
+    private fun arbTechnicalDetails(): Arb<TechnicalDetails> = arbitrary {
+        TechnicalDetails(
+            apiSpecifications = Arb.list(arbitrary {
+                ApiSpecification(
+                    method = Arb.element("GET", "POST", "PUT", "DELETE").bind(),
+                    path = "/api/${arbAlphanumeric(3..10).bind()}",
+                    description = arbAlphanumeric(5..30).bind()
+                )
+            }, 0..2).bind(),
+            databaseChanges = Arb.list(arbitrary {
+                DatabaseChange(
+                    tableName = arbAlphanumeric(3..15).bind(),
+                    operationType = Arb.element("CREATE", "ALTER", "DROP").bind()
+                )
+            }, 0..2).bind(),
+            externalIntegrations = emptyList()
+        )
+    }
+
+    private fun arbAcceptanceCriterion(): Arb<AcceptanceCriterion> = arbitrary {
+        AcceptanceCriterion(
+            id = "AC-${Arb.int(1..99).bind()}",
+            description = arbAlphanumeric(5..50).bind(),
+            testabilityAssessment = Arb.element("HIGH", "MEDIUM", "LOW").bind()
+        )
+    }
+
+    private fun arbDependencyInfo(): Arb<DependencyInfo> = arbitrary {
+        DependencyInfo(
+            blockingIssues = Arb.list(arbitrary {
+                DependencyItem(key = "PROJ-${Arb.int(1..999).bind()}", summary = arbAlphanumeric(5..30).bind())
+            }, 0..2).bind(),
+            relatedIssues = emptyList(),
+            externalDependencies = Arb.list(arbAlphanumeric(3..15), 0..2).bind()
+        )
+    }
+
+    private fun arbAnalysisMetadata(): Arb<AnalysisMetadata> = arbitrary {
+        AnalysisMetadata(
+            extractionConfidence = Arb.element(ExtractionConfidence.HIGH, ExtractionConfidence.MEDIUM, ExtractionConfidence.LOW).bind(),
+            analyzedAt = "2024-0${Arb.int(1..9).bind()}-${Arb.int(10..28).bind()}T10:00:00Z",
+            aiProviderUsed = Arb.element("gemini", "ollama", "lmstudio").bind(),
+            promptVersion = "v${Arb.int(1..5).bind()}"
+        )
+    }
+
     private fun arbKBRecord(): Arb<KBRecord> = arbitrary {
         KBRecord(
             ticketId = "PROJ-${Arb.int(1..9999).bind()}",
@@ -155,7 +202,15 @@ class RoundTripTest {
             confidenceScore = Arb.double(0.0..1.0).bind(),
             rationale = arbAlphanumeric(5..100).bind(),
             similarTicketRefs = Arb.list(arbAlphanumeric(3..10), 0..3).bind(),
-            timestamp = "2024-01-15T10:30:00Z"
+            timestamp = "2024-01-15T10:30:00Z",
+            technicalDetails = arbTechnicalDetails().bind(),
+            acceptanceCriteria = Arb.list(arbAcceptanceCriterion(), 0..3).bind(),
+            dependencies = arbDependencyInfo().bind(),
+            analysisMetadata = arbAnalysisMetadata().bind(),
+            businessSummary = arbAlphanumeric(0..50).bind(),
+            asIsState = arbAlphanumeric(0..50).bind(),
+            toBeState = arbAlphanumeric(0..50).bind(),
+            extractedRequirements = Arb.list(arbAlphanumeric(5..30), 0..3).bind()
         )
     }
 

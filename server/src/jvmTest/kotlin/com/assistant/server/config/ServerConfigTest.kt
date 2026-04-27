@@ -45,26 +45,12 @@ class ServerConfigTest {
 
         val config = ServerConfig.loadFromDb(repo)
 
-        // Falls back to env vars or defaults
         assertNotNull(config.jiraHost)
         assertNotNull(config.aiProviderUrl)
-        assertNotNull(config.dbPath)
         assertNotNull(config.jwtSecret)
         assertNotNull(config.encryptionKey)
         assertNotNull(config.staticDir)
         assertTrue(config.port > 0)
-    }
-
-    @Test
-    fun `loadFromDb always reads dbPath from env, not DB`() = runBlocking {
-        val repo = FakeSettingsRepository(mutableMapOf(
-            "DB_PATH" to "/should/be/ignored"
-        ))
-
-        val config = ServerConfig.loadFromDb(repo)
-
-        // dbPath must NOT be the DB value — it always comes from env
-        assertNotEquals("/should/be/ignored", config.dbPath)
     }
 
     @Test
@@ -75,7 +61,6 @@ class ServerConfigTest {
 
         val config = ServerConfig.loadFromDb(repo)
 
-        // staticDir must NOT be the DB value — it always comes from env
         assertNotEquals("/should/be/ignored", config.staticDir)
     }
 
@@ -87,7 +72,6 @@ class ServerConfigTest {
 
         val config = ServerConfig.loadFromDb(repo)
 
-        // Should fall back to env var or default (8080)
         assertTrue(config.port > 0)
     }
 
@@ -97,7 +81,6 @@ class ServerConfigTest {
 
         assertNotNull(config.jiraHost)
         assertNotNull(config.aiProviderUrl)
-        assertNotNull(config.dbPath)
         assertNotNull(config.jwtSecret)
         assertNotNull(config.encryptionKey)
         assertNotNull(config.staticDir)

@@ -26,7 +26,6 @@ object KnowledgeGraphPage {
     fun render(container: Element) {
         container.innerHTML = ""
         cleanup()
-        GraphState.reset()
         scope.launch {
             val html = ApiClient.loadTemplate("knowledge-graph")
             val page = document.createElement("div") as HTMLElement
@@ -36,6 +35,7 @@ object KnowledgeGraphPage {
             GraphFilterPanel.init()
             GraphSearchCombobox.init()
             bindEvents()
+            immediateRestoreFromSession()
             loadGraphData()
             GraphScanStatus.loadScanStatus()
         }
@@ -62,6 +62,31 @@ object KnowledgeGraphPage {
         })
     }
 
+    /**
+     * Phase 1: Immediate display from sessionStorage.
+     * Renders graph BEFORE API loads. Skips if navigation context exists.
+     * Requirements: 2.2, 2.6, 3.6
+     */
+    private fun immediateRestoreFromSession() {
+        if (NavigationContext.peek()?.screen == "knowledge_graph") return
+        val data = GraphStateManager.restore() ?: return
+        populateGraphStateFromResponse(data)
+        CytoscapeRenderer.renderGraph()
+        GraphFilterPanel.populateNodeTypes(data.nodeTypes)
+        GraphFilterPanel.populateClusters(GraphState.allClusters)
+        updateNodeCount()
+    }
+
+    /** Populate GraphState fields from a GraphLayoutResponse. */
+    private fun populateGraphStateFromResponse(data: GraphLayoutResponse) {
+        GraphState.allNodes = data.nodes
+        GraphState.allEdges = data.edges
+        GraphState.allClusters = data.clusters ?: emptyList()
+        GraphState.allNodeTypes = data.nodeTypes
+        GraphState.typeColorMap = data.nodeTypes.associate { it.type to it.color }
+        GraphState.filteredNodeIds = GraphState.allNodes.map { it.id }.toSet()
+    }
+
     internal fun loadGraphData() {
         val projectKey = ApiClient.getProjectKey() ?: run {
             CytoscapeRenderer.renderEmptyState(); return
@@ -82,12 +107,8 @@ object KnowledgeGraphPage {
                 }
                 val body = response.bodyAsText()
                 val graphData = json.decodeFromString<GraphLayoutResponse>(body)
-                GraphState.allNodes = graphData.nodes
-                GraphState.allEdges = graphData.edges
-                GraphState.allClusters = graphData.clusters ?: emptyList()
-                GraphState.allNodeTypes = graphData.nodeTypes
-                GraphState.typeColorMap = graphData.nodeTypes.associate { it.type to it.color }
-                GraphState.filteredNodeIds = GraphState.allNodes.map { it.id }.toSet()
+                populateGraphStateFromResponse(graphData)
+                GraphStateManager.save(graphData)
                 CytoscapeRenderer.renderGraph()
                 GraphFilterPanel.populateNodeTypes(graphData.nodeTypes)
                 GraphFilterPanel.populateClusters(GraphState.allClusters)

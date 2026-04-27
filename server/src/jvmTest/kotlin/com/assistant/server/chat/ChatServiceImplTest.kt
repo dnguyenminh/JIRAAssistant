@@ -143,6 +143,8 @@ class ChatServiceImplTest {
         assertEquals("No KB data.", result)
     }
 
+
+
     // --- buildGraphContext tests ---
 
     @Test

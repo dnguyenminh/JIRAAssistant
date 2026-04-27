@@ -31,7 +31,7 @@ Attachment Processing Pipeline mở rộng Batch Scan Engine để xử lý file
 
 22.5 THE Backend_Server SHALL cấu hình markitdown MCP server (Microsoft markitdown) trong danh sách MCP servers, với command `uvx markitdown` hoặc tương đương.
 
-22.6 THE Attachment_Pipeline SHALL gọi markitdown MCP tool `convert_to_markdown` với file path làm input, nhận markdown text làm output.
+22.6 THE Attachment_Pipeline SHALL gọi markitdown MCP tool `convert_to_markdown` với file URI (`file:///...`) làm input (convert từ local path qua `File.toURI()`), nhận markdown text làm output. Markitdown MCP yêu cầu URI scheme hợp lệ (`file:`, `data:`, `http:`, `https:`); truyền absolute path trực tiếp (ví dụ `C:\...` trên Windows) sẽ gây lỗi "Unsupported URI scheme".
 
 22.7 IF markitdown MCP server không khả dụng (STOPPED/ERROR), THEN THE Attachment_Pipeline SHALL thử tự động start markitdown process. Nếu start thất bại, bỏ qua bước chuyển đổi và log warning. Nếu markitdown crash giữa chừng, SHALL tự động restart và retry 1 lần trước khi skip.
 
@@ -59,9 +59,11 @@ Attachment Processing Pipeline mở rộng Batch Scan Engine để xử lý file
 
 22.12 THE SQLDelight schema SHALL thêm bảng `attachment_chunks` với columns: id, ticket_id, attachment_id, filename, chunk_index, chunk_text, embedding (TEXT — JSON array), created_at.
 
-### Tích hợp với Batch Scan Engine
+### Tích hợp với Batch Scan Engine và Single Ticket Analysis
 
 22.13 WHEN BatchScanEngine xử lý một ticket có attachments, THE Attachment_Pipeline SHALL tự động tải và chuyển đổi tất cả attachments của ticket đó sau khi AI analysis hoàn tất.
+
+22.13a WHEN AnalysisRoutes xử lý single ticket analysis (GET/POST `/api/analysis/{ticketId}`), THE Attachment_Pipeline SHALL tự động xử lý attachments sau khi AI analysis hoàn tất, consistent với batch scan flow. Attachment processing failure SHALL được log nhưng KHÔNG fail analysis response (error isolation via try-catch).
 
 22.14 THE Attachment_Pipeline SHALL log tiến trình xử lý attachment vào scan log: "Processing attachment {filename} for {ticketKey}" (ANALYZING), "Attachment converted: {filename} ({chunks} chunks)" (COMPLETED), hoặc "Attachment failed: {filename}: {error}" (FAILED).
 

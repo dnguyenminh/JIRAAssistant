@@ -1,34 +1,33 @@
 package com.assistant.server.di
 
-import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
-import com.assistant.ai.AIAgent
-import com.assistant.ai.AIOrchestrator
-import com.assistant.ai.AIOrchestratorImpl
-import com.assistant.ai.OllamaAgent
-import com.assistant.ai.aiModule
+import com.assistant.ai.*
 import com.assistant.auth.AuthService
-import com.assistant.chat.*
-import com.assistant.mcp.McpProcessManager
-import com.assistant.mcp.McpServerRepository
-import com.assistant.mcp.McpServerRepositoryImpl
-import com.assistant.server.mcp.McpProcessManagerImpl
-import com.assistant.db.JiraDatabase
+import com.assistant.server.ai.CopilotCliAgent
+import com.assistant.server.ai.GeminiCliAgent
+import com.assistant.server.ai.KiroCliAgent
+import com.assistant.chat.ChatService
 import com.assistant.domain.domainModule
 import com.assistant.graph.ForceDirectedGraphEngine
 import com.assistant.graph.GraphEngine
 import com.assistant.jira.*
 import com.assistant.kb.KBRepository
-import com.assistant.kb.KBRepositoryImpl
 import com.assistant.kb.ProviderConfigRepository
-import com.assistant.scan.*
-import com.assistant.settings.SettingsRepository
-import com.assistant.settings.SettingsRepositoryImpl
+import com.assistant.mcp.McpProcessManager
 import com.assistant.rbac.*
+import com.assistant.scan.BatchScanEngine
+import com.assistant.scan.IncrementalGraphBuilder
 import com.assistant.server.attachment.*
 import com.assistant.server.auth.AuthServiceImpl
 import com.assistant.server.chat.ChatServiceImpl
+import com.assistant.server.chat.LocalKBToolExecutor
+import com.assistant.server.chat.UserToolPermissionService
 import com.assistant.server.config.ServerConfig
 import com.assistant.server.indexing.IndexingPipeline
+import com.assistant.server.mcp.McpProcessManagerImpl
+import com.assistant.server.agent.ba.baAgentModule
+import com.assistant.server.agent.di.agentModule
+import com.assistant.server.document.curation.curationModule
+import com.assistant.server.jobs.*
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,262 +37,242 @@ import org.koin.dsl.module
 import java.util.Base64
 
 /**
- * Koin module for the Ktor server.
- * Composes shared modules and registers server-specific dependencies.
+ * Koin module for the Ktor server. Wires PostgreSQL persistence
+ * and all application services.
  */
 fun serverModule(config: ServerConfig): Module = module {
-    // Provide ServerConfig as a singleton
     single { config }
+    includes(aiModule, domainModule, agentModule, baAgentModule, curationModule)
 
-    // Include shared modules (aiModule provides HttpClient singleton)
-    includes(aiModule, jiraModule, domainModule)
+    // PostgreSQL persistence
+    includes(postgresModule(config))
 
-    // Auth Service
+    // Auth & RBAC
     single<AuthService> { AuthServiceImpl(get(), get()) }
-
-    // RBAC
-    single<AuditLogStore> { InMemoryAuditLogStore() }
+    single<AuditLogStore> { FileBasedAuditLogStore("data") }
     single<UserStore> { InMemoryUserStore() }
     single<RBACEngine> { RBACEngineImpl(get(), get()) }
 
-    // SQLDelight Database
-    single<JiraDatabase> {
-        val dbPath = config.dbPath
-        val driver = JdbcSqliteDriver("jdbc:sqlite:$dbPath")
-        try {
-            JiraDatabase.Schema.create(driver)
-        } catch (_: Exception) {
-            // Schema already exists — run incremental migrations for new tables
-            runIncrementalMigrations(driver)
-        }
-        JiraDatabase(driver)
-    }
-
-    // Knowledge Base Repository
-    single<KBRepository> { KBRepositoryImpl(get()) }
-
-    // Settings Repository
-    single<SettingsRepository> { SettingsRepositoryImpl(get()) }
-
-    // Provider Config Repository (with encryption at rest)
-    single { ProviderConfigRepository(get(), config.encryptionKey) }
-
-    // Jira Credentials Service
+    // Jira
     single { JiraCredentialsService(get()) }
-
-    // JiraClient: factory that reads credentials from DB on each injection.
-    // Uses factory (not singleton) so that after Jira config changes via API,
-    // subsequent requests get a fresh JiraClient with updated credentials.
+    // Jira — reads credentials from DB each request.
+    // jiraModule provides a NoOpJiraClient fallback factory;
+    // this factory overrides it when credentials are configured.
     factory<JiraClient> {
-        val credentials = get<JiraCredentialsService>().getJiraCredentials()
-        if (credentials != null) {
+        val credService = get<JiraCredentialsService>()
+        val creds = credService.getJiraCredentials()
+        if (creds != null) {
             val token = Base64.getEncoder()
-                .encodeToString("${credentials.email}:${credentials.apiToken}".toByteArray())
-            JiraRestClient(get<HttpClient>(), credentials.domain, "Basic $token")
-        } else {
-            NoOpJiraClient()
-        }
+                .encodeToString("${creds.email}:${creds.apiToken}".toByteArray())
+            JiraRestClient(get<HttpClient>(), creds.domain, "Basic $token")
+        } else NoOpJiraClient()
     }
-
-    // Graph Engine
     single<GraphEngine> { ForceDirectedGraphEngine() }
 
-    // Scan Repositories
-    single<ScanStateRepository> { ScanStateRepositoryImpl(get()) }
-    single<ScanLogRepository> { ScanLogRepositoryImpl(get()) }
-
-    // Attachment Processing Pipeline
+    // Embedding & Attachment Pipeline
     single<EmbeddingService> {
-        val providerConfigRepo = get<ProviderConfigRepository>()
+        val repo = get<ProviderConfigRepository>()
         EmbeddingServiceImpl(get<HttpClient>(), configProvider = {
-            // Read EMBEDDING config from DB, fallback to OLLAMA endpoint
-            val embConfig = providerConfigRepo.findByType(com.assistant.ai.ProviderType.EMBEDDING)
-            if (embConfig != null) {
-                EmbeddingServiceImpl.EmbeddingConfig(
-                    model = embConfig.model ?: "nomic-embed-text",
-                    endpoint = embConfig.endpoint
-                )
-            } else {
-                val ollamaConfig = providerConfigRepo.findByType(com.assistant.ai.ProviderType.OLLAMA)
-                EmbeddingServiceImpl.EmbeddingConfig(
-                    model = "nomic-embed-text",
-                    endpoint = ollamaConfig?.endpoint ?: "http://localhost:11434"
-                )
+            val emb = repo.findByType(ProviderType.EMBEDDING)
+            if (emb != null) EmbeddingServiceImpl.EmbeddingConfig(emb.model ?: "nomic-embed-text", emb.endpoint)
+            else {
+                val ollama = repo.findByType(ProviderType.OLLAMA)
+                EmbeddingServiceImpl.EmbeddingConfig("nomic-embed-text", ollama?.endpoint ?: "http://localhost:11434")
             }
         })
     }
-    single<VectorStore> { VectorStoreImpl(get()) }
     single<AttachmentDownloader> { AttachmentDownloaderImpl(get<HttpClient>()) }
     single {
-        val credentialsService = get<JiraCredentialsService>()
+        val credSvc = get<JiraCredentialsService>()
         AttachmentPipeline(
-            downloader = get(),
-            embeddingService = get(),
-            vectorStore = get(),
-            mcpProcessManager = get(),
-            scanLogRepository = get(),
+            downloader = get(), embeddingService = get(), vectorStore = get(),
+            mcpProcessManager = get(), scanLogRepository = get(),
             jiraAuthProvider = {
-                val creds = credentialsService.getJiraCredentials()
-                if (creds != null) {
-                    val token = Base64.getEncoder()
-                        .encodeToString("${creds.email}:${creds.apiToken}".toByteArray())
-                    "Basic $token"
-                } else null
+                val c = credSvc.getJiraCredentials() ?: return@AttachmentPipeline null
+                val t = Base64.getEncoder().encodeToString("${c.email}:${c.apiToken}".toByteArray())
+                "Basic $t"
             },
             markitdownIdResolver = {
-                // Find markitdown MCP server by name (case-insensitive) since ID may vary
                 val mcpRepo = get<com.assistant.mcp.McpServerRepository>()
                 kotlinx.coroutines.runBlocking {
-                    mcpRepo.getAll()
-                        .firstOrNull { it.name.equals("markitdown", ignoreCase = true) }
-                        ?.id
+                    mcpRepo.getAll().firstOrNull { it.name.equals("markitdown", ignoreCase = true) }?.id
                 }
             }
         )
     }
+    single { IndexingPipeline(embeddingService = get(), vectorStore = get(), graphEngine = get()) }
 
-    // Indexing Pipeline — indexes tickets, relationships, analysis into VectorStore. Req: 12.1, 16.1
+    // Document Aggregator — delegated to DeepCollectionModule (Req 8.1, 12.1)
+    // FeatureFlagAggregator switches between DeepCollector and DocumentAggregatorImpl
+    includes(deepCollectionModule)
+
+    // Job Manager components (Document Job Manager feature)
+    single { DependencyChecker }
+    single { JobChainOrchestrator(jobRepository = get()) }
     single {
-        IndexingPipeline(
-            embeddingService = get(),
-            vectorStore = get(),
-            graphEngine = get()
+        JobExecutor(
+            aggregator = get(), documentRepository = get(), jobRepository = get(),
+            settingsRepository = get(), subprocessOrchestrator = getOrNull(),
+            kbRepository = get(), aiOrchestrator = getOrNull()
+        )
+    }
+    single {
+        JobManager(
+            jobRepository = get(), documentRepository = get(),
+            jobExecutor = get(), chainOrchestrator = get(),
+            dependencyChecker = get()
         )
     }
 
-    // Batch Scan Engine — uses SupervisorJob so individual scan failures don't cancel the whole scope
-    // jiraClientProvider creates a fresh JiraClient each time by reading credentials from DB
+    // Batch Scan Engine
     single {
-        val credentialsService = get<JiraCredentialsService>()
-        val httpClient = get<HttpClient>()
+        val credSvc = get<JiraCredentialsService>()
+        val http = get<HttpClient>()
         val pipeline = get<AttachmentPipeline>()
-        val indexingPipeline = get<IndexingPipeline>()
-        val kbRepository = get<KBRepository>()
+        val idxPipeline = get<IndexingPipeline>()
+        val kbRepo = get<KBRepository>()
+        val graphHolder = get<com.assistant.server.document.TicketGraphHolder>()
+        val linkedProcessor = get<com.assistant.server.attachment.LinkedAttachmentProcessor>()
         BatchScanEngine(
-            aiOrchestrator = get(),
-            kbRepository = kbRepository,
+            aiOrchestrator = get(), kbRepository = kbRepo,
             jiraClientProvider = {
-                val credentials = credentialsService.getJiraCredentials()
-                if (credentials != null) {
-                    val token = Base64.getEncoder()
-                        .encodeToString("${credentials.email}:${credentials.apiToken}".toByteArray())
-                    JiraRestClient(httpClient, credentials.domain, "Basic $token")
-                } else {
-                    NoOpJiraClient()
-                }
+                val c = credSvc.getJiraCredentials()
+                if (c != null) {
+                    val t = Base64.getEncoder().encodeToString("${c.email}:${c.apiToken}".toByteArray())
+                    JiraRestClient(http, c.domain, "Basic $t")
+                } else NoOpJiraClient()
             },
-            featureNetworkMapper = get(),
-            scanStateRepository = get(),
-            scanLogRepository = get(),
+            featureNetworkMapper = get(), scanStateRepository = get(), scanLogRepository = get(),
             scope = CoroutineScope(Dispatchers.Default + SupervisorJob()),
             attachmentProcessor = { projectKey, ticketKey, attachments ->
                 pipeline.processAttachments(projectKey, ticketKey, attachments)
             },
             onScanComplete = { projectKey ->
-                val graph = kbRepository.getGraphData(projectKey) ?: return@BatchScanEngine
-                indexingPipeline.reindex(projectKey, graph, emptyList())
+                val g = kbRepo.getGraphData(projectKey) ?: return@BatchScanEngine
+                idxPipeline.reindex(projectKey, g, emptyList())
             },
             onKBRecordSaved = { projectKey, record ->
-                indexingPipeline.indexAnalysisResults(projectKey, listOf(record))
+                idxPipeline.indexAnalysisResults(projectKey, listOf(record))
+            },
+            settingsRepository = get(), jiraContentExtractor = get(),
+            linkedAttachmentProcessor = { ticketId ->
+                val graph = graphHolder.take(ticketId) ?: return@BatchScanEngine
+                if (graph.nodes.size > 1) {
+                    linkedProcessor.processLinkedAttachments(graph, ticketId, asBackground = false)
+                }
             }
-        )
+        ).also { engine ->
+            val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+            engine.incrementalGraphBuilder = IncrementalGraphBuilder(engine, scope)
+        }
     }
 
-    // Chat Repository — per-user persistent history in SQLDelight
-    single<ChatRepository> { ChatRepositoryImpl(get()) }
-
-    // Chat Conversation Repository — multi-conversation support
-    single<ChatConversationRepository> { ChatConversationRepositoryImpl(get()) }
-
-    // User AI Config Repository — per-user personalization
-    single<UserAIConfigRepository> { UserAIConfigRepositoryImpl(get()) }
-
-    // MCP Server Repository
-    single<McpServerRepository> { McpServerRepositoryImpl(get()) }
-
-    // MCP Process Manager — lifecycle management for MCP server processes
-    single<McpProcessManager> {
-        McpProcessManagerImpl(
-            mcpRepo = get(),
-            scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    // Chat & MCP
+    single { UserToolPermissionService(permRepo = get(), mcpServerRepo = get()) }
+    single<McpProcessManager> { McpProcessManagerImpl(get(), CoroutineScope(Dispatchers.IO + SupervisorJob())) }
+    single { com.assistant.server.mcp.internal.InternalToolRegistry() }
+    single {
+        com.assistant.server.mcp.internal.InternalMcpToolExecutor(
+            toolRegistry = get(), rbacEngine = get(), batchScanEngine = get(), aiOrchestrator = get(),
+            chatServiceProvider = { get() }, chatRepository = get(), conversationRepository = get(),
+            settingsRepository = get(), providerConfigRepo = get(), mcpProcessManager = get(),
+            mcpServerRepo = get(), kbRepository = get(), userStore = get()
         )
     }
-
-    // Chat Service — AI chat with KB + Graph context + personalization + MCP tools + attachments
+    single { com.assistant.server.mcp.internal.InternalMcpBridge(executor = get(), mcpRepo = get()) }
+    single { com.assistant.server.mcp.McpHealthChecker(get(), get(), get()) }
+    single { LocalKBToolExecutor(embeddingService = get(), vectorStore = get(), kbRepository = get()) }
     single<ChatService> {
-        val httpClient = get<HttpClient>()
-        val providerConfigRepo = get<ProviderConfigRepository>()
+        val http = get<HttpClient>()
+        val pcr = get<ProviderConfigRepository>()
         ChatServiceImpl(
             aiAgentProvider = {
-                val config = providerConfigRepo.findByType(com.assistant.ai.ProviderType.OLLAMA)
-                val model = config?.model ?: "llama3"
-                val endpoint = config?.endpoint ?: "http://localhost:11434"
-                OllamaAgent(httpClient, model, endpoint)
+                val agents = buildAgentMap(pcr, http)
+                val activeByPriority = pcr.getAllProviders()
+                    .filter { it.status == ConnectionStatus.ACTIVE }
+                    .filter { it.type in listOf(ProviderType.OLLAMA, ProviderType.LM_STUDIO, ProviderType.GEMINI, ProviderType.GEMINI_CLI, ProviderType.COPILOT_CLI, ProviderType.KIRO_CLI) }
+                    .sortedBy { it.priority }
+                val bestConfig = activeByPriority.firstOrNull()
+                if (bestConfig != null) {
+                    agents[bestConfig.providerId]
+                        ?: OllamaAgent(http, "llama3", "http://localhost:11434")
+                } else {
+                    OllamaAgent(http, "llama3", "http://localhost:11434")
+                }
             },
-            kbRepository = get(),
-            graphEngine = get(),
-            userAIConfigRepository = get(),
-            mcpProcessManager = get(),
-            embeddingService = get(),
-            vectorStore = get(),
-            indexingPipeline = get()
+            kbRepository = get(), graphEngine = get(), userAIConfigRepository = get(),
+            mcpProcessManager = get(), embeddingService = get(), vectorStore = get(),
+            indexingPipeline = get(), settingsRepository = get(), localKBToolExecutor = get(),
+            providerConfigRepository = pcr, internalMcpBridge = get(),
+            mcpServerRepository = get(), userToolPermissionService = get()
         )
     }
 
-    // AI Orchestrator — creates agents dynamically from DB config on each call
+    // Deep Analysis
+    single { com.assistant.ai.deepanalysis.SectionClassifierImpl() as com.assistant.ai.deepanalysis.SectionClassifier }
+    // Legacy JiraContentExtractorImpl — used by FeatureFlagContentExtractor when deep collection disabled
+    single {
+        val credSvc = get<JiraCredentialsService>()
+        val http = get<HttpClient>()
+        com.assistant.ai.deepanalysis.JiraContentExtractorImpl(jiraClientProvider = {
+            val c = credSvc.getJiraCredentials()
+            if (c != null) {
+                val t = Base64.getEncoder().encodeToString("${c.email}:${c.apiToken}".toByteArray())
+                JiraRestClient(http, c.domain, "Basic $t")
+            } else NoOpJiraClient()
+        }, sectionClassifier = get())
+    }
+    // Feature-flag-aware JiraContentExtractor — delegates to deep or legacy
+    single<com.assistant.ai.deepanalysis.JiraContentExtractor> {
+        get<com.assistant.server.document.FeatureFlagContentExtractor>()
+    }
+    single<com.assistant.ai.deepanalysis.DeepAnalysisPromptBuilder> { com.assistant.ai.deepanalysis.DeepAnalysisPromptBuilderImpl() }
+    single<com.assistant.ai.deepanalysis.DeepAnalysisResponseParser> { com.assistant.ai.deepanalysis.DeepAnalysisResponseParserImpl() }
+    single { kotlinx.coroutines.sync.Semaphore(1) }
+    single<com.assistant.ai.deepanalysis.CascadingAnalysisEngine> { com.assistant.ai.deepanalysis.CascadingAnalysisEngineImpl(get(), get(), get(), get()) }
+
+    // AI Orchestrator
     single<AIOrchestrator> {
         val kbRepo = get<KBRepository>()
-        val httpClient = get<HttpClient>()
-        val providerConfigRepo = get<ProviderConfigRepository>()
-
+        val http = get<HttpClient>()
+        val pcr = get<ProviderConfigRepository>()
         AIOrchestratorImpl(
-            kbRepository = kbRepo,
-            agents = emptyMap(),
-            agentProvider = {
-                // Read fresh config from DB each time
-                val agents = mutableMapOf<String, AIAgent>()
-                val allConfigs = providerConfigRepo.getAllProviders()
-                for (config in allConfigs) {
-                    when (config.type) {
-                        com.assistant.ai.ProviderType.OLLAMA -> {
-                            agents[config.providerId] = OllamaAgent(
-                                httpClient,
-                                config.model ?: "llama3",
-                                config.endpoint
-                            )
-                        }
-                        else -> {
-                            agents[config.providerId] = OllamaAgent(
-                                httpClient,
-                                config.model ?: "llama3",
-                                config.endpoint
-                            )
-                        }
-                    }
-                }
-                if (agents.isEmpty()) {
-                    agents["ollama"] = OllamaAgent(httpClient, "llama3", "http://localhost:11434")
-                }
-                agents
-            },
-            providerConfigProvider = {
-                // Read fresh provider configs from DB each time
-                val configs = providerConfigRepo.getAllProviders()
-                configs.ifEmpty {
-                    // Fallback: create default Ollama config as ACTIVE
-                    listOf(
-                        com.assistant.ai.ProviderConfig(
-                            providerId = "ollama",
-                            name = "Ollama",
-                            type = com.assistant.ai.ProviderType.OLLAMA,
-                            endpoint = "http://localhost:11434",
-                            model = "llama3",
-                            priority = 0,
-                            status = com.assistant.ai.ConnectionStatus.ACTIVE
-                        )
-                    )
-                }
-            }
+            kbRepository = kbRepo, agents = emptyMap(),
+            jiraContentExtractor = get(), deepPromptBuilder = get(), deepResponseParser = get(),
+            agentProvider = { buildAgentMap(pcr, http) },
+            providerConfigProvider = { buildProviderConfigs(pcr) },
+            mapReduceAnalyzer = get()
+        )
+    }
+}
+
+private fun buildAgentMap(pcr: ProviderConfigRepository, http: HttpClient): Map<String, AIAgent> {
+    val agents = mutableMapOf<String, AIAgent>()
+    for (config in pcr.getAllProviders()) {
+        when (config.type) {
+            ProviderType.OLLAMA, ProviderType.LM_STUDIO ->
+                agents[config.providerId] = OllamaAgent(http, config.model ?: "llama3", config.endpoint)
+            ProviderType.GEMINI ->
+                agents[config.providerId] = OllamaAgent(http, config.model ?: "gemma2", config.endpoint)
+            ProviderType.GEMINI_CLI ->
+                agents[config.providerId] = GeminiCliAgent(config.endpoint, config.model ?: "gemini-2.0-flash")
+            ProviderType.COPILOT_CLI ->
+                agents[config.providerId] = CopilotCliAgent(config.endpoint, config.model ?: "copilot")
+            ProviderType.KIRO_CLI ->
+                agents[config.providerId] = KiroCliAgent(config.endpoint, config.model ?: "kiro")
+            else -> {}
+        }
+    }
+    if (agents.isEmpty()) agents["ollama"] = OllamaAgent(http, "llama3", "http://localhost:11434")
+    return agents
+}
+
+private fun buildProviderConfigs(pcr: ProviderConfigRepository): List<ProviderConfig> {
+    val configs = pcr.getAllProviders()
+    return configs.ifEmpty {
+        listOf(
+            ProviderConfig("ollama", "Ollama", ProviderType.OLLAMA, "http://localhost:11434",
+                model = "llama3", priority = 0, status = ConnectionStatus.ACTIVE)
         )
     }
 }

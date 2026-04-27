@@ -1,0 +1,9 @@
+{
+  "serverName": "jira",
+  "command": "uvx",
+  "args": ["atlassian-mcp-server@latest", "--jira-url", "https://jira.example.com"],
+  "env": {
+    "JIRA_API_TOKEN": "${JIRA_API_TOKEN}",
+    "JIRA_USERNAME": "${JIRA_USERNAME}"
+  }
+}

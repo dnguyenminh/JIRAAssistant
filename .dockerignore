@@ -35,3 +35,6 @@ anythingllm-mcp-wrapper-server.*
 # OS
 .DS_Store
 Thumbs.db
+
+# Test configuration 
+server\src\jvmTest\resources\test.properties

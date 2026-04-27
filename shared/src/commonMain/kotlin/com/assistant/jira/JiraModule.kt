@@ -10,5 +10,5 @@ import org.koin.dsl.module
  * when Jira credentials are configured in the database.
  */
 val jiraModule = module {
-    single<JiraClient> { NoOpJiraClient() }
+    factory<JiraClient> { NoOpJiraClient() }
 }

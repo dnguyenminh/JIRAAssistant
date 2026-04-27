@@ -25,6 +25,16 @@ class McpServerRepositoryImpl(
             ?.toConfig()
     }
 
+    /** Find by name case-insensitive. Req: 6.70, 6.72 */
+    override suspend fun findByName(name: String): McpServerConfig? {
+        return getAll().firstOrNull { it.name.equals(name, ignoreCase = true) }
+    }
+
+    /** Check if server is internal. Req: 6.70, 6.72 */
+    override suspend fun isInternal(id: String): Boolean {
+        return findById(id)?.internal == true
+    }
+
     override suspend fun insert(config: McpServerConfig) {
         val now = Clock.System.now().toString()
         database.knowledgeBaseQueries.insertMcpServer(
@@ -34,7 +44,8 @@ class McpServerRepositoryImpl(
             env = config.env, auto_approve = config.autoApprove,
             disabled = if (config.disabled) 1L else 0L,
             status = config.status,
-            created_at = now, updated_at = now
+            created_at = now, updated_at = now,
+            internal_ = if (config.internal) 1L else 0L
         )
     }
 
@@ -68,5 +79,6 @@ private fun com.assistant.db.Mcp_servers.toConfig() = McpServerConfig(
     id = id, name = name, type = type, command = command,
     url = url, args = args, env = env, autoApprove = auto_approve,
     disabled = disabled != 0L, status = status,
-    createdAt = created_at, updatedAt = updated_at
+    createdAt = created_at, updatedAt = updated_at,
+    internal = internal_ != 0L
 )

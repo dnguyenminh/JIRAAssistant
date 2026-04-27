@@ -66,6 +66,7 @@ object UserManagementPage {
                 val userList = json.decodeFromString<List<UserInfo>>(body)
                 users.clear(); users.addAll(userList)
                 renderUserList()
+                UserAuditLog.loadFromBackend()
             } catch (e: Exception) {
                 console.log("[UserManagement] Failed to load users: ${e.message}")
                 showLoadError()

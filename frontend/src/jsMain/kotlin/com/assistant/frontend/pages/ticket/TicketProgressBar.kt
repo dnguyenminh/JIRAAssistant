@@ -12,9 +12,10 @@ internal object TicketProgressBar {
 
     suspend fun simulateProgress() {
         val phases = listOf(
-            Triple("Consolidating Ticket Metadata...", 0, 40),
-            Triple("AI RE-ANALYZING SCOPE...", 40, 85),
-            Triple("SYNCING TO KNOWLEDGE BASE...", 85, 95)
+            Triple("Fetching Jira Data...", 0, 20),
+            Triple("Extracting Content...", 20, 35),
+            Triple("AI Analyzing Scope...", 35, 85),
+            Triple("Syncing to Knowledge Base...", 85, 95)
         )
         for ((label, start, end) in phases) {
             setPhase(label)
@@ -26,15 +27,17 @@ internal object TicketProgressBar {
     }
 
     fun updateFromStatus(status: AnalysisStatus) {
-        val phaseLabel = when (status.phase) {
-            "METADATA" -> "Consolidating Ticket Metadata..."
-            "AI_ANALYZING" -> "AI RE-ANALYZING SCOPE..."
-            "KB_SYNCING" -> "SYNCING TO KNOWLEDGE BASE..."
-            "COMPLETE" -> "Analysis Complete"
-            else -> status.phase
-        }
-        setPhase(phaseLabel)
+        setPhase(phaseLabel(status.phase))
         setPercent(status.progressPercent)
+    }
+
+    private fun phaseLabel(phase: String): String = when (phase) {
+        "FETCHING_JIRA", "METADATA" -> "Fetching Jira Data..."
+        "EXTRACTING_CONTENT" -> "Extracting Content..."
+        "AI_ANALYZING" -> "AI Analyzing Scope..."
+        "KB_SYNCING" -> "Syncing to Knowledge Base..."
+        "COMPLETE" -> "Analysis Complete"
+        else -> phase
     }
 
     fun show() {

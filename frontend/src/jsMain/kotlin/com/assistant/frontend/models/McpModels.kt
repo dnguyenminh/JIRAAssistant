@@ -18,6 +18,7 @@ data class McpServerInfo(
     val autoApprove: String = "[]",
     val disabled: Boolean = false,
     val status: String = "OFFLINE",
+    val internal: Boolean = false,
     val createdAt: String = "",
     val updatedAt: String = ""
 )

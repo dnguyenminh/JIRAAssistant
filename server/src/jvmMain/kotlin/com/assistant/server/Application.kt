@@ -111,6 +111,10 @@ fun Application.module(config: ServerConfig = ServerConfig.load()) {
     val providerConfigRepo by inject<com.assistant.kb.ProviderConfigRepository>()
     ensureEmbeddingProvider(providerConfigRepo)
 
+    // Internal MCP: register internal server before starting external servers. Req: 6.70
+    val internalMcpBridge by inject<com.assistant.server.mcp.internal.InternalMcpBridge>()
+    runBlocking { internalMcpBridge.ensureRegistered() }
+
     // MCP: auto-start enabled servers and register shutdown hook
     val processManager by inject<McpProcessManager>()
     launch { processManager.startAllEnabled() }

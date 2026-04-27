@@ -5,18 +5,19 @@ import com.assistant.frontend.components.BlockingOverlay
 import com.assistant.frontend.models.AnalysisResponse
 import com.assistant.frontend.models.AnalysisStatus
 import com.assistant.scan.TicketAnalysisState
-import io.ktor.client.statement.*
 import kotlinx.browser.document
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
+import kotlinx.browser.window
+import kotlinx.coroutines.*
 import kotlinx.serialization.json.Json
-import org.w3c.dom.HTMLElement
 
 /**
- * Analysis flow: start analysis, polling fallback, result handling.
+ * Fire-and-forget analysis flow:
+ * 1. POST /reanalyze → 202 Accepted (server runs async)
+ * 2. Poll /status every 3s → update progress bar
+ * 3. When COMPLETE or 404 → fetch result via window.fetch → show tabs
+ *
+ * No long-running HTTP request — avoids ktor-client-js coroutine timeout.
+ * Fixes: RA-007 (refresh), RA-008 (double-click), RA-009 (navigate).
  */
 internal object TicketAnalysisFlow {
 
@@ -24,6 +25,8 @@ internal object TicketAnalysisFlow {
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
     private var pollingJob: Job? = null
     private var progressJob: Job? = null
+    private var isAnalyzing = false
+    private const val STORAGE_KEY = "ti_analyzing_ticket"
 
     fun cancelJobs() {
         pollingJob?.cancel(); progressJob?.cancel()
@@ -31,71 +34,125 @@ internal object TicketAnalysisFlow {
     }
 
     fun startAnalysis(ticketId: String, forceReanalyze: Boolean) {
+        if (isAnalyzing) return
         cancelJobs()
+        TicketAutoLoader.cancelLoad()
+        CascadeIntegration.reset()
+        if (checkConflictAndBlock(ticketId)) return
+        isAnalyzing = true
+        markAnalyzing(ticketId)
         TicketProgressBar.show()
         hideResults()
+        hideWarningBadge()
         document.getElementById("ti-error-msg")?.remove()
         disableActionButton()
-
-        val startTime = js("Date.now()") as Double
-        progressJob = scope.launch { TicketProgressBar.simulateProgress() }
-
         BlockingOverlay.show("ti-input-section", "Analyzing...")
-        scope.launch {
-            try {
-                val response = if (forceReanalyze) ApiClient.post("/api/analysis/$ticketId/reanalyze")
-                else ApiClient.get("/api/analysis/$ticketId")
-                if (ApiClient.handleUnauthorized(response)) return@launch
-                val body = response.bodyAsText()
-                val data = json.decodeFromString<AnalysisResponse>(body)
-                cancelJobs()
-                TicketProgressBar.complete()
-                delay(400)
-                handleResult(data)
-            } catch (e: Exception) {
-                val elapsed = (js("Date.now()") as Double) - startTime
-                if (elapsed > 15000) {
-                    startPolling(ticketId)
-                } else {
-                    cancelJobs(); TicketProgressBar.hide()
-                    showError("Analysis failed: ${e.message ?: "Unknown error"}")
-                    restoreActionButton()
-                }
-            } finally {
-                BlockingOverlay.remove("ti-input-section")
-            }
-        }
+        progressJob = scope.launch { TicketProgressBar.simulateProgress() }
+        // Fire-and-forget: POST returns 202 immediately
+        fireAnalysisRequest(ticketId, forceReanalyze)
+        // Start polling after short delay (give server time to set status)
+        pollingJob = scope.launch { delay(2000); startPolling(ticketId) }
+    }
 
-        pollingJob = scope.launch {
-            delay(15000)
-            startPolling(ticketId)
+    /** Fire POST request via window.fetch — don't wait for response. */
+    private fun fireAnalysisRequest(ticketId: String, forceReanalyze: Boolean) {
+        val url = if (forceReanalyze) "/api/analysis/$ticketId/reanalyze"
+        else "/api/analysis/$ticketId"
+        val method = if (forceReanalyze) "POST" else "GET"
+        val token = window.sessionStorage.getItem("jira_assistant_jwt") ?: ""
+        val headers = js("({})")
+        headers["Authorization"] = "Bearer $token"
+        headers["Content-Type"] = "application/json"
+        val opts = js("({})")
+        opts["method"] = method
+        opts["headers"] = headers
+        window.fetch(url, opts).catch { e ->
+            console.log("[TicketAnalysisFlow] Fire request error: $e")
         }
     }
 
-    private fun startPolling(ticketId: String) {
-        pollingJob?.cancel()
-        pollingJob = scope.launch {
-            while (isActive) {
-                try {
-                    val statusResp = ApiClient.get("/api/analysis/$ticketId/status")
-                    if (ApiClient.handleUnauthorized(statusResp)) return@launch
-                    val statusBody = statusResp.bodyAsText()
-                    val status = json.decodeFromString<AnalysisStatus>(statusBody)
-                    TicketProgressBar.updateFromStatus(status)
-                    if (status.phase == "COMPLETE" || status.progressPercent >= 100) {
-                        val fullResp = ApiClient.get("/api/analysis/$ticketId")
-                        val fullBody = fullResp.bodyAsText()
-                        val data = json.decodeFromString<AnalysisResponse>(fullBody)
-                        cancelJobs(); TicketProgressBar.complete()
-                        delay(400); handleResult(data)
-                        return@launch
-                    }
-                } catch (e: Exception) {
-                    console.log("[TicketIntelligence] Polling error: ${e.message}")
+    fun checkAndResumeAnalysis() {
+        val ticketId = getAnalyzingTicket() ?: return
+        // Quick check: if status endpoint returns 404, analysis already finished — clear and skip
+        val token = window.sessionStorage.getItem("jira_assistant_jwt") ?: ""
+        val headers = js("({})"); headers["Authorization"] = "Bearer $token"
+        val opts = js("({})"); opts["method"] = "GET"; opts["headers"] = headers
+        window.fetch("/api/analysis/$ticketId/status", opts)
+            .then { resp ->
+                if (resp.status.toInt() == 404 || resp.status.toInt() == 401) {
+                    // Analysis not active or unauthorized — clear stale key
+                    clearAnalyzing()
+                    return@then
                 }
-                delay(3000)
+                // Analysis still running — resume UI
+                console.log("[TicketAnalysisFlow] Resuming for $ticketId after refresh")
+                isAnalyzing = true
+                TicketProgressBar.show()
+                disableActionButton()
+                BlockingOverlay.show("ti-input-section", "Analyzing...")
+                progressJob = scope.launch { TicketProgressBar.simulateProgress() }
+                pollingJob = scope.launch { startPolling(ticketId) }
             }
+            .catch { clearAnalyzing() }
+    }
+
+    private suspend fun startPolling(ticketId: String) {
+        while (true) {
+            try {
+                val token = window.sessionStorage.getItem("jira_assistant_jwt") ?: ""
+                val headers = js("({})"); headers["Authorization"] = "Bearer $token"
+                val opts = js("({})"); opts["method"] = "GET"; opts["headers"] = headers
+                val resp = window.fetch("/api/analysis/$ticketId/status", opts).await()
+                if (resp.status.toInt() == 401) { finishState(); return }
+                if (resp.status.toInt() == 404) { fetchAndShowResult(ticketId); return }
+                val body = resp.text().await() as String
+                val status = json.decodeFromString<AnalysisStatus>(body)
+                TicketProgressBar.updateFromStatus(status)
+                if (status.phase == "COMPLETE" || status.progressPercent >= 100) {
+                    fetchAndShowResult(ticketId); return
+                }
+            } catch (e: Exception) {
+                val msg = e.message ?: ""
+                if (msg.contains("404") || msg.contains("Not Found")) {
+                    fetchAndShowResult(ticketId); return
+                }
+                console.log("[TicketAnalysisFlow] Poll error: $msg")
+            }
+            delay(3000)
         }
+    }
+
+    private fun fetchAndShowResult(ticketId: String) {
+        val token = window.sessionStorage.getItem("jira_assistant_jwt") ?: ""
+        val headers = js("({})"); headers["Authorization"] = "Bearer $token"
+        headers["Content-Type"] = "application/json"
+        val opts = js("({})"); opts["method"] = "GET"; opts["headers"] = headers
+        window.fetch("/api/analysis/$ticketId", opts)
+            .then { resp ->
+                if (resp.status.toInt() == 202) {
+                    // Analysis still running — retry after delay
+                    window.setTimeout({ fetchAndShowResult(ticketId) }, 3000)
+                    return@then Unit
+                }
+                if (!resp.ok) throw Exception("HTTP ${resp.status}")
+                resp.text().then { body ->
+                    val data = json.decodeFromString<AnalysisResponse>(body as String)
+                    cancelJobs(); TicketProgressBar.complete()
+                    window.setTimeout({
+                        try { handleResult(data) } catch (e: dynamic) {
+                            console.log("[TicketAnalysisFlow] handleResult error: $e")
+                        }
+                        finishState()
+                    }, 400)
+                }
+                Unit
+            }
+            .catch { err ->
+                console.log("[TicketAnalysisFlow] Fetch error: $err")
+                cancelJobs(); TicketProgressBar.hide()
+                showError("Failed to load results: $err")
+                restoreActionButton(); finishState()
+            }
     }
 
     private fun handleResult(data: AnalysisResponse) {
@@ -107,49 +164,25 @@ internal object TicketAnalysisFlow {
             showResults(data)
         }
         val ticket = TicketCombobox.selectedTicket ?: return
-        val updated = ticket.copy(analysisState = TicketAnalysisState.ANALYZED)
-        TicketCombobox.selectedTicket = updated
+        TicketCombobox.selectedTicket = ticket.copy(analysisState = TicketAnalysisState.ANALYZED)
         TicketCombobox.updateStatusBadge(TicketAnalysisState.ANALYZED)
         TicketCombobox.updateActionButton(TicketAnalysisState.ANALYZED)
+        saveCurrentState(data)
+        triggerCascadeIfSuccess(data)
+        showDocGenSection(data)
     }
 
-    private fun showResults(data: AnalysisResponse) {
-        TicketProgressBar.hide()
-        (document.getElementById("ti-results-section") as? HTMLElement)?.style?.display = "block"
-        TicketResultTabs.activeTab = "context"
-        TicketResultTabs.updateTabStyles()
-        TicketResultTabs.renderTabContent(data)
+    private fun finishState() {
+        BlockingOverlay.remove("ti-input-section")
+        isAnalyzing = false; clearAnalyzing()
     }
 
-    private fun hideResults() {
-        (document.getElementById("ti-results-section") as? HTMLElement)?.style?.display = "none"
-    }
+    private fun markAnalyzing(id: String) { window.sessionStorage.setItem(STORAGE_KEY, id) }
+    private fun clearAnalyzing() { window.sessionStorage.removeItem(STORAGE_KEY) }
+    private fun getAnalyzingTicket(): String? = window.sessionStorage.getItem(STORAGE_KEY)?.ifBlank { null }
 
-    private fun disableActionButton() {
-        val btn = document.getElementById("btn-action") as? HTMLElement ?: return
-        btn.textContent = "ANALYZING..."; btn.setAttribute("disabled", "true")
-        btn.style.opacity = "0.5"; btn.style.cursor = "not-allowed"
-        btn.asDynamic().style.pointerEvents = "none"
-    }
-
-    private fun restoreActionButton() {
-        val ticket = TicketCombobox.selectedTicket ?: return
-        TicketCombobox.updateActionButton(ticket.analysisState)
-    }
-
-    private fun showError(message: String) {
-        TicketProgressBar.hide()
-        (document.getElementById("ti-results-section") as? HTMLElement)?.style?.display = "none"
-        document.getElementById("ti-error-msg")?.remove()
-        val errorDiv = document.createElement("div") as HTMLElement
-        errorDiv.id = "ti-error-msg"
-        errorDiv.style.apply {
-            marginTop = "16px"; padding = "16px 20px"
-            background = "rgba(255,80,80,0.1)"; border = "1px solid rgba(255,80,80,0.3)"
-            borderRadius = "8px"; color = "#ff5050"; fontSize = "13px"
-            fontFamily = "'JetBrains Mono', monospace"; letterSpacing = "0.5px"
-        }
-        errorDiv.textContent = message
-        document.getElementById("ti-progress-section")?.parentElement?.appendChild(errorDiv)
+    fun cleanup() {
+        cancelJobs(); isAnalyzing = false
+        BlockingOverlay.remove("ti-input-section")
     }
 }

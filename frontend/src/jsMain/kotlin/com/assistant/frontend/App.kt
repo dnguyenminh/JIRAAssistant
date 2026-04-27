@@ -52,6 +52,5 @@ private fun registerRoutes() {
     Router.registerStandalone("login")
     Router.register("login") { LoginPage.render(it) }
 
-    Router.registerStandalone("project_select")
     Router.register("project_select") { ProjectSelectPage.render(it) }
 }

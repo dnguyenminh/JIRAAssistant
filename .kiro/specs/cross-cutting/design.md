@@ -167,7 +167,7 @@ frontend/
 
 2. **Navigation**: Hash-based routing qua Kotlin/JS `window.onhashchange` listener. Router.kt quản lý mapping giữa hash và page controllers.
 
-3. **State Management**: Kotlin objects quản lý state, cập nhật DOM trực tiếp khi state thay đổi. Coroutines cho async operations (API calls).
+3. **State Management**: Kotlin objects quản lý state, cập nhật DOM trực tiếp khi state thay đổi. Coroutines cho async operations (API calls). Navbar project badge được refresh qua `NavbarDropdown.refreshProjectSelector()` khi project key thay đổi — method này xóa selector cũ khỏi DOM và gọi lại `renderProjectSelector()` để tạo mới với project key hiện tại, không cần re-render toàn bộ navbar. Breadcrumb được cập nhật qua `Navbar.updateBreadcrumb(route)` khi Router navigate sang route mới. Cả hai được gọi tự động trong `Router.handleRoute()` cho non-standalone routes.
 
 4. **API Client**: `ktor-client-js` với JWT token từ `sessionStorage`. Shared data models từ `:shared` module — type-safe end-to-end, không cần manual JSON parsing.
 

@@ -14,6 +14,7 @@ internal object CytoscapeStyles {
     private const val HIGHLIGHT_CLASS = "highlighted"
     private const val DIM_CLASS = "dimmed"
     private const val FOCUSED_CLASS = "focused"
+    private const val FADE_IN_CLASS = "cy-fade-in"
 
     /** Build the full Cytoscape options object with styles. */
     fun buildOptions(): dynamic {
@@ -43,6 +44,9 @@ internal object CytoscapeStyles {
 
     /** CSS class name for dimmed state. */
     fun dimClass(): String = DIM_CLASS
+
+    /** CSS class name for fade-in animation on new elements. */
+    fun fadeInClass(): String = FADE_IN_CLASS
 
     private fun buildStylesheet(): dynamic = js("""[
         { selector: 'node', style: {
@@ -90,6 +94,18 @@ internal object CytoscapeStyles {
             'text-outline-color': '#0d1117',
             'text-outline-width': 3,
             'z-index': 9999
+        }},
+        { selector: 'node.${FADE_IN_CLASS}', style: {
+            'opacity': 0,
+            'transition-property': 'opacity',
+            'transition-duration': '600ms',
+            'transition-timing-function': 'ease-in'
+        }},
+        { selector: 'edge.${FADE_IN_CLASS}', style: {
+            'opacity': 0,
+            'transition-property': 'opacity',
+            'transition-duration': '600ms',
+            'transition-timing-function': 'ease-in'
         }}
     ]""")
 }

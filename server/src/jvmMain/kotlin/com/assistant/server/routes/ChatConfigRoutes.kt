@@ -3,7 +3,8 @@ package com.assistant.server.routes
 import com.assistant.chat.UserAIConfig
 import com.assistant.chat.UserAIConfigRepository
 import com.assistant.kb.ProviderConfigRepository
-import com.assistant.mcp.McpServerRepository
+import com.assistant.mcp.McpProcessManager
+import com.assistant.settings.SettingsRepository
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
@@ -60,10 +61,28 @@ private fun detectVision(model: String?): Boolean {
 
 internal suspend fun RoutingContext.handleGetTools() {
     extractUserClaims() ?: return
-    val mcpRepo by call.application.inject<McpServerRepository>()
-    val servers = mcpRepo.getAll().filter { it.status == "ACTIVE" && !it.disabled }
-    val tools = servers.map { ToolInfo(it.name, it.name, "MCP tool: ${it.command}") }
+    val processManager by call.application.inject<McpProcessManager>()
+    val settingsRepo by call.application.inject<SettingsRepository>()
+    val internalBridge by call.application.inject<com.assistant.server.mcp.internal.InternalMcpBridge>()
+    val internalTools = internalBridge.getAggregatedTools()
+        .map { ToolInfo(it.name, it.serverName, it.description) }
+    val externalTools = processManager.getActiveTools()
+        .map { ToolInfo(it.name, it.serverName, it.description) }
+    val tools = (internalTools + externalTools).toMutableList()
+    tools.addAll(buildLocalKBToolInfos(settingsRepo))
     call.respond(HttpStatusCode.OK, tools)
+}
+
+/** Add local KB tool entries when enabled. Req: 19.62, 19.63 */
+internal suspend fun buildLocalKBToolInfos(settingsRepo: SettingsRepository): List<ToolInfo> {
+    val value = settingsRepo.get("local_kb_tool_enabled")
+    if (value == "false") return emptyList()
+    return listOf(
+        ToolInfo("search_knowledge", "local-knowledge-base", "Tìm kiếm semantic trong Knowledge Base cục bộ"),
+        ToolInfo("get_ticket_info", "local-knowledge-base", "Tra cứu thông tin phân tích ticket từ KB"),
+        ToolInfo("search_relationships", "local-knowledge-base", "Tìm kiếm mối quan hệ/dependency giữa tickets"),
+        ToolInfo("ingest_knowledge", "local-knowledge-base", "Ghi nội dung vào KB để chia sẻ dữ liệu giữa các phases")
+    )
 }
 
 @Serializable

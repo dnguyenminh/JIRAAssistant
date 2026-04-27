@@ -3,6 +3,19 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
 }
 
+// Load .env file from project root if it exists
+val dotEnv = mutableMapOf<String, String>()
+val envFile = rootProject.file(".env")
+if (envFile.exists()) {
+    envFile.readLines().forEach { line ->
+        val trimmed = line.trim()
+        if (trimmed.isNotEmpty() && !trimmed.startsWith("#") && trimmed.contains("=")) {
+            val (key, value) = trimmed.split("=", limit = 2)
+            dotEnv[key.trim()] = value.trim()
+        }
+    }
+}
+
 kotlin {
     jvm {
         mainRun {
@@ -10,6 +23,12 @@ kotlin {
         }
         testRuns["test"].executionTask.configure {
             useJUnitPlatform()
+            workingDir = rootProject.projectDir
+            if (project.hasProperty("testFilter")) {
+                filter {
+                    includeTestsMatching(project.property("testFilter") as String)
+                }
+            }
         }
     }
 
@@ -42,8 +61,18 @@ kotlin {
             // Logging
             implementation("ch.qos.logback:logback-classic:1.5.18")
 
-            // SQLDelight JDBC driver (for KBRepository)
-            implementation("app.cash.sqldelight:sqlite-driver:2.0.2")
+            // PostgreSQL JDBC driver
+            implementation("org.postgresql:postgresql:42.7.5")
+
+            // HikariCP connection pool
+            implementation("com.zaxxer:HikariCP:6.3.0")
+
+            // Flyway migrations
+            implementation("org.flywaydb:flyway-core:11.8.0")
+            implementation("org.flywaydb:flyway-database-postgresql:11.8.0")
+
+            // pgvector Java support (vector type serialization)
+            implementation("com.pgvector:pgvector:0.1.6")
         }
 
         jvmTest.dependencies {
@@ -65,6 +94,20 @@ kotlin {
 
             // SQLDelight JDBC driver (for in-memory test DB)
             implementation("app.cash.sqldelight:sqlite-driver:2.0.2")
+
+            // Testcontainers for PostgreSQL
+            implementation("org.testcontainers:testcontainers:1.21.4")
+            implementation("org.testcontainers:postgresql:1.21.4")
+            implementation("org.testcontainers:junit-jupiter:1.21.4")
+        }
+    }
+}
+
+// Pass .env values to jvmRun task (lazy — task may not exist in all KMP versions)
+tasks.matching { it.name == "jvmRun" }.configureEach {
+    (this as JavaExec).apply {
+        dotEnv.forEach { (key, value) ->
+            environment(key, value)
         }
     }
 }

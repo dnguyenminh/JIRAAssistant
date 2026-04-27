@@ -33,6 +33,7 @@ fun Application.configureRouting() {
         authRoutes()
         userRoutes()
         analysisRoutes()
+        cascadeRoutes()
         estimationRoutes()
         graphRoutes()
         projectRoutes()
@@ -42,9 +43,13 @@ fun Application.configureRouting() {
         chatRoutes()
         chatUploadRoutes()
         mcpRoutes()
+        mcpHealthRoutes()
         mcpRuntimeRoutes()
         attachmentRoutes()
         ticketDetailRoutes()
+        documentRoutes()
+        jobRoutes()
+        collectionJobRoutes()
 
         // Serve frontend static files (CSS, JS, templates, assets)
         if (staticDir.isNotBlank()) {

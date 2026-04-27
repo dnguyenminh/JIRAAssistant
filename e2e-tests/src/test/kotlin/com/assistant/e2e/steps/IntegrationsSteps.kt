@@ -206,7 +206,16 @@ class IntegrationsSteps {
     @When("the user clicks the eye toggle button next to the API TOKEN field")
     fun userClicksEyeToggle() {
         val toggles = driver.findElements(By.cssSelector("[class*='toggle'], [class*='eye'], button[class*='visibility']"))
-        if (toggles.isNotEmpty()) toggles.first().click()
+            .filter { it.isDisplayed }
+        if (toggles.isNotEmpty()) {
+            val el = toggles.first()
+            try {
+                TestHelper.js(driver).executeScript("arguments[0].scrollIntoView({block:'center'})", el)
+                el.click()
+            } catch (_: Exception) {
+                TestHelper.js(driver).executeScript("arguments[0].click()", el)
+            }
+        }
     }
 
     @Then("the API TOKEN field should change from password to text type")
@@ -386,7 +395,16 @@ class IntegrationsSteps {
     @When("the user clicks the close button")
     fun userClicksCloseButton() {
         val closeButtons = driver.findElements(By.cssSelector("[class*='close'], button[aria-label='close']"))
-        if (closeButtons.isNotEmpty()) closeButtons.first().click()
+            .filter { it.isDisplayed }
+        if (closeButtons.isNotEmpty()) {
+            val btn = closeButtons.first()
+            try {
+                TestHelper.js(driver).executeScript("arguments[0].scrollIntoView({block:'center'})", btn)
+                btn.click()
+            } catch (_: Exception) {
+                TestHelper.js(driver).executeScript("arguments[0].click()", btn)
+            }
+        }
     }
 
     // ── AI provider modals ──

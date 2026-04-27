@@ -1,10 +1,10 @@
 package com.assistant.server.routes
 
-import com.assistant.auth.UserRole
 import com.assistant.chat.*
 import com.assistant.kb.ProviderConfigRepository
 import com.assistant.rbac.Permission
 import com.assistant.rbac.RBACEngine
+import com.assistant.server.chat.UserToolPermissionService
 import com.assistant.settings.SettingsRepository
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -27,6 +27,7 @@ fun Routing.chatRoutes() {
     val settingsRepo by inject<SettingsRepository>()
     val conversationRepo by inject<ChatConversationRepository>()
     val userAIConfigRepo by inject<UserAIConfigRepository>()
+    val permService by inject<UserToolPermissionService>()
 
     route("/api/chat") {
         authenticate("auth-jwt") {
@@ -36,6 +37,7 @@ fun Routing.chatRoutes() {
             delete("/history") { handleDeleteHistory(chatRepository) }
             chatConversationRoutes(conversationRepo, chatRepository)
             chatConfigRoutes(userAIConfigRepo)
+            chatToolPermissionRoutes(permService)
             get("/model-info") { handleModelInfo(providerConfigRepo) }
             get("/tools") { handleGetTools() }
         }
@@ -49,15 +51,16 @@ private suspend fun RoutingContext.handleSendMessage(
     val (userId, userRole) = extractUserClaims() ?: return
     val request = call.receive<ChatRequest>()
     val convId = request.conversationId ?: ""
-    val impl = chatRepo as? com.assistant.chat.ChatRepositoryImpl
 
-    impl?.saveMessageWithConversation(userId, convId, "user", request.message, request.context?.currentScreen)
-        ?: chatRepo.saveMessage(userId, "user", request.message, request.context?.currentScreen)
+    chatRepo.saveMessageWithConversation(userId, convId, "user", request.message, request.context?.currentScreen)
 
     if (convId.isNotBlank()) autoTitleConversation(convRepo, convId, request.message)
 
-    val history = impl?.getHistoryByConversation(userId, convId, 0, 20)
-        ?: chatRepo.getHistory(userId, 0, 20)
+    val history = if (convId.isNotBlank()) {
+        chatRepo.getHistoryByConversation(userId, convId, 0, 20)
+    } else {
+        chatRepo.getHistory(userId, 0, 20)
+    }
     val context = request.context ?: buildDefaultContext(userId, userRole)
     val response = try {
         chatService.processChat(request.message, context, history)
@@ -65,8 +68,7 @@ private suspend fun RoutingContext.handleSendMessage(
         ChatResponse(reply = "Error: ${e.message ?: "Unknown"}")
     }
 
-    impl?.saveMessageWithConversation(userId, convId, "assistant", response.reply, null)
-        ?: chatRepo.saveMessage(userId, "assistant", response.reply)
+    chatRepo.saveMessageWithConversation(userId, convId, "assistant", response.reply, null)
 
     if (convId.isNotBlank()) convRepo.updateTimestamp(convId)
     call.respond(HttpStatusCode.OK, response)

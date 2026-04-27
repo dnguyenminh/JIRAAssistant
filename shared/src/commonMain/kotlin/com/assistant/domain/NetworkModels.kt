@@ -19,7 +19,8 @@ data class TicketNode(
     val summary: String,
     val status: String,
     val featureName: String? = null,
-    val description: String? = null
+    val description: String? = null,
+    val isExternal: Boolean = false
 )
 
 @Serializable

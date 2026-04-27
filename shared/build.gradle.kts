@@ -34,6 +34,7 @@ kotlin {
                 implementation("io.kotest:kotest-property:5.9.1")
                 implementation("io.kotest:kotest-assertions-core:5.9.1")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:${libs.versions.kotlinx.coroutines.get()}")
+                implementation("io.ktor:ktor-client-mock:${libs.versions.ktor.get()}")
             }
         }
     }

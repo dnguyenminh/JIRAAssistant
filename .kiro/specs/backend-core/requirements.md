@@ -11,7 +11,7 @@
 3. IF Backend_Server nhận request với dữ liệu đầu vào không hợp lệ, THEN THE Backend_Server SHALL trả về mã lỗi 400 kèm thông báo mô tả chi tiết trường dữ liệu bị lỗi
 4. IF Backend_Server gặp lỗi nội bộ, THEN THE Backend_Server SHALL ghi log lỗi chi tiết và trả về mã lỗi 500 với thông báo chung, không tiết lộ thông tin hệ thống nội bộ
 5. THE Backend_Server SHALL sử dụng Ktor framework với Kotlin Serialization cho JSON và Koin cho Dependency Injection, nhất quán với kiến trúc shared module hiện có. Frontend_App sử dụng kiến trúc Kotlin/JS + HTML Templates với Vite bundler, chia sẻ domain models với Backend qua shared module (Kotlin Multiplatform)
-6. THE Backend_Server SHALL đọc cấu hình (Jira host, AI provider URL, database path, JWT secret) từ biến môi trường, không hardcode trong mã nguồn
+6. THE Backend_Server SHALL đọc cấu hình (Jira host, AI provider URL, JWT secret) từ biến môi trường, không hardcode trong mã nguồn
 7. THE Backend_Server SHALL cung cấp endpoint `/health` trả về trạng thái kết nối đến Jira API, AI provider, và Knowledge_Base
 
 ---

@@ -8,6 +8,7 @@ import kotlinx.serialization.json.Json
 /**
  * SQLDelight-backed implementation of KBRepository.
  * Complex fields (evolution_history, similar_ticket_refs) are stored as JSON strings.
+ * Deep analysis fields stored as single JSON blob in deep_analysis_json column (20.1, 20.4).
  * Write operations use retry logic (max 3 attempts).
  */
 class KBRepositoryImpl(
@@ -23,9 +24,20 @@ class KBRepositoryImpl(
         private const val MAX_RETRIES = 3
     }
 
+    /** Parse deep_analysis_json column, returning defaults for empty/invalid JSON (20.4). */
+    private fun parseDeepAnalysisData(raw: String): KBDeepAnalysisData {
+        return try {
+            if (raw.isBlank() || raw == "{}") KBDeepAnalysisData()
+            else json.decodeFromString<KBDeepAnalysisData>(raw)
+        } catch (_: Exception) {
+            KBDeepAnalysisData()
+        }
+    }
+
     override suspend fun findByTicketId(ticketId: String): KBRecord? {
         val row = database.knowledgeBaseQueries.findKBRecordByTicketId(ticketId).executeAsOneOrNull()
             ?: return null
+        val deepData = parseDeepAnalysisData(row.deep_analysis_json)
         return KBRecord(
             ticketId = row.ticket_id,
             requirementSummary = row.requirement_summary,
@@ -34,7 +46,16 @@ class KBRepositoryImpl(
             confidenceScore = row.confidence_score,
             rationale = row.rationale,
             similarTicketRefs = json.decodeFromString(row.similar_ticket_refs),
-            timestamp = row.updated_at
+            timestamp = row.updated_at,
+            technicalDetails = deepData.technicalDetails,
+            acceptanceCriteria = deepData.acceptanceCriteria,
+            dependencies = deepData.dependencies,
+            analysisMetadata = deepData.analysisMetadata,
+            businessSummary = deepData.businessSummary,
+            asIsState = deepData.asIsState,
+            toBeState = deepData.toBeState,
+            extractedRequirements = deepData.extractedRequirements,
+            diagrams = deepData.diagrams
         )
     }
 
@@ -50,7 +71,8 @@ class KBRepositoryImpl(
                 rationale = record.rationale,
                 similar_ticket_refs = json.encodeToString(record.similarTicketRefs),
                 created_at = now,
-                updated_at = now
+                updated_at = now,
+                deep_analysis_json = json.encodeToString(record.toDeepAnalysisData())
             )
         }
     }
@@ -67,7 +89,8 @@ class KBRepositoryImpl(
                 rationale = record.rationale,
                 similar_ticket_refs = json.encodeToString(record.similarTicketRefs),
                 created_at = now,
-                updated_at = now
+                updated_at = now,
+                deep_analysis_json = json.encodeToString(record.toDeepAnalysisData())
             )
         }
     }

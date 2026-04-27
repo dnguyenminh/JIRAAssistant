@@ -36,7 +36,7 @@ fun Routing.healthRoutes() {
     get("/health") {
         val jiraHealth = checkJira(httpClient, config.jiraHost)
         val aiHealth = checkAiProvider(httpClient, config.aiProviderUrl)
-        val kbHealth = checkKnowledgeBase(config.dbPath)
+        val kbHealth = checkKnowledgeBase()
 
         val overallStatus = if (
             jiraHealth.status == "up" &&
@@ -79,15 +79,14 @@ private suspend fun checkAiProvider(client: HttpClient, aiProviderUrl: String): 
     }
 }
 
-private fun checkKnowledgeBase(dbPath: String): ComponentHealth {
+private fun checkKnowledgeBase(): ComponentHealth {
     return try {
-        val dbFile = java.io.File(dbPath)
-        if (dbFile.exists() || dbFile.parentFile?.exists() == true || dbFile.parentFile?.mkdirs() == true) {
-            ComponentHealth(status = "up")
-        } else {
-            ComponentHealth(status = "down", message = "Database path not accessible")
+        val ds = org.koin.java.KoinJavaComponent.getKoin().get<javax.sql.DataSource>()
+        ds.connection.use { conn ->
+            conn.prepareStatement("SELECT 1").use { it.executeQuery() }
         }
+        ComponentHealth(status = "up")
     } catch (e: Exception) {
-        ComponentHealth(status = "down", message = e.message ?: "Check failed")
+        ComponentHealth(status = "down", message = e.message ?: "Database check failed")
     }
 }

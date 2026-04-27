@@ -62,7 +62,6 @@ data class AuthenticatedUser(
 data class ServerConfig(
     val jiraHost: String,          // env: JIRA_HOST
     val aiProviderUrl: String,     // env: AI_PROVIDER_URL
-    val dbPath: String,            // env: DB_PATH
     val jwtSecret: String,         // env: JWT_SECRET
     val encryptionKey: String,     // env: ENCRYPTION_KEY (AES-256-GCM)
     val port: Int                  // env: PORT

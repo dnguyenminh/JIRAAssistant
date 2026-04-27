@@ -1,5 +1,9 @@
 package com.assistant.ai
 
+import com.assistant.ai.deepanalysis.models.AcceptanceCriterion
+import com.assistant.ai.deepanalysis.models.AnalysisMetadata
+import com.assistant.ai.deepanalysis.models.DependencyInfo
+import com.assistant.ai.deepanalysis.models.TechnicalDetails
 import kotlinx.serialization.Serializable
 
 /**
@@ -59,24 +63,57 @@ interface AIOrchestrator {
      * Calculate AI velocity score from project metrics.
      */
     fun calculateAIVelocity(totalTickets: Int, resolvedCount: Int, cycleTimeDays: Double): Double
+
+    /**
+     * Analyze multiple tickets in a single AI prompt (batch mode).
+     * Returns map of ticketId → AnalysisResult.
+     * Falls back to single-ticket mode on parse failure.
+     * Req: AC 37
+     */
+    suspend fun analyzeTicketBatch(
+        tickets: List<Pair<String, String>>,
+        forceReanalyze: Boolean = false
+    ): Map<String, AnalysisResult> = tickets.associate { (id, content) ->
+        id to analyzeTicket(id, content, forceReanalyze)
+    }
 }
 
+/**
+ * Result of AI ticket analysis. Extended with deep analysis fields (19.1, 19.6).
+ * New fields are optional with defaults for backward compatibility.
+ */
 @Serializable
 data class AnalysisResult(
     val ticketId: String,
     val context: RequirementSummary,
     val evolution: List<EvolutionEntry>,
     val complexity: ComplexityAssessment,
-    val source: AnalysisSource
+    val source: AnalysisSource,
+    // Deep analysis fields — Requirements 19.2, 19.3, 19.4, 19.5, 19.6
+    val technicalDetails: TechnicalDetails = TechnicalDetails(),
+    val acceptanceCriteria: List<AcceptanceCriterion> = emptyList(),
+    val dependencies: DependencyInfo = DependencyInfo(),
+    val analysisMetadata: AnalysisMetadata = AnalysisMetadata(),
+    // Diagrams — Requirements 28.1, 28.2
+    val diagrams: List<com.assistant.ai.deepanalysis.models.DiagramData> = emptyList()
 )
 
 @Serializable
 enum class AnalysisSource { KB_CACHE, FRESH_AI }
 
+/**
+ * Requirement summary with deep analysis fields (19.1, 19.6).
+ * New fields are optional with defaults for backward compatibility.
+ */
 @Serializable
 data class RequirementSummary(
     val unified: String,
-    val affectedModules: List<AffectedModule> = emptyList()
+    val affectedModules: List<AffectedModule> = emptyList(),
+    // Deep analysis fields — Requirements 19.1, 19.6
+    val businessSummary: String = "",
+    val asIsState: String = "",
+    val toBeState: String = "",
+    val extractedRequirements: List<String> = emptyList()
 )
 
 @Serializable
@@ -139,4 +176,4 @@ data class ProviderConfig(
 )
 
 @Serializable
-enum class ProviderType { JIRA, OLLAMA, GEMINI, LM_STUDIO, GEMINI_CLI, EMBEDDING }
+enum class ProviderType { JIRA, OLLAMA, GEMINI, LM_STUDIO, GEMINI_CLI, COPILOT_CLI, KIRO_CLI, EMBEDDING }

@@ -169,3 +169,47 @@ Hiển thị tiến trình quét đồng thời nhiều project, xử lý 409 Co
 
 ## Task 132: Final Checkpoint — Multi-Project Scan Visibility Feature
 - [x] 132. Active scans endpoint, multi-project progress bars, 409 graceful handling, polling, E2E tests
+
+
+---
+
+## Batch Prompt Optimization (Tasks 133–142)
+
+Gộp nhiều ticket vào 1 AI prompt để giảm số lượng AI calls và rút ngắn thời gian scan.
+
+## Task 133: Backend — BatchPromptBuilder & BatchResponseParser
+- [x] 133.1 Tạo `BatchPromptBuilder.kt` — `buildBatchPrompt()`, `splitByContentLimit()`, constants
+    - _Requirements: AC 37, AC 39_
+- [x] 133.2 Tạo `BatchResponseParser.kt` — `parseBatchResponse()` parse JSON array → Map<ticketId, AnalysisResult>
+    - _Requirements: AC 40, AC 42_
+
+## Task 134: Backend — AIOrchestrator Batch Method
+- [x] 134.1 Thêm `analyzeTicketBatch()` vào `AIOrchestrator` interface
+    - _Requirements: AC 37_
+- [x] 134.2 Implement `analyzeTicketBatch()` trong `AIOrchestratorImpl` — KB filter, batch prompt, parse, retry, fallback
+    - _Requirements: AC 37, AC 40, AC 41, AC 42, AC 46, AC 47_
+
+## Task 135: Backend — BatchScanEngine Integration
+- [x] 135.1 Thêm `getBatchPromptSize()` helper đọc từ SettingsRepository với default 3, validate >= 1
+    - _Requirements: AC 34_
+- [x] 135.2 Tạo `BatchScanTicketBatchProcessor.kt` — `processBatchPrompt()` gộp tickets, gọi `analyzeTicketBatch()`, save KB, log batch result
+    - _Requirements: AC 43, AC 44, AC 45_
+- [x] 135.3 Cập nhật `scanLoop()` trong `BatchScanEngine.kt` — đọc batch_prompt_size, gọi `processBatchPrompt()` thay vì `processTicket()` khi size > 1
+    - _Requirements: AC 35, AC 36, AC 43_
+
+## Task 136: Backend — Settings API Validation
+- [x] 136.1 Cập nhật `SettingsRoutes.kt` — validate `batch_prompt_size` >= 1 trong PUT /api/settings/feature, trả 400 nếu < 1
+    - _Requirements: AC 49_
+
+## Task 137: Frontend — Batch Prompt Size Combobox
+- [x] 137.1 Cập nhật `dashboard.html` — thêm combobox `scan-batch-prompt-size` với datalist suggested values
+    - _Requirements: AC 48_
+- [x] 137.2 Cập nhật `DashboardScanControl.kt` — đọc batch_prompt_size, gửi qua query param khi START scan, validate >= 1
+    - _Requirements: AC 48, AC 50_
+
+## Task 138: Backend — ScanRoutes Accept batch_prompt_size Param
+- [x] 138.1 Cập nhật `ScanRoutes.kt` — đọc `batchPromptSize` query param từ start endpoint, lưu vào SettingsRepository
+    - _Requirements: AC 35, AC 43_
+
+## Task 139: Checkpoint — Batch Prompt Optimization
+- [x] 139. BatchPromptBuilder, BatchResponseParser, AIOrchestrator batch method, BatchScanEngine integration, Settings validation, Frontend combobox

@@ -14,6 +14,8 @@ internal object ProviderConfigFields {
         "GEMINI" -> buildGeminiFields(provider, disabled)
         "LM_STUDIO" -> buildLMStudioFields(provider, disabled)
         "GEMINI_CLI" -> buildGeminiCLIFields(provider, disabled)
+        "COPILOT_CLI" -> buildCopilotCLIFields(provider, disabled)
+        "KIRO_CLI" -> buildKiroCLIFields(provider, disabled)
         "EMBEDDING" -> buildEmbeddingFields(provider, disabled)
         else -> "<p style='opacity:0.5;'>No configuration available.</p>"
     }
@@ -57,12 +59,39 @@ internal object ProviderConfigFields {
         ${sliderField("MAX TOKENS", "cfg-max-tokens", "cfg-tokens-val", provider.maxTokens ?: 4096, "256", "32768", "256", disabled)}
     """.trimIndent()
 
-    private fun buildGeminiCLIFields(provider: ProviderInfo, disabled: String): String = """
+    private fun buildGeminiCLIFields(provider: ProviderInfo, disabled: String): String {
+        val m = provider.model ?: "gemini-2.5-flash"
+        return """
         <div><label style="font-size:11px;font-weight:700;letter-spacing:2px;opacity:0.5;display:block;margin-bottom:6px;">CLI PATH</label>
-        <input id="cfg-endpoint" class="integ-config-input" type="text" value="${HtmlUtils.escapeHtml(provider.endpoint ?: "")}" placeholder="/usr/local/bin/gemini" $disabled /></div>
+        <input id="cfg-endpoint" class="integ-config-input" type="text" value="${HtmlUtils.escapeHtml(provider.endpoint ?: "")}" placeholder="gemini" $disabled /></div>
+        <div><label style="font-size:11px;font-weight:700;letter-spacing:2px;opacity:0.5;display:block;margin-bottom:6px;">MODEL</label>
+        <select id="cfg-model" class="integ-select" $disabled>
+            ${cliModelOption("auto", "Auto (CLI decides)", m)}
+            ${cliModelOption("gemini-2.5-pro", "Gemini 2.5 Pro", m)}
+            ${cliModelOption("gemini-2.5-flash", "Gemini 2.5 Flash", m)}
+            ${cliModelOption("gemini-2.0-flash", "Gemini 2.0 Flash", m)}
+        </select></div>
+        """.trimIndent()
+    }
+
+    private fun buildCopilotCLIFields(provider: ProviderInfo, disabled: String): String = """
+        <div><label style="font-size:11px;font-weight:700;letter-spacing:2px;opacity:0.5;display:block;margin-bottom:6px;">CLI PATH</label>
+        <input id="cfg-endpoint" class="integ-config-input" type="text" value="${HtmlUtils.escapeHtml(provider.endpoint ?: "")}" placeholder="/usr/local/bin/gh" $disabled /></div>
         <div><label style="font-size:11px;font-weight:700;letter-spacing:2px;opacity:0.5;display:block;margin-bottom:6px;">MODEL NAME</label>
-        <input id="cfg-model" class="integ-config-input" type="text" value="${HtmlUtils.escapeHtml(provider.model ?: "")}" placeholder="Model name" $disabled /></div>
+        <input id="cfg-model" class="integ-config-input" type="text" value="${HtmlUtils.escapeHtml(provider.model ?: "copilot")}" placeholder="copilot" $disabled /></div>
     """.trimIndent()
+
+    private fun buildKiroCLIFields(provider: ProviderInfo, disabled: String): String = """
+        <div><label style="font-size:11px;font-weight:700;letter-spacing:2px;opacity:0.5;display:block;margin-bottom:6px;">CLI PATH</label>
+        <input id="cfg-endpoint" class="integ-config-input" type="text" value="${HtmlUtils.escapeHtml(provider.endpoint ?: "")}" placeholder="/usr/local/bin/kiro" $disabled /></div>
+        <div><label style="font-size:11px;font-weight:700;letter-spacing:2px;opacity:0.5;display:block;margin-bottom:6px;">MODEL NAME</label>
+        <input id="cfg-model" class="integ-config-input" type="text" value="${HtmlUtils.escapeHtml(provider.model ?: "kiro")}" placeholder="kiro" $disabled /></div>
+    """.trimIndent()
+
+    private fun cliModelOption(value: String, label: String, current: String): String {
+        val sel = if (current == value) "selected" else ""
+        return """<option value="$value" $sel>$label</option>"""
+    }
 
     private fun buildEmbeddingFields(provider: ProviderInfo, disabled: String): String = """
         <div><label style="font-size:11px;font-weight:700;letter-spacing:2px;opacity:0.5;display:block;margin-bottom:6px;">OLLAMA ENDPOINT</label>

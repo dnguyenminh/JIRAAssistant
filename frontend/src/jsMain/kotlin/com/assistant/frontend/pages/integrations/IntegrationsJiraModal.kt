@@ -13,11 +13,13 @@ import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.w3c.dom.HTMLButtonElement
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.HTMLInputElement
 
 /**
  * Jira-specific configuration modal: domain, email, API token.
+ * Two-step flow: TEST CONNECTION → SAVE (matching AI provider modal pattern).
  */
 internal object IntegrationsJiraModal {
 
@@ -26,6 +28,7 @@ internal object IntegrationsJiraModal {
         modal.style.display = "flex"
         val domainInput = document.getElementById("jira-domain") as? HTMLInputElement
         if (!provider.endpoint.isNullOrBlank()) domainInput?.value = provider.endpoint
+        resetSaveButton()
         bindJiraModalEvents(provider)
     }
 
@@ -44,31 +47,38 @@ internal object IntegrationsJiraModal {
             val tokenInput = document.getElementById("jira-api-token") as? HTMLInputElement ?: return@addEventListener
             tokenInput.type = if (tokenInput.type == "password") "text" else "password"
         })
-        document.getElementById("btn-jira-save-test")?.addEventListener("click", {
-            if (ApiClient.hasPermission(Permission.CONFIG_INTEGRATIONS)) saveAndTestJiraConfig(provider)
+        document.getElementById("btn-jira-test")?.addEventListener("click", {
+            if (ApiClient.hasPermission(Permission.CONFIG_INTEGRATIONS)) testJiraConnection(provider)
+        })
+        document.getElementById("btn-jira-save")?.addEventListener("click", {
+            if (ApiClient.hasPermission(Permission.CONFIG_INTEGRATIONS)) saveJiraConfig(provider)
         })
     }
 
-    private fun saveAndTestJiraConfig(provider: ProviderInfo) {
-        val btn = document.getElementById("btn-jira-save-test") as? HTMLElement ?: return
-        val progressEl = document.getElementById("jira-config-progress") as? HTMLElement ?: return
-        val bar = document.getElementById("jira-config-progress-bar") as? HTMLElement ?: return
-        val statusEl = document.getElementById("jira-config-status") as? HTMLElement ?: return
-
+    private fun readFormValues(): Triple<String, String, String> {
         val domain = (document.getElementById("jira-domain") as? HTMLInputElement)?.value?.trim() ?: ""
         val email = (document.getElementById("jira-email") as? HTMLInputElement)?.value?.trim() ?: ""
         val apiToken = (document.getElementById("jira-api-token") as? HTMLInputElement)?.value?.trim() ?: ""
+        return Triple(domain, email, apiToken)
+    }
 
+    private fun testJiraConnection(provider: ProviderInfo) {
+        val testBtn = document.getElementById("btn-jira-test") as? HTMLElement ?: return
+        val statusEl = document.getElementById("jira-config-status") as? HTMLElement ?: return
+        val progressEl = document.getElementById("jira-config-progress") as? HTMLElement ?: return
+        val bar = document.getElementById("jira-config-progress-bar") as? HTMLElement ?: return
+
+        val (domain, email, apiToken) = readFormValues()
         if (domain.isBlank() || email.isBlank() || apiToken.isBlank()) {
             showJiraStatus(statusEl, "All fields are required", true); return
         }
 
-        btn.textContent = "SAVING..."; btn.style.opacity = "0.6"; btn.style.asDynamic().pointerEvents = "none"
+        testBtn.textContent = "TESTING..."; testBtn.style.opacity = "0.6"; testBtn.style.asDynamic().pointerEvents = "none"
         progressEl.style.display = "block"; bar.style.width = "0%"; statusEl.style.display = "none"
         var progress = 0
-        val intervalId = window.setInterval({ progress += 4; bar.style.width = "${minOf(progress, 85)}%" }, 60)
+        val intervalId = window.setInterval({ progress += 5; bar.style.width = "${minOf(progress, 90)}%" }, 80)
 
-        BlockingOverlay.show("jira-modal-content", "Saving & testing...")
+        BlockingOverlay.show("jira-modal-content", "Testing connection...")
         IntegrationsPage.scope.launch {
             try {
                 val configRequest = JiraConfigRequest(domain = domain, email = email, apiToken = apiToken)
@@ -77,35 +87,65 @@ internal object IntegrationsJiraModal {
                 window.clearInterval(intervalId); bar.style.width = "100%"
                 val body = response.bodyAsText()
                 val result = IntegrationsPage.json.decodeFromString<JiraConfigResponse>(body)
-                handleJiraResult(provider, result, statusEl)
+                handleTestResult(provider, result, statusEl)
             } catch (e: Exception) {
                 window.clearInterval(intervalId); bar.style.width = "100%"
-                showJiraStatus(statusEl, "Error: ${e.message ?: "Save failed"}", true)
-                ToastService.show("Failed to save Jira configuration", "error")
+                showJiraStatus(statusEl, "Error: ${e.message ?: "Connection failed"}", true)
+                disableSaveButton()
             } finally {
-                btn.textContent = "SAVE & TEST"; btn.style.opacity = "1"; btn.style.asDynamic().pointerEvents = "auto"
+                testBtn.textContent = "TEST CONNECTION"; testBtn.style.opacity = "1"; testBtn.style.asDynamic().pointerEvents = "auto"
                 BlockingOverlay.remove("jira-modal-content")
             }
         }
     }
 
-    private suspend fun handleJiraResult(provider: ProviderInfo, result: JiraConfigResponse, statusEl: HTMLElement) {
+    private fun handleTestResult(provider: ProviderInfo, result: JiraConfigResponse, statusEl: HTMLElement) {
         if (result.status.uppercase() == "ACTIVE") {
             IntegrationsPage.updateCardStatus(provider.providerId, "ACTIVE", null)
-            val idx = IntegrationsPage.providers.indexOfFirst { it.providerId == provider.providerId }
-            if (idx >= 0) IntegrationsPage.providers[idx] = IntegrationsPage.providers[idx].copy(status = "ACTIVE", endpoint = (document.getElementById("jira-domain") as? HTMLInputElement)?.value?.trim())
-            showJiraStatus(statusEl, "Configuration saved ✓ Connected to Jira", false)
-            ToastService.show("Jira configuration saved successfully", "success")
-            delay(1500); closeJiraConfigModal(); IntegrationsPage.renderProviderCards()
+            updateProviderState(provider, "ACTIVE")
+            showJiraStatus(statusEl, "✓ Connected to Jira", false)
+            enableSaveButton()
         } else {
             val errorMsg = result.error ?: "Connection failed"
             IntegrationsPage.updateCardStatus(provider.providerId, "OFFLINE", null)
-            val idx = IntegrationsPage.providers.indexOfFirst { it.providerId == provider.providerId }
-            if (idx >= 0) IntegrationsPage.providers[idx] = IntegrationsPage.providers[idx].copy(status = "OFFLINE")
+            updateProviderState(provider, "OFFLINE")
             showJiraStatus(statusEl, "Error: $errorMsg", true)
-            ToastService.show("Jira connection failed: $errorMsg", "error")
+            disableSaveButton()
         }
     }
+
+    private fun saveJiraConfig(provider: ProviderInfo) {
+        val statusEl = document.getElementById("jira-config-status") as? HTMLElement ?: return
+        showJiraStatus(statusEl, "Configuration saved ✓", false)
+        ToastService.show("Jira configuration saved successfully", "success")
+        IntegrationsPage.scope.launch {
+            delay(1500)
+            closeJiraConfigModal()
+            IntegrationsPage.renderProviderCards()
+        }
+    }
+
+    private fun updateProviderState(provider: ProviderInfo, status: String) {
+        val idx = IntegrationsPage.providers.indexOfFirst { it.providerId == provider.providerId }
+        if (idx >= 0) {
+            val domain = (document.getElementById("jira-domain") as? HTMLInputElement)?.value?.trim()
+            IntegrationsPage.providers[idx] = IntegrationsPage.providers[idx].copy(status = status, endpoint = domain)
+        }
+    }
+
+    private fun enableSaveButton() {
+        val saveBtn = document.getElementById("btn-jira-save") as? HTMLElement ?: return
+        saveBtn.style.opacity = "1"; saveBtn.style.asDynamic().pointerEvents = "auto"
+        (saveBtn as? HTMLButtonElement)?.disabled = false
+    }
+
+    private fun disableSaveButton() {
+        val saveBtn = document.getElementById("btn-jira-save") as? HTMLElement ?: return
+        saveBtn.style.opacity = "0.4"; saveBtn.style.asDynamic().pointerEvents = "none"
+        (saveBtn as? HTMLButtonElement)?.disabled = true
+    }
+
+    private fun resetSaveButton() = disableSaveButton()
 
     private fun showJiraStatus(statusEl: HTMLElement, message: String, isError: Boolean) {
         statusEl.textContent = message; statusEl.style.display = "block"

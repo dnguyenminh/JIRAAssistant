@@ -31,7 +31,6 @@ class AuthServicePropertyTest {
     private val config = ServerConfig(
         jiraHost = "https://test.atlassian.net",
         aiProviderUrl = "http://localhost:11434",
-        dbPath = "./test.db",
         jwtSecret = "test-secret-for-property-testing-minimum-length",
         encryptionKey = "test-encryption-key-for-property-testing",
         port = 8080,

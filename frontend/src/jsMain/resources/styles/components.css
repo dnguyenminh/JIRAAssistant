@@ -179,28 +179,37 @@
 .ticket-combobox {
     position: relative;
     width: 100%;
+    z-index: 1000;
 }
 
-/* Dropdown list — absolute, glass background */
+/* Dropdown list — appended to body, positioned via JS */
 .ticket-dropdown {
     display: none;
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
+    position: fixed;
     max-height: 300px;
     overflow-y: auto;
-    background: var(--glass-bg, rgba(255, 255, 255, 0.04));
-    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+    background: rgba(12, 14, 22, 0.97);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 10px;
-    backdrop-filter: blur(20px);
-    z-index: 100;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    z-index: 9999;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
     padding: 4px 0;
 }
 
 .ticket-dropdown.visible {
     display: block;
+}
+
+/* Ticket input section must stack above result sections below */
+#ti-input-section {
+    position: relative;
+    z-index: 10;
+}
+#ti-results-section,
+#ti-cascade-panel,
+#ti-skeleton-section {
+    position: relative;
+    z-index: 1;
 }
 
 /* Ticket option row */
@@ -258,6 +267,12 @@
     background: rgba(255, 255, 255, 0.06);
     color: rgba(255, 255, 255, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.status-badge.scanned {
+    background: rgba(255, 200, 50, 0.12);
+    color: #ffc832;
+    border: 1px solid rgba(255, 200, 50, 0.3);
 }
 
 .status-badge.analyzed {
@@ -1211,3 +1226,187 @@ select:focus {
     border-color: var(--primary, #2dfecf);
     box-shadow: 0 0 8px rgba(45, 254, 207, 0.15);
 }
+
+
+/* ===========================================
+   AI CONFIG — EDITABLE TABLES
+   Requirements: AC 19.38, AC 19.38c
+   =========================================== */
+
+.config-table {
+    border-collapse: collapse;
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--glass-border);
+}
+
+.config-table th {
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 1px;
+    opacity: 0.5;
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.config-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    vertical-align: middle;
+}
+
+.config-table .cfg-input {
+    background: rgba(12, 14, 22, 0.95);
+    color: var(--text-main);
+    border: 1px solid var(--glass-border);
+    border-radius: 4px;
+    padding: 6px 8px;
+    width: 100%;
+    font-size: 12px;
+    outline: none;
+}
+
+.config-table .cfg-input:focus {
+    border-color: var(--primary);
+}
+
+.config-table .cfg-select {
+    background: rgba(12, 14, 22, 0.95);
+    color: var(--primary);
+    border: 1px solid var(--glass-border);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 12px;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.config-table .cfg-select:focus {
+    border-color: var(--primary);
+}
+
+.config-table .btn-delete-row {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 14px;
+    padding: 4px 8px;
+}
+
+.config-table .btn-delete-row:hover {
+    color: var(--danger, #ff4444);
+}
+
+.config-table .step-number {
+    text-align: center;
+    opacity: 0.5;
+    font-size: 12px;
+    width: 40px;
+}
+
+.btn-add-row {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: 1px dashed var(--glass-border);
+    color: var(--primary);
+    padding: 8px;
+    margin-top: 4px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    font-size: 11px;
+    letter-spacing: 1px;
+    border-radius: 4px;
+}
+
+.btn-add-row:hover {
+    border-color: var(--primary);
+    background: rgba(var(--primary-rgb), 0.05);
+}
+
+/* ===========================================
+   MCP TOOLS AVAILABLE SECTION
+   Requirements: 19.56, 19.56b
+   =========================================== */
+
+.mcp-tools-section { border-top: 1px solid var(--glass-border); flex-shrink: 0; }
+.mcp-tools-header { display: flex; align-items: center; gap: 8px; padding: 10px 16px; cursor: pointer; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.5; transition: opacity 0.2s; }
+.mcp-tools-header:hover { opacity: 0.8; }
+.mcp-tools-header .toggle-arrow { transition: transform 0.2s; font-size: 10px; }
+.mcp-tools-header .toggle-arrow.expanded { transform: rotate(90deg); }
+.mcp-tools-count { font-family: 'JetBrains Mono', monospace; color: var(--primary); }
+.mcp-tools-body { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; padding: 0 16px; }
+.mcp-tools-body.expanded { max-height: 200px; overflow-y: auto; padding: 8px 16px; }
+.mcp-tool-group-header { font-size: 10px; opacity: 0.4; letter-spacing: 1px; padding: 6px 0 2px; text-transform: uppercase; }
+.mcp-tool-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; cursor: pointer; border-radius: 4px; transition: background 0.15s; font-size: 12px; }
+.mcp-tool-item:hover { background: rgba(45, 254, 207, 0.08); }
+.mcp-tool-item .tool-name { color: var(--primary); font-family: 'JetBrains Mono', monospace; font-size: 11px; white-space: nowrap; }
+.mcp-tool-item .tool-desc { opacity: 0.5; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mcp-tools-empty { text-align: center; opacity: 0.3; font-size: 11px; padding: 12px 0; }
+
+/* ===========================================
+   LOCAL KB CARD
+   Requirements: AC 19.75
+   =========================================== */
+
+/* Local KB Card */
+.local-kb-card { border-left: 2px solid var(--primary); }
+.local-kb-type-badge { 
+    font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+    background: rgba(45, 254, 207, 0.12); color: var(--primary); 
+    border-radius: 20px; padding: 3px 10px; 
+}
+.local-kb-toggle { 
+    position: relative; width: 36px; height: 20px; 
+    background: rgba(255,255,255,0.1); border-radius: 10px; 
+    cursor: pointer; transition: background 0.2s; 
+}
+.local-kb-toggle.active { background: var(--primary); }
+.local-kb-toggle::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: white; transition: transform 0.2s;
+}
+.local-kb-toggle.active::after { transform: translateX(16px); }
+
+/* ===========================================
+   TOOL PERMISSIONS SECTION (AI Chat Sidebar)
+   Requirements: 4.1, 4.5, 4.6, 4.7
+   =========================================== */
+
+.tool-perms-section { border-top: 1px solid var(--glass-border); flex-shrink: 0; }
+.tool-perms-header { display: flex; align-items: center; gap: 8px; padding: 10px 16px; cursor: pointer; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.5; transition: opacity 0.2s; }
+.tool-perms-header:hover { opacity: 0.8; }
+.tool-perms-header .toggle-arrow { transition: transform 0.2s; font-size: 10px; }
+.tool-perms-header .toggle-arrow.expanded { transform: rotate(90deg); }
+.tool-perms-body { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; padding: 0 16px; }
+.tool-perms-body.expanded { max-height: 400px; overflow-y: auto; padding: 8px 16px; }
+
+/* Server group */
+.perm-group { margin-bottom: 8px; }
+.perm-group-header { display: flex; align-items: center; justify-content: space-between; padding: 6px 0 2px; }
+.perm-group-name { font-size: 10px; opacity: 0.4; letter-spacing: 1px; text-transform: uppercase; }
+.perm-group-counter { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--primary); opacity: 0.7; }
+.perm-group-actions { display: flex; gap: 6px; padding: 4px 0; }
+.perm-bulk-btn { font-size: 9px; padding: 2px 8px; border: 1px solid var(--glass-border); border-radius: 4px; background: transparent; color: var(--text-main); cursor: pointer; opacity: 0.6; transition: all 0.15s; letter-spacing: 0.5px; }
+.perm-bulk-btn:hover { opacity: 1; border-color: var(--primary); color: var(--primary); }
+
+/* Tool row */
+.perm-tool-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 8px; border-radius: 4px; transition: background 0.15s; }
+.perm-tool-row:hover { background: rgba(45, 254, 207, 0.05); }
+.perm-tool-info { display: flex; align-items: center; gap: 6px; overflow: hidden; }
+.perm-tool-name { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.perm-tool-default { font-size: 9px; opacity: 0.35; font-style: italic; white-space: nowrap; }
+
+/* Toggle switch */
+.perm-toggle-switch { position: relative; width: 36px; height: 20px; cursor: pointer; flex-shrink: 0; }
+.perm-toggle-track { width: 36px; height: 20px; border-radius: 10px; background: rgba(255,255,255,0.1); transition: background 0.2s; position: absolute; top: 0; left: 0; }
+.perm-toggle-track.active { background: rgba(45, 254, 207, 0.3); }
+.perm-toggle-thumb { width: 16px; height: 16px; border-radius: 50%; background: #fff; position: absolute; top: 2px; left: 2px; transition: all 0.2s; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+.perm-toggle-thumb.active { left: 18px; background: var(--primary); }
+
+/* Loading / empty */
+.perm-loading { text-align: center; opacity: 0.3; font-size: 11px; padding: 12px 0; }
+.perm-empty { text-align: center; opacity: 0.3; font-size: 11px; padding: 12px 0; }

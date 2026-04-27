@@ -11,13 +11,16 @@ object ScanStatusService {
 
     fun updateBadge(badge: HTMLElement, status: ScanStatus, processed: Int, total: Int) {
         when (status) {
-            ScanStatus.SCANNING -> showBadge(
-                badge, "rgba(45,254,207,0.1)", "rgba(45,254,207,0.2)",
-                "var(--primary)", "\uD83D\uDD04 Đang quét ($processed/$total)"
-            )
+            ScanStatus.SCANNING -> {
+                val percent = if (total > 0) (processed * 100 / total) else 0
+                showBadge(
+                    badge, "rgba(45,254,207,0.1)", "rgba(45,254,207,0.2)",
+                    "var(--primary)", "Scanning... $processed/$total — $percent%"
+                )
+            }
             ScanStatus.COMPLETED -> showBadge(
                 badge, "rgba(45,254,207,0.15)", "rgba(45,254,207,0.3)",
-                "var(--primary)", "✅ Đã hoàn tất"
+                "var(--primary)", "✅ Completed ($total tickets)"
             )
             ScanStatus.PAUSED -> showBadge(
                 badge, "rgba(249,212,35,0.1)", "rgba(249,212,35,0.2)",

@@ -166,8 +166,8 @@ class AttachmentPipeline(
     private suspend fun callMarkitdownTool(filePath: String): String? = try {
         val id = resolveMarkitdownId()
         val client = mcpProcessManager.getClient(id) ?: return null
-        val absPath = java.io.File(filePath).absolutePath
-        val args = JsonObject(mapOf("uri" to JsonPrimitive(absPath)))
+        val fileUri = java.io.File(filePath).toURI().toString()
+        val args = JsonObject(mapOf("uri" to JsonPrimitive(fileUri)))
         val result = client.callTool("convert_to_markdown", args)
         result.content.firstOrNull { it.type == "text" }?.text
     } catch (e: Exception) {

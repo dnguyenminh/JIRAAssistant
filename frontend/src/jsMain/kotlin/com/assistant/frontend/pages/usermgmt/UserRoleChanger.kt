@@ -38,6 +38,7 @@ internal object UserRoleChanger {
                     "ROLE_CHANGE",
                     "Role changed for ${user.displayName}: ${oldRole.replace("_", " ")} → ${newRole.replace("_", " ")}"
                 )
+                UserAuditLog.loadFromBackend()
 
                 if (UserManagementPage.selectedUserId == userId) {
                     UserPermissionPanel.selectUser(userId)

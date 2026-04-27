@@ -23,6 +23,10 @@ class MarkitdownAutoConfigTest {
         override suspend fun updateStatus(id: String, status: String) {}
         override suspend fun delete(id: String) { configs.removeAll { it.id == id } }
         override suspend fun deleteAll() { configs.clear() }
+        override suspend fun findByName(name: String) =
+            configs.find { it.name.equals(name, ignoreCase = true) }
+        override suspend fun isInternal(id: String) =
+            configs.find { it.id == id }?.internal == true
     }
 
     @Test

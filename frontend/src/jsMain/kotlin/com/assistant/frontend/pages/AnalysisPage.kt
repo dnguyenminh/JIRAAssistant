@@ -4,6 +4,7 @@ import com.assistant.frontend.api.ApiClient
 import com.assistant.frontend.models.ProjectAnalysisResponse
 import com.assistant.frontend.pages.analysis.AnalysisBottleneckRadar
 import com.assistant.frontend.pages.analysis.AnalysisScanStatus
+import com.assistant.frontend.pages.analysis.AnalysisStateManager
 import com.assistant.frontend.pages.analysis.AnalysisVelocityChart
 import com.assistant.frontend.router.Router
 import com.assistant.frontend.services.HtmlUtils
@@ -31,6 +32,7 @@ object AnalysisPage {
             val html = ApiClient.loadTemplate("analysis")
             container.innerHTML = html
             bindEvents()
+            immediateRestoreFromSession()
             loadAnalysisData()
             AnalysisScanStatus.loadScanStatus()
         }
@@ -52,6 +54,18 @@ object AnalysisPage {
         })
     }
 
+    /**
+     * Phase 1: Immediate display from sessionStorage.
+     * Renders metrics/chart/radar BEFORE API loads.
+     * Requirements: 2.1, 2.6
+     */
+    private fun immediateRestoreFromSession() {
+        val data = AnalysisStateManager.restore() ?: return
+        renderMetrics(data)
+        AnalysisVelocityChart.render(data.velocityTrend)
+        AnalysisBottleneckRadar.render(data.bottlenecks)
+    }
+
     internal fun loadAnalysisData() {
         val projectKey = ApiClient.getProjectKey() ?: return
         hideAnalysisError()
@@ -61,6 +75,7 @@ object AnalysisPage {
                 if (ApiClient.handleUnauthorized(response)) return@launch
                 val body = response.bodyAsText()
                 val data = json.decodeFromString<ProjectAnalysisResponse>(body)
+                AnalysisStateManager.save(data)
                 renderMetrics(data)
                 AnalysisVelocityChart.render(data.velocityTrend)
                 AnalysisBottleneckRadar.render(data.bottlenecks)

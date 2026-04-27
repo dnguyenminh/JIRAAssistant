@@ -130,23 +130,41 @@ class AIChatSidebarSteps {
 
     @When("the user types {string} in the chat input")
     fun userTypesInChatInput(message: String) {
-        TestHelper.wait(driver).until { d ->
-            d.findElements(By.id("chat-input")).isNotEmpty() || TestHelper.pageRendered(d)
-        }
-        val inputs = driver.findElements(By.id("chat-input"))
-        if (inputs.isNotEmpty()) {
-            inputs.first().clear()
-            inputs.first().sendKeys(message)
+        val locator = By.id("chat-input")
+        TestHelper.waitForVisible(driver, locator)
+        val input = driver.findElements(locator).first()
+        TestHelper.js(driver).executeScript(
+            "arguments[0].scrollIntoView({block:'center'})", input
+        )
+        try {
+            input.clear()
+            input.sendKeys(message)
+        } catch (_: Exception) {
+            TestHelper.js(driver).executeScript(
+                "arguments[0].value='';arguments[0].value=arguments[1];" +
+                    "arguments[0].dispatchEvent(new Event('input',{bubbles:true}))",
+                input, message
+            )
         }
     }
 
     @When("the user presses Enter in the chat input")
     fun userPressesEnterInChatInput() {
-        val inputs = driver.findElements(By.id("chat-input"))
-        if (inputs.isNotEmpty()) {
-            inputs.first().sendKeys(Keys.ENTER)
+        val locator = By.id("chat-input")
+        TestHelper.waitForVisible(driver, locator)
+        val input = driver.findElements(locator).firstOrNull() ?: return
+        TestHelper.js(driver).executeScript(
+            "arguments[0].scrollIntoView({block:'center'})", input
+        )
+        try {
+            input.sendKeys(Keys.ENTER)
+        } catch (_: Exception) {
+            TestHelper.js(driver).executeScript(
+                "arguments[0].dispatchEvent(new KeyboardEvent('keydown'," +
+                    "{key:'Enter',code:'Enter',bubbles:true}))",
+                input
+            )
         }
-        // Wait for overlay from message send
         TestHelper.waitForOverlayGone(driver)
     }
 

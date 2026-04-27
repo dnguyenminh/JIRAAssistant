@@ -38,6 +38,8 @@ internal object DashboardScanControl {
         btnResume?.addEventListener("click", { DashboardPage.scope.launch { scanAction("resume") } })
         btnCancel?.addEventListener("click", { DashboardPage.scope.launch { scanAction("cancel") } })
         ScanLogDialog.bind()
+        DashboardScanSettings.restore()
+        DashboardScanSettings.bindPersistence(::getConcurrency, ::getBatchPromptSize, ::getForceReanalyze)
     }
 
     private fun disableAllButtons(vararg btns: HTMLButtonElement?) {
@@ -59,11 +61,12 @@ internal object DashboardScanControl {
 
         val concurrency = getConcurrency()
         val forceReanalyze = getForceReanalyze()
+        val batchPromptSize = getBatchPromptSize()
         val url = if (action == "start") {
-            "/api/projects/$projectKey/scan/$action?concurrency=$concurrency&forceReanalyze=$forceReanalyze"
+            "/api/projects/$projectKey/scan/$action?concurrency=$concurrency&forceReanalyze=$forceReanalyze&batchPromptSize=$batchPromptSize"
         } else "/api/projects/$projectKey/scan/$action"
         val msg = when (action) {
-            "start" -> if (forceReanalyze) "Force re-analyzing (×$concurrency)..." else "Starting scan (×$concurrency)..."
+            "start" -> if (forceReanalyze) "Force re-analyzing (×$concurrency, batch=$batchPromptSize)..." else "Starting scan (×$concurrency, batch=$batchPromptSize)..."
             "pause" -> "Pausing..."
             "resume" -> "Resuming..."
             "cancel" -> "Cancelling..."
@@ -106,7 +109,12 @@ internal object DashboardScanControl {
 
     private fun getConcurrency(): Int {
         val input = document.getElementById("scan-concurrency") as? org.w3c.dom.HTMLInputElement
-        return (input?.value?.toIntOrNull() ?: 3).coerceIn(1, 20)
+        return (input?.value?.toIntOrNull() ?: 3).coerceAtLeast(1)
+    }
+
+    private fun getBatchPromptSize(): Int {
+        val input = document.getElementById("scan-batch-prompt-size") as? org.w3c.dom.HTMLInputElement
+        return (input?.value?.toIntOrNull() ?: 3).coerceAtLeast(1)
     }
 
     private fun getForceReanalyze(): Boolean {

@@ -17,7 +17,7 @@ class ChatRepositoryImpl(
         return saveMessageWithConversation(userId, "", role, message, context)
     }
 
-    suspend fun saveMessageWithConversation(
+    override suspend fun saveMessageWithConversation(
         userId: String, conversationId: String,
         role: String, message: String, context: String?
     ): Long {
@@ -41,7 +41,7 @@ class ChatRepositoryImpl(
             .map { it.toChatMessage() }
     }
 
-    suspend fun getHistoryByConversation(
+    override suspend fun getHistoryByConversation(
         userId: String, conversationId: String, page: Int, size: Int
     ): List<ChatMessage> {
         val offset = (page * size).toLong()
@@ -55,12 +55,17 @@ class ChatRepositoryImpl(
         return database.knowledgeBaseQueries.getChatHistoryCount(userId).executeAsOne()
     }
 
+    override suspend fun getHistoryCountByConversation(userId: String, conversationId: String): Long {
+        return database.knowledgeBaseQueries
+            .getChatHistoryCountByConversation(userId, conversationId).executeAsOne()
+    }
+
     override suspend fun deleteHistory(userId: String): Boolean {
         database.knowledgeBaseQueries.deleteChatHistory(userId)
         return true
     }
 
-    suspend fun deleteHistoryByConversation(conversationId: String) {
+    override suspend fun deleteHistoryByConversation(conversationId: String) {
         database.knowledgeBaseQueries.deleteChatHistoryByConversation(conversationId)
     }
 

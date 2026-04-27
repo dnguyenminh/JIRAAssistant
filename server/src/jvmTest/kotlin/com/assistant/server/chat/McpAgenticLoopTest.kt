@@ -45,7 +45,7 @@ class McpAgenticLoopTest {
         val results = listOf(
             SyncResult(false, SyncType.CREATE_TICKET, warningMessage = "Graph sync pending")
         )
-        val updated = McpAgenticLoop.appendSyncWarnings(response, results)
+        val updated = McpLoopSyncHelpers.appendSyncWarnings(response, results)
         assertTrue(updated.reply.contains("⚠️"))
         assertTrue(updated.reply.contains("Graph sync pending"))
     }
@@ -54,14 +54,14 @@ class McpAgenticLoopTest {
     fun `appendSyncWarnings returns unchanged response when all syncs succeed`() {
         val response = ChatResponse(reply = "Done")
         val results = listOf(SyncResult(true, SyncType.CREATE_TICKET, ticketKey = "PROJ-1"))
-        val updated = McpAgenticLoop.appendSyncWarnings(response, results)
+        val updated = McpLoopSyncHelpers.appendSyncWarnings(response, results)
         assertEquals("Done", updated.reply)
     }
 
     @Test
     fun `appendSyncWarnings returns unchanged response for empty results`() {
         val response = ChatResponse(reply = "Done")
-        val updated = McpAgenticLoop.appendSyncWarnings(response, emptyList())
+        val updated = McpLoopSyncHelpers.appendSyncWarnings(response, emptyList())
         assertEquals("Done", updated.reply)
     }
 
@@ -74,7 +74,7 @@ class McpAgenticLoopTest {
         val pages = listOf(
             ConfluencePage("1", "Auth Guide", "https://wiki.example.com/auth", "How to auth")
         )
-        val updated = McpAgenticLoop.appendConfluenceActions(response, pages)
+        val updated = McpLoopSyncHelpers.appendConfluenceActions(response, pages)
         assertEquals(1, updated.actions.size)
         assertEquals("openUrl", updated.actions[0].type)
         assertEquals("https://wiki.example.com/auth", updated.actions[0].params["url"])
@@ -85,7 +85,7 @@ class McpAgenticLoopTest {
     fun `appendConfluenceActions skips pages without URL`() {
         val response = ChatResponse(reply = "Found docs")
         val pages = listOf(ConfluencePage("1", "No URL Page", null, "Summary"))
-        val updated = McpAgenticLoop.appendConfluenceActions(response, pages)
+        val updated = McpLoopSyncHelpers.appendConfluenceActions(response, pages)
         assertEquals(0, updated.actions.size)
     }
 
@@ -94,7 +94,7 @@ class McpAgenticLoopTest {
         val existing = ChatAction(type = "navigate", label = "Go", params = mapOf("screen" to "dashboard"))
         val response = ChatResponse(reply = "Result", actions = listOf(existing))
         val pages = listOf(ConfluencePage("1", "Doc", "https://doc.com", "Info"))
-        val updated = McpAgenticLoop.appendConfluenceActions(response, pages)
+        val updated = McpLoopSyncHelpers.appendConfluenceActions(response, pages)
         assertEquals(2, updated.actions.size)
         assertEquals("navigate", updated.actions[0].type)
         assertEquals("openUrl", updated.actions[1].type)
@@ -103,7 +103,7 @@ class McpAgenticLoopTest {
     @Test
     fun `appendConfluenceActions returns unchanged response for empty pages`() {
         val response = ChatResponse(reply = "No docs")
-        val updated = McpAgenticLoop.appendConfluenceActions(response, emptyList())
+        val updated = McpLoopSyncHelpers.appendConfluenceActions(response, emptyList())
         assertSame(response, updated)
     }
 
@@ -157,7 +157,7 @@ class McpAgenticLoopTest {
             SyncResult(true, SyncType.UPDATE_TICKET, ticketKey = "PROJ-1"),
             SyncResult(false, SyncType.LINK_TICKETS, warningMessage = "Link failed")
         )
-        val updated = McpAgenticLoop.appendSyncWarnings(response, results)
+        val updated = McpLoopSyncHelpers.appendSyncWarnings(response, results)
         assertTrue(updated.reply.contains("Create failed"))
         assertTrue(updated.reply.contains("Link failed"))
         assertFalse(updated.reply.contains("PROJ-1"))

@@ -41,3 +41,113 @@
         </div>
     </div>
 </div>
+
+<!-- Jira disconnect footer indicator -->
+<template id="tmpl-jira-disconnect">
+  <div class="jira-disconnect-footer" id="jira-disconnect-footer">
+    <span class="jira-disconnect-icon">⚡</span>
+    <span>Jira Disconnected</span>
+  </div>
+</template>
+
+<!-- Popup modal for non-admin users -->
+<template id="tmpl-jira-not-configured-popup">
+  <div class="jira-popup-overlay" id="jira-popup-overlay">
+    <div class="glass-card jira-popup-card">
+      <div class="jira-popup-icon">⚠️</div>
+      <h3>Jira Not Configured</h3>
+      <p>Jira integration has not been configured yet. Please contact your administrator to set up Jira credentials.</p>
+      <button id="jira-popup-ok-btn" class="chat-action-btn">OK</button>
+    </div>
+  </div>
+</template>
+
+<style>
+/* Jira Disconnect Footer — fixed bottom bar with red neon accent */
+.jira-disconnect-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 24px;
+    background: rgba(20, 24, 35, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 110, 132, 0.3);
+    color: var(--danger);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    z-index: 900;
+    box-shadow: 0 -4px 24px rgba(255, 110, 132, 0.15);
+}
+
+.jira-disconnect-icon {
+    font-size: 16px;
+}
+
+/* Jira Popup Overlay — full-screen centered */
+.jira-popup-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1000;
+}
+
+/* Jira Popup Card — glass-card with Obsidian Kinetic design */
+.jira-popup-card {
+    max-width: 420px;
+    width: 90%;
+    padding: 48px;
+    text-align: center;
+    border-color: rgba(255, 110, 132, 0.2);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 110, 132, 0.1);
+    animation: popupFadeIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Disable hover lift on popup card */
+.jira-popup-card:hover {
+    transform: none;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 110, 132, 0.1);
+}
+
+.jira-popup-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.jira-popup-card h3 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--danger);
+    margin-bottom: 16px;
+}
+
+.jira-popup-card p {
+    font-size: 13px;
+    color: var(--text-sub);
+    line-height: 1.6;
+    margin-bottom: 28px;
+}
+
+.jira-popup-card .chat-action-btn {
+    padding: 12px 40px;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+}
+
+@keyframes popupFadeIn {
+    from { opacity: 0; transform: scale(0.9) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+</style>

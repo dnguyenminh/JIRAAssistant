@@ -36,10 +36,12 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation("org.slf4j:slf4j-simple:2.0.13")
 
-    // JUnit 4 — required by CucumberWithSerenity runner
-    testImplementation("junit:junit:4.13.2")
-    // JUnit Vintage engine — bridges JUnit 4 @RunWith into JUnit Platform
-    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:${libs.versions.junit.get()}")
+    // JNA for Selenium WebDriver on Windows (native process management)
+    testImplementation("net.java.dev.jna:jna-platform:5.16.0")
+
+    // JUnit 5 Cucumber Platform Engine — replaces deprecated CucumberWithSerenity (JUnit 4)
+    testImplementation("io.cucumber:cucumber-junit-platform-engine:${libs.versions.cucumber.get()}")
+    testImplementation("org.junit.platform:junit-platform-suite:1.11.4")
 
     // Ktor HTTP client for API-only tests
     testImplementation("io.ktor:ktor-client-cio:${libs.versions.ktor.get()}")
@@ -118,16 +120,20 @@ val startServer by tasks.registering {
             "java", "-jar", fatJar.absolutePath
         ).apply {
             environment()["PORT"] = serverPort.toString()
-            environment()["DB_PATH"] = "${dbDir.absolutePath}/e2e-test.db"
             environment()["JWT_SECRET"] = "e2e-test-jwt-secret-for-testing-only"
             environment()["ENCRYPTION_KEY"] = "e2e-test-encryption-key-32chars!"
             environment()["STATIC_DIR"] = staticDir.absolutePath
             // Pass .env values to server process
             envOrDot("JIRA_HOST")?.let { environment()["JIRA_HOST"] = it }
-            envOrDot("JIRA_EMAIL")?.let { environment()["JIRA_EMAIL"] = it }
-            envOrDot("JIRA_TOKEN")?.let { environment()["JIRA_TOKEN"] = it }
+            envOrDot("JIRA_API_EMAIL")?.let { environment()["JIRA_API_EMAIL"] = it }
+            envOrDot("JIRA_API_TOKEN")?.let { environment()["JIRA_API_TOKEN"] = it }
             envOrDot("GEMINI_API_KEY")?.let { environment()["GEMINI_API_KEY"] = it }
             envOrDot("OLLAMA_ENDPOINT")?.let { environment()["OLLAMA_ENDPOINT"] = it }
+            // PostgreSQL connection
+            envOrDot("DATABASE_URL")?.let { environment()["DATABASE_URL"] = it }
+            envOrDot("DATABASE_USER")?.let { environment()["DATABASE_USER"] = it }
+            envOrDot("DATABASE_PASSWORD")?.let { environment()["DATABASE_PASSWORD"] = it }
+            envOrDot("DATABASE_POOL_SIZE")?.let { environment()["DATABASE_POOL_SIZE"] = it }
             redirectErrorStream(true)
         }
 
@@ -181,19 +187,23 @@ tasks.test {
     // Each fork runs a subset of test classes concurrently
     // API tests: lightweight HTTP calls, safe to parallelize heavily
     // UI tests: each opens Chrome, ~300MB RAM each, limit forks
-    maxParallelForks = 8
+
+    // systemProperty("serenity.batch.strategy", "DIVIDE_BY_TEST_COUNT")
+    maxParallelForks = Runtime.getRuntime().availableProcessors() // Sử dụng tối đa số nhân CPU
+
+    systemProperty("cucumber.execution.parallel.enabled", "true") 
+    systemProperty("cucumber.execution.parallel.config.strategy", "dynamic")
 
     systemProperty("test.server.port", serverPort.toString())
     systemProperty("test.server.baseUrl", "http://localhost:$serverPort")
 
     // Pass .env Jira credentials to test JVM as JIRA_TEST_* env vars
     val jiraHost = envOrDot("JIRA_HOST")
-    val jiraEmail = envOrDot("JIRA_EMAIL")
-    val jiraToken = envOrDot("JIRA_TOKEN")
+    val jiraEmail = envOrDot("JIRA_API_EMAIL")
+    val jiraToken = envOrDot("JIRA_API_TOKEN")
     if (!jiraHost.isNullOrBlank()) environment("JIRA_TEST_URL", jiraHost)
     if (!jiraEmail.isNullOrBlank()) environment("JIRA_TEST_USER", jiraEmail)
     if (!jiraToken.isNullOrBlank()) environment("JIRA_TEST_TOKEN", jiraToken)
-
     dependsOn(startServer)
     finalizedBy(stopServer, "aggregate")
 }
@@ -207,8 +217,8 @@ val apiTest by tasks.registering(Test::class) {
     systemProperty("test.server.baseUrl", "http://localhost:$serverPort")
     // Pass .env Jira credentials to apiTest JVM as JIRA_TEST_* env vars
     val jiraHostApi = envOrDot("JIRA_HOST")
-    val jiraEmailApi = envOrDot("JIRA_EMAIL")
-    val jiraTokenApi = envOrDot("JIRA_TOKEN")
+    val jiraEmailApi = envOrDot("JIRA_API_EMAIL")
+    val jiraTokenApi = envOrDot("JIRA_API_TOKEN")
     if (!jiraHostApi.isNullOrBlank()) environment("JIRA_TEST_URL", jiraHostApi)
     if (!jiraEmailApi.isNullOrBlank()) environment("JIRA_TEST_USER", jiraEmailApi)
     if (!jiraTokenApi.isNullOrBlank()) environment("JIRA_TEST_TOKEN", jiraTokenApi)
@@ -228,6 +238,13 @@ val uiTest by tasks.registering(Test::class) {
     jvmArgs("-Djava.io.tmpdir=${layout.buildDirectory.dir("tmp-ui").get().asFile.absolutePath}")
     systemProperty("test.server.port", serverPort.toString())
     systemProperty("test.server.baseUrl", "http://localhost:$serverPort")
+    // Pass .env Jira credentials to uiTest JVM as JIRA_TEST_* env vars
+    val jiraHostUi = envOrDot("JIRA_HOST")
+    val jiraEmailUi = envOrDot("JIRA_API_EMAIL")
+    val jiraTokenUi = envOrDot("JIRA_API_TOKEN")
+    if (!jiraHostUi.isNullOrBlank()) environment("JIRA_TEST_URL", jiraHostUi)
+    if (!jiraEmailUi.isNullOrBlank()) environment("JIRA_TEST_USER", jiraEmailUi)
+    if (!jiraTokenUi.isNullOrBlank()) environment("JIRA_TEST_TOKEN", jiraTokenUi)
     dependsOn(startServer)
     finalizedBy(stopServer)
 }
@@ -235,4 +252,16 @@ val uiTest by tasks.registering(Test::class) {
 serenity {
     reports = listOf("html")
     sourceDirectory = file("target/site/serenity").path
+    // Requirements hierarchy: map subdirectories → capabilities, feature files → features
+    requirementsBaseDir = file("src/test/resources/features").absolutePath
+    requirementsDir = file("src/test/resources/features").absolutePath
+}
+
+// Ensure serenity properties are available during aggregate report generation
+tasks.named("aggregate") {
+    doFirst {
+        System.setProperty("serenity.features.directory", file("src/test/resources/features").absolutePath)
+        System.setProperty("serenity.requirement.types", "capability,feature")
+        System.setProperty("serenity.test.root", "com.assistant.e2e")
+    }
 }

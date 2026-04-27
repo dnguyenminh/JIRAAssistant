@@ -26,6 +26,29 @@
     <div id="integ-modal-content" class="glass-card" style="max-width:520px; width:90%; max-height:80vh; overflow-y:auto; position:relative; padding:40px;"></div>
 </div>
 
+<!-- ── Advanced Pipeline Settings ────────────────────────────── -->
+<section style="margin-top:48px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+        <div>
+            <h2 style="font-size:18px; font-weight:700; letter-spacing:1.5px; margin:0;">Pipeline Settings</h2>
+            <p style="opacity:0.4; font-size:11px; letter-spacing:1px; margin-top:4px;">Advanced document generation pipeline configuration</p>
+        </div>
+    </div>
+    <div class="glass-card" style="padding:24px;" id="pipeline-settings-card">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+            <div>
+                <div style="font-size:14px; font-weight:600; letter-spacing:0.5px;">Agent Pipeline</div>
+                <div style="font-size:11px; opacity:0.4; margin-top:4px;">Use AI Agent for smarter, smaller prompts (60K instead of 200K+). Falls back to legacy pipeline on failure.</div>
+            </div>
+            <label class="toggle-switch" style="position:relative; display:inline-block; width:48px; height:26px; flex-shrink:0; margin-left:16px;">
+                <input type="checkbox" id="toggle-agent-pipeline" style="opacity:0; width:0; height:0;">
+                <span class="toggle-slider" id="toggle-agent-pipeline-slider" style="position:absolute; cursor:pointer; inset:0; background:rgba(255,255,255,0.1); border-radius:26px; transition:0.3s;"></span>
+            </label>
+        </div>
+        <div id="pipeline-status-msg" style="display:none; margin-top:12px; font-size:11px; letter-spacing:0.5px; padding:8px 12px; border-radius:8px;"></div>
+    </div>
+</section>
+
 <!-- ── MCP Servers Section ──────────────────────────────────── -->
 <section style="margin-top:48px;">
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
@@ -144,7 +167,8 @@
                        class="field-input integ-config-input"
                        id="jira-email"
                        placeholder="user@example.com"
-                       autocomplete="email">
+                       autocomplete="email"
+                       style="background:rgba(12,14,22,0.95);color:#e0e0e0;">
             </div>
 
             <!-- API Token -->
@@ -155,7 +179,8 @@
                            class="field-input integ-config-input masked"
                            id="jira-api-token"
                            placeholder="Your Jira API token"
-                           autocomplete="off">
+                           autocomplete="off"
+                           style="background:rgba(12,14,22,0.95);color:#e0e0e0;">
                     <button type="button"
                             id="jira-toggle-token"
                             style="position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-sub); cursor:pointer; font-size:16px; padding:4px;"
@@ -164,10 +189,11 @@
             </div>
         </div>
 
-        <!-- SAVE & TEST Button -->
-        <button class="btn-vibrant" id="btn-jira-save-test" style="width:100%; padding:16px; font-size:13px; letter-spacing:1.5px; margin-top:24px; text-align:center;">
-            SAVE &amp; TEST
-        </button>
+        <!-- TEST CONNECTION + SAVE Buttons -->
+        <div style="display:flex;gap:12px;margin-top:24px;">
+            <button id="btn-jira-test" style="flex:1;padding:16px;font-size:13px;letter-spacing:1.5px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#fff;cursor:pointer;transition:0.2s;">TEST CONNECTION</button>
+            <button id="btn-jira-save" class="btn-vibrant" style="flex:1;padding:16px;font-size:13px;letter-spacing:1.5px;opacity:0.4;pointer-events:none;" disabled>SAVE</button>
+        </div>
 
         <!-- Progress Bar (hidden by default) -->
         <div id="jira-config-progress" style="display:none; margin-top:12px;">

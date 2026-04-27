@@ -9,13 +9,16 @@ import org.w3c.dom.HTMLElement
  */
 object McpToolIndicator {
 
-    fun createRunningIndicator(toolName: String): HTMLElement {
+    private const val INTERNAL_SERVER_ID = "jira-assistant-ui"
+
+    fun createRunningIndicator(toolName: String, serverId: String? = null): HTMLElement {
         val wrapper = document.createElement("div") as HTMLElement
         wrapper.className = "chat-message assistant mcp-tool-indicator"
         val bubble = document.createElement("div") as HTMLElement
         bubble.className = "chat-bubble"
         bubble.style.cssText = "opacity:0.7;font-size:12px;display:flex;align-items:center;gap:6px;"
-        bubble.innerHTML = "🔧 <span>Đang gọi <strong>$toolName</strong>...</span>"
+        val icon = if (serverId == INTERNAL_SERVER_ID) "🏠" else "🔧"
+        bubble.innerHTML = "$icon <span>Đang thực hiện <strong>$toolName</strong>...</span>"
         wrapper.appendChild(bubble)
         return wrapper
     }

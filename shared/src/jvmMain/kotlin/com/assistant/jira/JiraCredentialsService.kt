@@ -24,18 +24,31 @@ class JiraCredentialsService(
      * If the format is unexpected (no colon separator), returns null.
      */
     fun getJiraCredentials(): JiraCredentials? {
-        val config = providerConfigRepo.findById("jira") ?: return null
+        val config = providerConfigRepo.findById("jira")
+        if (config == null) {
+            println("[JiraCredentialsService] No 'jira' provider config found in DB")
+            return null
+        }
 
         val decryptedApiKey = config.apiKey
-        if (decryptedApiKey.isNullOrBlank()) return null
+        if (decryptedApiKey.isNullOrBlank()) {
+            println("[JiraCredentialsService] apiKey is null/blank for jira config")
+            return null
+        }
 
         val separatorIndex = decryptedApiKey.indexOf(':')
-        if (separatorIndex <= 0) return null
+        if (separatorIndex <= 0) {
+            println("[JiraCredentialsService] apiKey has no ':' separator")
+            return null
+        }
 
         val email = decryptedApiKey.substring(0, separatorIndex)
         val apiToken = decryptedApiKey.substring(separatorIndex + 1)
 
-        if (email.isBlank() || apiToken.isBlank()) return null
+        if (email.isBlank() || apiToken.isBlank()) {
+            println("[JiraCredentialsService] email or apiToken is blank")
+            return null
+        }
 
         return JiraCredentials(
             domain = config.endpoint,

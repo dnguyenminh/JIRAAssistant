@@ -5,6 +5,7 @@ import com.assistant.mcp.models.McpToolInfo
 import com.assistant.server.mcp.HttpMcpProtocolClient
 import com.assistant.server.mcp.McpProcessManagerImpl
 import com.assistant.server.mcp.ProcessSpawner
+import com.assistant.server.mcp.internal.InternalMcpBridge
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
@@ -87,6 +88,10 @@ private suspend fun RoutingContext.handleUpdateMcp(repo: McpServerRepository) {
         return
     }
     val id = call.parameters["id"] ?: return call.respond(HttpStatusCode.BadRequest, ErrorResponse("Missing id"))
+    if (isInternalMcpServer(id, repo)) {
+        call.respond(HttpStatusCode.BadRequest, ErrorResponse("Cannot modify Internal MCP Server"))
+        return
+    }
     val config = call.receive<McpServerConfig>()
     repo.update(config.copy(id = id))
     call.respond(HttpStatusCode.OK, repo.findById(id) ?: config)
@@ -103,6 +108,10 @@ private suspend fun RoutingContext.handleDeleteMcp(
     }
     val id = call.parameters["id"]
         ?: return call.respond(HttpStatusCode.BadRequest, ErrorResponse("Missing id"))
+    if (isInternalMcpServer(id, repo)) {
+        call.respond(HttpStatusCode.BadRequest, ErrorResponse("Cannot modify Internal MCP Server"))
+        return
+    }
     // Check if this is a markitdown server — suppress auto-recreate
     val server = repo.findById(id)
     processManager.stopServer(id)
@@ -133,6 +142,14 @@ private suspend fun RoutingContext.handleTestMcp(repo: McpServerRepository) {
     }
     val id = call.parameters["id"]
         ?: return call.respond(HttpStatusCode.BadRequest, ErrorResponse("Missing id"))
+    if (isInternalMcpServer(id, repo)) {
+        val bridge by call.application.inject<InternalMcpBridge>()
+        val tools = bridge.getAggregatedTools().map {
+            McpToolInfo(it.name, it.description, it.inputSchema)
+        }
+        call.respond(HttpStatusCode.OK, McpTestResult(true, tools))
+        return
+    }
     val server = repo.findById(id)
     if (server == null) {
         call.respond(HttpStatusCode.NotFound, ErrorResponse("Server not found"))
@@ -259,6 +276,10 @@ private fun generateMcpId(): String {
     val chars = "abcdefghijklmnopqrstuvwxyz0123456789"
     return (1..12).map { chars.random() }.joinToString("")
 }
+
+/** Check if an MCP server is internal (protected from modification). Req: 6.70 */
+private suspend fun isInternalMcpServer(id: String, repo: McpServerRepository): Boolean =
+    id == InternalMcpBridge.INTERNAL_SERVER_ID || repo.isInternal(id)
 
 /** Check if an MCP server with the same ID or name (case-insensitive) already exists. */
 private suspend fun hasDuplicate(repo: McpServerRepository, id: String, name: String): Boolean {

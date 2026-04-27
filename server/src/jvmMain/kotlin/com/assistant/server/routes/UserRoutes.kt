@@ -36,6 +36,12 @@ fun Routing.userRoutes() {
 
     route("/api/users") {
         withPermission(Permission.MANAGE_USERS) {
+            get("/audit-log") {
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 50
+                val entries = auditLogStore.getRecent(limit)
+                call.respond(HttpStatusCode.OK, entries)
+            }
+
             get {
                 val users = userStore.getAll().map { it.toDto() }
                 call.respond(HttpStatusCode.OK, users)

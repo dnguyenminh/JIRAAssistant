@@ -29,7 +29,8 @@ CREATE TABLE mcp_servers (
     disabled INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'OFFLINE',
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    internal INTEGER NOT NULL DEFAULT 0       -- 1 = Internal MCP Server (protected, Req 6.70)
 );
 ```
 
@@ -82,6 +83,60 @@ CREATE TABLE mcp_servers (
 │ [SAVE] [TEST] [CANCEL]                      │
 └─────────────────────────────────────────────┘
 ```
+
+### Tools Section (expandable, Req: 6.47)
+
+Mỗi MCP server card có expandable "Tools" section. Khi expand:
+
+```
+▼ Tools (30)
+┌─────────────────────────────────────────────┐
+│ [✅ Enable All] [❌ Disable All]  5/30 enabled│
+├─────────────────────────────────────────────┤
+│ [☑] 🔧 navigate_to_page  Navigate to...  [Schema] │
+│ [☐] 🔧 start_scan        Start a batch... [Schema] │
+│ [☑] 🔧 get_settings      Get all app...   [Schema] │
+│ ...                                                  │
+└─────────────────────────────────────────────┘
+```
+
+Component: `McpToolsSection.kt`
+- Checkbox per tool: toggle per-user permission, save via `PUT /api/chat/tool-permissions`
+- "Enable All": gọi `PUT /api/chat/tool-permissions/bulk` với `enable_all`
+- "Disable All": gọi `PUT /api/chat/tool-permissions/bulk` với `disable_all`
+- Counter: "{enabled} / {total} enabled"
+- Tooltip: "Enabled — AI có thể sử dụng tool này" / "Disabled — AI không thể sử dụng tool này"
+
+> ✅ **Đã cập nhật bởi spec `per-user-tool-permissions`**: Toggle đọc/ghi từ `user_tool_permissions` per-user thay vì `mcp_servers.auto_approve` global.
+
+### Local & Internal Server Cards — START/STOP (Req: 6.72, 19.75)
+
+Tất cả server cards (Local KB, Jira Assistant UI, external MCP) dùng chung pattern START/STOP button:
+
+```
+┌─────────────────────────────────────────────┐
+│ 🟢 Local Knowledge Base          [STOP]    │
+│ LOCAL                                       │
+│ Knowledge Base cục bộ — ...                 │
+│ ▶ Tools (3)                                 │
+└─────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────┐
+│ 🟢 Jira Assistant UI    [LOCAL]  [STOP]    │
+│ — · 30 tools                                │
+│ ▶ Tools (30)                                │
+└─────────────────────────────────────────────┘
+```
+
+Component: `LocalServerStartStop.kt` (`pages/integrations/`)
+- Internal servers: toggle via `PUT /api/settings/feature` với key `internal_mcp_enabled`
+- External servers: start/stop via `POST /api/integrations/mcp/{id}/start|stop`
+- Button style: `mcp-startstop-btn` (STOP = đỏ, START = xanh), cùng style cho tất cả cards
+- Status dot color: dùng `McpStatusPoller.stateColor()` thống nhất (RUNNING = `#00ff88`, STOPPED = `#666`)
+- Admin-only: chỉ Administrator mới thấy nút START/STOP
+- Internal server cards ẩn nút TEST/CONFIGURE/REMOVE
+
+`LocalKBCard.kt` cũng dùng cùng pattern START/STOP (key: `local_kb_tool_enabled`).
 
 ---
 
@@ -463,25 +518,42 @@ sequenceDiagram
     ChatRoutes-->>User: ChatResponse
 ```
 
-**System prompt injection (Req: 6.52):**
+**System prompt injection (Req: 6.52, 6.109):**
 
 ```
-Available MCP Tools:
+Available MCP Tools (35):
+[Internal] navigate_to_page: Navigate to a specific application page. [Permission: VIEW_ANALYSIS] [Role: Reader]
+[Internal] start_scan: Start a batch scan for a Jira project. [Permission: ANALYZE_AI] [Role: Neural_Architect]
+...
 [MCP:AWS Docs] search_documentation: Search AWS documentation
 [MCP:AWS Docs] get_document: Get specific document by URL
 [MCP:Postgres] query: Execute SQL query on database
 
-To use a tool, respond with JSON: {"mcpToolCall": {"serverId": "abc123", "toolName": "search_documentation", "arguments": {"query": "..."}}}
+You have 35 MCP tools available. When user asks about tools or how many tools you have, answer from this list directly — do NOT call any tool.
+To use a tool, respond with JSON: {"mcpToolCall": {"serverId": "...", "toolName": "...", "arguments": {...}}}
 ```
 
-**AutoApprove check (Req: 6.50):**
-- Trước khi execute tool call, kiểm tra `toolName in config.autoApprove`
-- Nếu không trong autoApprove → trả về `{requiresApproval: true}` cho frontend
-- Frontend hiển thị confirmation dialog (Req: 6.51)
-- User approve → gửi lại request với `{approved: true}`
+> ✅ **Đã cập nhật**: System prompt injection delegate sang `ChatMcpToolsContext.build()` với per-user filtering. Internal tools dùng prefix `[Internal]`, external tools dùng `[MCP:{serverName}]`. Tools disabled per-user bị loại khỏi prompt.
+
+**Per-user permission check (thay thế AutoApprove — Req: 6.50, 6.53a):**
+
+> ✅ **Đã cập nhật bởi spec `per-user-tool-permissions`**: `isToolAutoApproved()` đã bị xóa khỏi `McpAgenticLoop`. Thay thế bằng `isToolDisabledByUser()` kiểm tra `UserToolPermissionService.isEnabled()` per-user.
+
+Hai nơi enforce per-user permissions:
+
+1. **REST API** (`POST /tools/call` — `McpToolsHandlers`):
+   - Kiểm tra per-user permission qua `UserToolPermissionService.isEnabled()`
+   - Nếu disabled → trả về error message
+
+2. **Agentic Loop** (`McpAgenticLoop.executeToolWithLocalRouting`):
+   - Per-user check: `isToolDisabledByUser(userId, permService, req)`
+   - Nếu disabled → trả message "Tool '{toolName}' is disabled by user"
+   - AI sinh response thay thế (graceful degradation)
+   - Internal tools (`jira-assistant-ui`): vẫn check per-user permission
+   - Local KB tools: bypass check (in-process, no approval needed)
 
 **Graceful degradation (Req: 6.55):**
-- Nếu tool call thất bại → append error message vào prompt
+- Nếu tool call thất bại hoặc bị reject bởi autoApprove → append error message vào prompt
 - AI sinh response thay thế dựa trên error context
 - KHÔNG crash chat flow
 
@@ -738,7 +810,7 @@ fun Application.module() {
 
 ### Property-Based Tests (fast-check / kotest-property)
 
-Mỗi property test chạy tối thiểu 100 iterations.
+Mỗi property test chạy 25 iterations (PropTestConfig).
 
 | # | Property | Tag |
 |---|----------|-----|
@@ -771,3 +843,507 @@ Mỗi property test chạy tối thiểu 100 iterations.
 | GET /mcp/tools aggregated | Verify tools from multiple servers merged | 6.46 |
 | GET /mcp/{id}/logs | Verify returns ≤100 lines, requires Admin | 6.61 |
 | RBAC: Reader cannot start/stop | Verify 403 for non-Admin on control endpoints | 6.37 |
+
+### E2E Tests (API + UI) — ✅ Đã triển khai
+
+**File:** `e2e-tests/src/test/kotlin/com/assistant/e2e/api/McpInternalApiTest.kt` (45 test cases)
+
+Bao gồm 20 sections kiểm tra toàn diện:
+- Server list & internal server presence (auth, reader access) — Req 6.20, 6.26, 6.30
+- Internal server protection (cannot delete/stop/disable) — Req 6.70
+- Status endpoint (always RUNNING, toolCount ≥25) — Req 6.57, 6.70
+- Tool discovery (per-server, aggregated, inputSchema) — Req 6.44–6.47, 6.107, 6.108
+- Tool execution cho 9 categories: Navigation, Scan, Analysis, Chat, Settings, User Management, Integrations, Knowledge Graph, Dashboard — Req 6.74–6.103
+- RBAC enforcement (Reader read-only, Neural_Architect partial, Admin full) — Req 6.104, 6.106
+- Argument validation (-32602 missing/invalid, -32601 unknown tool) — Req 6.112
+- Business error handling (graceful, no 500) — Req 6.110
+- MCP CRUD (create, duplicate 409, reader denied) — Req 6.26, 6.30, 6.30a
+- Import/Export (mcpServers format, skip duplicates) — Req 6.27
+- Test connection & Logs (admin-only) — Req 6.34, 6.61
+
+**UI E2E Tests (Cucumber/Serenity):**
+- Feature: `e2e-tests/src/test/resources/features/015-McpServers.feature` (30 scenarios)
+- Steps: `e2e-tests/src/test/kotlin/com/assistant/e2e/steps/McpServersSteps.kt`
+- Runner: `e2e-tests/src/test/kotlin/com/assistant/e2e/runners/UiMcpServersRunner.kt`
+
+UI scenarios bao gồm: MCP section visibility, Internal server card (LOCAL badge, RUNNING, hidden CONFIGURE/REMOVE/TEST, START/STOP toggle), tools expandable section, tool permissions toggle, Add MCP Server modal (Form/JSON), Import/Export buttons, RBAC (Reader/Neural_Architect restricted), AI Chat tool execution display (🏠 icon, collapsible results), page navigation persistence.
+
+---
+
+# Phần 3: Internal MCP Server — Điều khiển ứng dụng qua AI (AC 6.70–6.112)
+
+## Tổng quan
+
+Internal MCP Server là một MCP server tích hợp sẵn trong Backend_Server, expose toàn bộ chức năng ứng dụng (navigation, scan, analysis, chat, settings, user management, knowledge graph, dashboard) dưới dạng MCP tools. Khác với external MCP servers (chạy process riêng, giao tiếp qua stdio/JSON-RPC), Internal MCP Server chạy in-process và gọi trực tiếp service layers.
+
+### Quyết định thiết kế chính
+
+1. **InternalMcpToolExecutor** — Component trung tâm, nhận tool call requests và dispatch tới service layers tương ứng. Không cần process/stdio.
+2. **Tool Registration** — Mỗi tool được định nghĩa bằng `InternalToolDefinition` (name, description, inputSchema, requiredPermission). Danh sách tools được build tại startup.
+3. **Tích hợp McpProcessManager** — `InternalMcpBridge` implement logic để internal tools xuất hiện trong aggregated tools list (`GET /api/integrations/mcp/tools`) cùng external tools.
+4. **RBAC Enforcement** — Mỗi tool call kiểm tra permission từ JWT token trước khi execute. Trả về JSON-RPC error nếu không đủ quyền.
+5. **Error Handling** — 3 loại: validation error (-32602), business error (isError:true), system error (-32603).
+
+## Kiến trúc
+
+```mermaid
+graph TB
+    subgraph "Backend Server (Ktor 3.4.0)"
+        MR[McpRuntimeRoutes<br>/tools, /tools/call]
+        MR --> MPM[McpProcessManager]
+        MR --> IMB[InternalMcpBridge]
+        
+        subgraph "Internal MCP Server"
+            IMB --> IMTE[InternalMcpToolExecutor]
+            IMTE --> TR[ToolRegistry<br>30+ tool definitions]
+            IMTE --> RBAC[RBAC Check<br>Permission validation]
+            IMTE --> VAL[Argument Validator<br>JSON Schema check]
+        end
+        
+        subgraph "Service Layer (existing)"
+            BSE[BatchScanEngine]
+            AIO[AIOrchestrator]
+            CS[ChatService]
+            SR[SettingsRepository]
+            AS[AuthService]
+            PCR[ProviderConfigRepository]
+            GS[Graph Services]
+            PS[Project Services]
+        end
+        
+        IMTE -->|delegate| BSE
+        IMTE -->|delegate| AIO
+        IMTE -->|delegate| CS
+        IMTE -->|delegate| SR
+        IMTE -->|delegate| AS
+        IMTE -->|delegate| PCR
+        IMTE -->|delegate| GS
+        IMTE -->|delegate| PS
+    end
+    
+    subgraph "External MCP Servers"
+        EXT1[Process 1<br>stdio]
+        EXT2[Process 2<br>stdio]
+    end
+    
+    MPM --> EXT1
+    MPM --> EXT2
+```
+
+### Tool Call Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Routes as McpRuntimeRoutes
+    participant Bridge as InternalMcpBridge
+    participant Executor as InternalMcpToolExecutor
+    participant RBAC as RBACEngine
+    participant Service as Service Layer
+
+    Client->>Routes: POST /tools/call {serverId:"jira-assistant-ui", toolName, arguments}
+    Routes->>Bridge: isInternalServer(serverId)?
+    Bridge-->>Routes: true
+    Routes->>Bridge: callTool(toolName, arguments, userContext)
+    Bridge->>Executor: execute(toolName, arguments, userContext)
+    Executor->>Executor: validateArguments(toolName, arguments)
+    alt Invalid arguments
+        Executor-->>Bridge: McpError(-32602, "Invalid params: ...")
+    end
+    Executor->>RBAC: hasPermission(userId, requiredPermission)
+    alt No permission
+        Executor-->>Bridge: McpError(-32603, "Access denied: requires ...")
+    end
+    Executor->>Service: delegate call (e.g., BatchScanEngine.startScan())
+    alt Business error
+        Service-->>Executor: Exception
+        Executor-->>Bridge: McpToolCallResponse(isError=true, message="...")
+    end
+    Service-->>Executor: result
+    Executor-->>Bridge: McpToolCallResponse(content=[...])
+    Bridge-->>Routes: McpToolCallResponse
+    Routes-->>Client: 200 OK
+```
+
+## Thành phần & Giao diện (Components and Interfaces)
+
+### 1. InternalToolDefinition — Định nghĩa tool
+
+```kotlin
+// shared/src/commonMain/kotlin/com/assistant/mcp/models/InternalToolDefinition.kt
+@Serializable
+data class InternalToolDefinition(
+    val name: String,
+    val description: String,           // includes [Permission: X] [Role: Y]
+    val inputSchema: JsonElement,      // JSON Schema object
+    val requiredPermission: String,    // e.g., "ANALYZE_AI", "VIEW_ANALYSIS"
+    val requiredRole: String,          // e.g., "Administrator", "Reader"
+    val category: ToolCategory
+)
+
+@Serializable
+enum class ToolCategory {
+    NAVIGATION, SCAN, ANALYSIS, CHAT, SETTINGS,
+    USER_MANAGEMENT, INTEGRATIONS, KNOWLEDGE_GRAPH, DASHBOARD
+}
+```
+
+### 2. InternalMcpToolExecutor — Thực thi tool calls
+
+```kotlin
+// server/src/jvmMain/kotlin/com/assistant/server/mcp/internal/InternalMcpToolExecutor.kt
+class InternalMcpToolExecutor(
+    private val toolRegistry: InternalToolRegistry,
+    private val rbacEngine: RBACEngine,
+    batchScanEngine: BatchScanEngine,
+    aiOrchestrator: AIOrchestrator,
+    chatServiceProvider: () -> ChatService,  // lazy để tránh circular dep với ChatService
+    chatRepository: ChatRepository,
+    conversationRepository: ChatConversationRepository,
+    settingsRepository: SettingsRepository,
+    providerConfigRepo: ProviderConfigRepository,
+    mcpProcessManager: McpProcessManager,
+    mcpServerRepo: McpServerRepository,
+    kbRepository: KBRepository,
+    userStore: UserStore
+) {
+    // Handler instances — chatHandlers lazy để break circular dependency:
+    // ChatService → InternalMcpBridge → InternalMcpToolExecutor → ChatService
+    private val chatHandlers by lazy {
+        ChatHandlers(chatServiceProvider(), chatRepository, conversationRepository)
+    }
+    
+    /** Lấy danh sách tool definitions. Req: 6.73, 6.108 */
+    fun getTools(): List<InternalToolDefinition> = toolRegistry.getAllTools()
+    
+    /** Execute tool call với RBAC + validation. Req: 6.104, 6.112 */
+    suspend fun execute(
+        toolName: String,
+        arguments: JsonObject,
+        userId: String,
+        userRole: String
+    ): McpToolCallResponse
+}
+```
+
+**Execute flow:**
+1. Lookup tool definition từ registry → 404 nếu không tìm thấy
+2. Validate arguments theo inputSchema → -32602 nếu invalid
+3. Check RBAC permission → -32603 nếu không đủ quyền
+4. Dispatch tới handler method tương ứng
+5. Wrap result thành `McpToolCallResponse`
+6. Catch business errors → `isError: true`
+7. Catch system errors → `-32603`
+
+### 3. InternalToolRegistry — Đăng ký tools
+
+```kotlin
+// server/src/jvmMain/kotlin/com/assistant/server/mcp/internal/InternalToolRegistry.kt
+class InternalToolRegistry {
+    private val tools = mutableMapOf<String, InternalToolDefinition>()
+    
+    init { registerAllTools() }
+    
+    fun getAllTools(): List<InternalToolDefinition>
+    fun getTool(name: String): InternalToolDefinition?
+    
+    private fun registerAllTools() {
+        // Navigation tools (6.74-6.76)
+        register("navigate_to_page", ...)
+        register("get_current_page", ...)
+        register("list_available_pages", ...)
+        // Scan tools (6.77-6.82)
+        register("start_scan", ...)
+        // ... 30+ tools total
+    }
+}
+```
+
+### 4. InternalMcpBridge — Cầu nối với McpProcessManager
+
+```kotlin
+// server/src/jvmMain/kotlin/com/assistant/server/mcp/internal/InternalMcpBridge.kt
+class InternalMcpBridge(
+    private val executor: InternalMcpToolExecutor,
+    private val mcpRepo: McpServerRepository
+) {
+    companion object {
+        const val INTERNAL_SERVER_ID = "jira-assistant-ui"
+        const val INTERNAL_SERVER_NAME = "Jira Assistant UI"
+    }
+    
+    /** Đăng ký internal server record trong DB. Req: 6.70 */
+    suspend fun ensureRegistered()
+    
+    /** Kiểm tra serverId có phải internal. */
+    fun isInternalServer(serverId: String): Boolean =
+        serverId == INTERNAL_SERVER_ID
+    
+    /** Lấy aggregated tools cho internal server. Req: 6.71, 6.107 */
+    fun getAggregatedTools(): List<McpAggregatedTool>
+    
+    /** Execute tool call. Req: 6.71 */
+    suspend fun callTool(
+        toolName: String, arguments: JsonObject,
+        userId: String, userRole: String
+    ): McpToolCallResponse
+    
+    /** Trả về status luôn RUNNING. Req: 6.70 */
+    fun getStatus(): McpProcessStatus
+}
+```
+
+### 5. Cập nhật McpRuntimeRoutes — Routing internal vs external
+
+Tất cả endpoints truy vấn theo `{id}` cần kiểm tra `InternalMcpBridge.isInternalServer(id)` và delegate tới bridge thay vì `McpProcessManager` cho internal server. Các endpoints cần routing:
+
+- `GET /{id}/status` → `bridge.getStatus()` (luôn RUNNING, trả về toolCount)
+- `GET /{id}/tools` → `bridge.getAggregatedTools()` (trả về 30 internal tools)
+- `POST /{id}/test` → trả về `McpTestResult(true, tools)` trực tiếp từ bridge
+- `POST /tools/call` → `bridge.callTool()` nếu serverId là internal
+- `GET /tools` → merge `bridge.getAggregatedTools()` + `processManager.getActiveTools()`
+
+```kotlin
+// McpRuntimeHandlers.kt — GET /{id}/status. Req: 6.57, 6.70
+internal suspend fun RoutingContext.handleServerStatus(processManager: McpProcessManager) {
+    val id = call.parameters["id"] ?: return
+    if (isInternalServerId(id)) {
+        val bridge by call.application.inject<InternalMcpBridge>()
+        call.respond(HttpStatusCode.OK, bridge.getStatus())
+        return
+    }
+    val status = processManager.getStatus(id) ?: return call.respond(HttpStatusCode.NotFound, ...)
+    call.respond(HttpStatusCode.OK, status)
+}
+
+// McpToolsHandlers.kt — GET /{id}/tools. Req: 6.45, 6.71
+internal suspend fun RoutingContext.handleServerTools(processManager: McpProcessManager) {
+    val id = call.parameters["id"] ?: return
+    if (id == InternalMcpBridge.INTERNAL_SERVER_ID) {
+        val bridge by call.application.inject<InternalMcpBridge>()
+        call.respond(HttpStatusCode.OK, bridge.getAggregatedTools())
+        return
+    }
+    // External: processManager.getClient(id)?.listTools()
+}
+
+// McpRoutes.kt — POST /{id}/test. Req: 6.34, 6.70
+// Internal server: trả về tools trực tiếp từ bridge, không spawn process
+// External server: spawn process → initialize → tools/list → stop
+
+// McpToolsHandlers.kt — POST /tools/call. Req: 6.48, 6.71
+// Internal: bridge.callTool() (RBAC handled by executor)
+// External: autoApprove check → execute via protocol client
+
+// McpToolsHandlers.kt — GET /tools (aggregated). Req: 6.46, 6.107
+// Merge: bridge.getAggregatedTools() + processManager.getActiveTools()
+```
+
+### 6. Cập nhật ChatService — Ưu tiên Internal tools
+
+Cập nhật system prompt injection (Req: 6.109):
+
+```kotlin
+// Trong ChatServiceImpl.buildFullPrompt()
+val internalTools = internalBridge.getAggregatedTools()
+val externalTools = processManager.getActiveTools()
+
+// Internal tools first, with [Internal] prefix
+val toolsPrompt = buildString {
+    appendLine("Available MCP Tools:")
+    for (tool in internalTools) {
+        appendLine("[Internal] ${tool.name}: ${tool.description}")
+    }
+    for (tool in externalTools) {
+        appendLine("[MCP:${tool.serverName}] ${tool.name}: ${tool.description}")
+    }
+}
+```
+
+## Danh sách Tools đầy đủ
+
+| # | Tool Name | Category | Parameters | Required Permission | Req |
+|---|-----------|----------|------------|-------------------|-----|
+| 1 | `navigate_to_page` | NAVIGATION | page (enum) | VIEW_ANALYSIS | 6.74 |
+| 2 | `get_current_page` | NAVIGATION | — | VIEW_ANALYSIS | 6.75 |
+| 3 | `list_available_pages` | NAVIGATION | — | VIEW_ANALYSIS | 6.76 |
+| 4 | `start_scan` | SCAN | projectKey, concurrency?, aiConcurrency?, forceReanalyze? | ANALYZE_AI | 6.77 |
+| 5 | `pause_scan` | SCAN | projectKey | ANALYZE_AI | 6.78 |
+| 6 | `resume_scan` | SCAN | projectKey | ANALYZE_AI | 6.79 |
+| 7 | `cancel_scan` | SCAN | projectKey | ANALYZE_AI | 6.80 |
+| 8 | `get_scan_status` | SCAN | projectKey | VIEW_ANALYSIS | 6.81 |
+| 9 | `get_scan_log` | SCAN | projectKey, limit?, offset? | VIEW_ANALYSIS | 6.82 |
+| 10 | `analyze_ticket` | ANALYSIS | ticketId, forceReanalyze? | ANALYZE_AI | 6.83 |
+| 11 | `get_ticket_analysis` | ANALYSIS | ticketId | VIEW_ANALYSIS | 6.84 |
+| 12 | `list_analyzed_tickets` | ANALYSIS | projectKey, limit?, offset? | VIEW_ANALYSIS | 6.85 |
+| 13 | `send_chat_message` | CHAT | message, conversationId?, currentScreen? | VIEW_ANALYSIS | 6.86 |
+| 14 | `get_chat_history` | CHAT | conversationId?, limit?, offset? | VIEW_ANALYSIS | 6.87 |
+| 15 | `list_conversations` | CHAT | — | VIEW_ANALYSIS | 6.88 |
+| 16 | `get_settings` | SETTINGS | — | VIEW_ANALYSIS | 6.89 |
+| 17 | `update_setting` | SETTINGS | key, value | MANAGE_SETTINGS | 6.90 |
+| 18 | `get_setting` | SETTINGS | key | VIEW_ANALYSIS | 6.91 |
+| 19 | `list_users` | USER_MGMT | — | MANAGE_USERS | 6.92 |
+| 20 | `update_user_role` | USER_MGMT | userId, role (enum) | MANAGE_USERS | 6.93 |
+| 21 | `get_user_permissions` | USER_MGMT | userId | MANAGE_USERS | 6.94 |
+| 22 | `list_ai_providers` | INTEGRATIONS | — | VIEW_ANALYSIS | 6.95 |
+| 23 | `test_ai_provider` | INTEGRATIONS | providerId | MANAGE_SETTINGS | 6.96 |
+| 24 | `list_mcp_servers` | INTEGRATIONS | — | VIEW_ANALYSIS | 6.97 |
+| 25 | `manage_mcp_server` | INTEGRATIONS | serverId, action (enum) | MANAGE_SETTINGS | 6.98 |
+| 26 | `get_graph_data` | KNOWLEDGE_GRAPH | projectKey?, filters? | VIEW_ANALYSIS | 6.99 |
+| 27 | `search_graph_nodes` | KNOWLEDGE_GRAPH | query, nodeType?, limit? | VIEW_ANALYSIS | 6.100 |
+| 28 | `get_dashboard_metrics` | DASHBOARD | projectKey | VIEW_ANALYSIS | 6.101 |
+| 29 | `list_projects` | DASHBOARD | — | VIEW_ANALYSIS | 6.102 |
+| 30 | `get_project_analysis_summary` | DASHBOARD | projectKey | VIEW_ANALYSIS | 6.103 |
+
+## Mô hình Dữ liệu bổ sung
+
+### UserContext — Truyền thông tin user qua tool execution
+
+```kotlin
+// server/src/jvmMain/kotlin/com/assistant/server/mcp/internal/UserContext.kt
+data class UserContext(
+    val userId: String,
+    val userRole: String,
+    val email: String? = null
+)
+```
+
+### Cập nhật mcp_servers schema
+
+Thêm cột `internal` vào bảng `mcp_servers`. Migration được đăng ký trong `DatabaseMigrations.kt` (`buildMigrationStatements()`) để tự động apply cho existing databases khi startup. Đồng thời cột `internal` cũng có trong `CREATE TABLE IF NOT EXISTS mcp_servers` statement cho fresh databases.
+
+```sql
+-- Trong DatabaseMigrations.kt — incremental migration cho existing DB
+ALTER TABLE mcp_servers ADD COLUMN internal INTEGER NOT NULL DEFAULT 0;
+```
+
+Record cho Internal MCP Server:
+```json
+{
+  "id": "jira-assistant-ui",
+  "name": "Jira Assistant UI",
+  "type": "internal",
+  "command": "",
+  "internal": 1,
+  "disabled": 0,
+  "status": "RUNNING"
+}
+```
+
+## Correctness Properties (Internal MCP Server)
+
+*Một property là đặc tính hoặc hành vi phải đúng trong mọi lần thực thi hợp lệ của hệ thống — về cơ bản là một phát biểu hình thức về những gì hệ thống phải làm.*
+
+### Property 7: Tool aggregation includes internal tools
+
+*For any* tập hợp external MCP servers đang chạy (0 hoặc nhiều), khi gọi aggregated tools list, kết quả SHALL luôn bao gồm tất cả tools từ Internal_MCP_Server với `serverId: "jira-assistant-ui"`, merged cùng external tools. Số lượng tools trong kết quả = internal tools + tổng external tools.
+
+**Validates: Requirements 6.71, 6.107**
+
+### Property 8: RBAC enforcement cho mọi tool call
+
+*For any* tool trong Internal_MCP_Server và *for any* user có role KHÔNG đủ permission cho tool đó, khi gọi tool, hệ thống SHALL trả về error `"Access denied"` mà KHÔNG thực thi logic của tool. Ngược lại, user có đủ permission SHALL được phép thực thi.
+
+**Validates: Requirements 6.104, 6.106**
+
+### Property 9: Tool definitions completeness
+
+*For any* tool trong Internal_MCP_Server, tool definition SHALL có: (a) inputSchema là valid JSON Schema object với `type: "object"` và `properties`, (b) description chứa thông tin `requiredPermission` và `requiredRole`, (c) tất cả required parameters được liệt kê trong schema `required` array.
+
+**Validates: Requirements 6.105, 6.108**
+
+### Property 10: RBAC-filtered page listing
+
+*For any* user role (Reader, Neural_Architect, Administrator), `list_available_pages` SHALL trả về chỉ và đúng các pages mà role đó có permission truy cập. Không có page nào bị thiếu hoặc thừa so với RBAC rules.
+
+**Validates: Requirements 6.76**
+
+### Property 11: Business error handling
+
+*For any* tool call gây ra lỗi nghiệp vụ (not found, conflict, invalid state), response SHALL có `isError: true` với message mô tả cụ thể lỗi. Không có exception nào propagate ra ngoài tool executor.
+
+**Validates: Requirements 6.110**
+
+### Property 12: Argument validation
+
+*For any* tool có required parameters, khi gọi với arguments thiếu required field hoặc sai type, hệ thống SHALL trả về JSON-RPC error code `-32602` (Invalid params) với message chỉ rõ field nào sai, TRƯỚC KHI thực thi bất kỳ logic nào.
+
+**Validates: Requirements 6.112**
+
+## Xử lý Lỗi (Error Handling)
+
+### Validation Errors (Req: 6.112)
+
+| Lỗi | Error Code | Message Format | Ví dụ |
+|-----|-----------|----------------|-------|
+| Missing required param | -32602 | "Tool '{toolName}': missing required fields: {fields}" | "Tool 'start_scan': missing required fields: projectKey" |
+| Wrong type | -32602 | "Tool '{toolName}': field '{key}' must be {type}" | "Tool 'get_scan_log': field 'limit' must be integer" |
+| Invalid enum value | -32602 | "Tool '{toolName}': field '{key}' must be one of: {values}" | "Tool 'navigate_to_page': field 'page' must be one of: dashboard, analysis, ..." |
+| Unknown tool | -32601 | "Tool not found: {toolName}" | "Tool not found: unknown_tool" |
+
+### Business Errors (Req: 6.110)
+
+| Lỗi | isError | Message | Service |
+|-----|---------|---------|---------|
+| Ticket not found | true | "Ticket {id} not found" | AIOrchestrator |
+| Scan conflict | true | "Scan conflict: {detail}" | BatchScanEngine |
+| Cannot resume | true | "Cannot resume: {detail}" | BatchScanEngine |
+| Project not configured | true | "Project {key} not configured" | ProjectService |
+| User not found | true | "User {id} not found" | AuthService |
+| Setting not found | true | "Setting {key} not found" | SettingsRepository |
+| Self-manage blocked | true | "Cannot manage internal server: jira-assistant-ui" | IntegrationHandlers |
+
+### System Errors (Req: 6.111)
+
+| Lỗi | Error Code | Log Level |
+|-----|-----------|-----------|
+| Database error | -32603 | WARN |
+| Service unavailable | -32603 | WARN |
+| Unexpected exception | -32603 | ERROR |
+
+### RBAC Errors (Req: 6.104)
+
+| Lỗi | Error Code | Message |
+|-----|-----------|---------|
+| Insufficient permission | -32603 | "Access denied: requires {permission}" |
+
+## Chiến lược Kiểm thử bổ sung (Testing Strategy)
+
+### Property-Based Tests (Kotest Property)
+
+Mỗi property test chạy 25 iterations (PropTestConfig), nhất quán với P1–P6.
+
+| # | Property | Test File | Tag |
+|---|----------|-----------|-----|
+| P7 | Tool aggregation | `InternalToolAggregationPropertyTest.kt` | `Feature: mcp-servers, Property 7: Tool aggregation includes internal tools` |
+| P8 | RBAC enforcement | `InternalRbacEnforcementPropertyTest.kt` | `Feature: mcp-servers, Property 8: RBAC enforcement cho mọi tool call` |
+| P9 | Tool definitions completeness | `InternalToolDefinitionsPropertyTest.kt` | `Feature: mcp-servers, Property 9: Tool definitions completeness` |
+| P10 | RBAC-filtered page listing | `InternalPageFilteringPropertyTest.kt` | `Feature: mcp-servers, Property 10: RBAC-filtered page listing` |
+| P11 | Business error handling | `InternalBusinessErrorPropertyTest.kt` | `Feature: mcp-servers, Property 11: Business error handling` |
+| P12 | Argument validation | `InternalArgumentValidationPropertyTest.kt` | `Feature: mcp-servers, Property 12: Argument validation` |
+
+Tất cả test files nằm tại `server/src/jvmTest/kotlin/com/assistant/server/mcp/`.
+
+### Unit Tests (example-based)
+
+| Test | Mô tả | Req |
+|------|--------|-----|
+| Internal server auto-register | Verify startup creates record với internal=true | 6.70 |
+| Internal server immutable | Verify cannot disable/stop/delete internal server | 6.70 |
+| Frontend badge "LOCAL" + toggle | Verify internal flag in GET response, toggle via settings/feature | 6.72 |
+| navigate_to_page valid enum | Verify returns URL + metadata for each page | 6.74 |
+| manage_mcp_server self-protect | Verify rejects actions on internal server | 6.98 |
+| System prompt ordering | Verify [Internal] tools before [MCP:] tools | 6.109 |
+| System error returns -32603 | Verify DB error mapped to -32603 | 6.111 |
+
+### Integration Tests (API E2E)
+
+| Test | Mô tả | Req |
+|------|--------|-----|
+| POST /tools/call internal tool | Verify internal tool execution end-to-end | 6.71 |
+| GET /tools includes internal | Verify aggregated list has internal tools | 6.107 |
+| RBAC Reader blocked on write | Verify Reader cannot call start_scan | 6.104, 6.106 |
+| RBAC Admin full access | Verify Admin can call all tools | 6.104 |
+| Invalid args returns 200 + error | Verify -32602 for missing required param | 6.112 |
+
+> ✅ **Đã triển khai đầy đủ** trong `McpInternalApiTest.kt` (45 test cases) và `015-McpServers.feature` (30 UI scenarios). Xem chi tiết tại section "E2E Tests (API + UI)" trong Phần 2 Testing Strategy.

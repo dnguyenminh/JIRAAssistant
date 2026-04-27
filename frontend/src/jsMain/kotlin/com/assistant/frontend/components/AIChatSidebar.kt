@@ -33,6 +33,7 @@ object AIChatSidebar {
     private var isOpen = false
     private var historyLoaded = false
     private var isSending = false
+    private const val EMPTY_REPLY_FALLBACK = "AI không thể trả lời lúc này. Vui lòng thử lại."
 
     fun init() {
         cacheElements()
@@ -53,6 +54,7 @@ object AIChatSidebar {
         if (isOpen) {
             sidebar.classList.add("open")
             if (!historyLoaded) { loadInitialData(); historyLoaded = true }
+            else McpToolsSection.load()
             inputEl?.focus()
         } else sidebar.classList.remove("open")
     }
@@ -61,6 +63,8 @@ object AIChatSidebar {
         val convId = ConversationList.activeConversationId
         val url = if (!convId.isNullOrBlank()) "/api/chat/history?page=0&size=50&conversationId=$convId"
         else "/api/chat/history?page=0&size=50"
+        messagesEl?.innerHTML = ""
+        ContextIndicator.update(0)
         scope.launch {
             try {
                 val resp = ApiClient.get(url)
@@ -120,7 +124,8 @@ object AIChatSidebar {
 
     private suspend fun handleSuccess(resp: HttpResponse) {
         val chatResp = json.decodeFromString<ChatResponse>(resp.bodyAsText())
-        messagesEl?.appendChild(ChatMessageRenderer.renderMessage("assistant", chatResp.reply))
+        val displayReply = if (chatResp.reply.isBlank()) EMPTY_REPLY_FALLBACK else chatResp.reply
+        messagesEl?.appendChild(ChatMessageRenderer.renderMessage("assistant", displayReply))
         if (chatResp.actions.isNotEmpty()) messagesEl?.appendChild(renderActions(chatResp.actions))
         ContextIndicator.update(chatResp.contextUsage)
     }
@@ -163,7 +168,8 @@ object AIChatSidebar {
             currentScreen = screen,
             userRole = ApiClient.getUserRole()?.name ?: "READER",
             userId = ApiClient.getUserEmail() ?: "",
-            graphContext = ChatGraphContextBuilder.current()
+            graphContext = ChatGraphContextBuilder.current(),
+            ticketContext = ChatTicketContextBuilder.current()
         )
     }
 
@@ -195,6 +201,8 @@ object AIChatSidebar {
         ClipboardHandler.init(input)
         ToolPicker.init(input)
         ToolAutocomplete.init(input)
+        McpToolsSection.init(input)
+        ChatToolPermissions.init()
         ConversationList.onSwitch = { loadHistory() }
     }
 
@@ -202,6 +210,7 @@ object AIChatSidebar {
         ConversationList.load()
         loadHistory()
         loadModelInfo()
+        McpToolsSection.load()
         AIConfigPanel.updateBadge()
     }
 

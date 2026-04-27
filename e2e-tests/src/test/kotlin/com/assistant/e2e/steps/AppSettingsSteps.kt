@@ -13,7 +13,7 @@ import org.openqa.selenium.WebDriver
  *
  * Covers:
  *  - Settings page access via Navbar dropdown
- *  - Configuration field display (JIRA_HOST, AI_PROVIDER_URL, DB_PATH, JWT_SECRET, etc.)
+ *  - Configuration field display (JIRA_HOST, AI_PROVIDER_URL, JWT_SECRET, etc.)
  *  - Masked / readonly fields
  *  - Save settings flow
  *  - Validation (invalid URL)
@@ -48,22 +48,13 @@ class AppSettingsSteps {
 
     // ── Field display ───────────────────────────────────────
 
-    @Then("the page should display fields: JIRA_HOST, AI_PROVIDER_URL, DB_PATH, JWT_SECRET, ENCRYPTION_KEY, PORT")
+    @Then("the page should display fields: JIRA_HOST, AI_PROVIDER_URL, JWT_SECRET, ENCRYPTION_KEY, PORT")
     fun pageDisplaysAllFields() {
         TestHelper.wait(driver).until { d ->
             d.pageSource?.contains("JIRA", ignoreCase = true) == true ||
                 d.pageSource?.contains("HOST", ignoreCase = true) == true ||
                 d.pageSource?.contains("Settings", ignoreCase = true) == true ||
                 TestHelper.pageRendered(d)
-        }
-    }
-
-    @Then("the DB_PATH field should be readonly with {string} badge")
-    fun dbPathReadonlyWithBadge(badge: String) {
-        TestHelper.wait(driver).until { d ->
-            d.pageSource?.contains(badge, ignoreCase = true) == true ||
-                d.pageSource?.contains("DB_PATH", ignoreCase = true) == true ||
-                d.pageSource?.isNotBlank() == true
         }
     }
 
@@ -151,20 +142,15 @@ class AppSettingsSteps {
 
     // ── Readonly fields ─────────────────────────────────────
 
-    @Then("the DB_PATH input should have the disabled attribute")
-    fun dbPathInputDisabled() {
+    @Then("the PORT input should have the disabled attribute")
+    fun portInputDisabled() {
         val inputs = driver.findElements(By.cssSelector("input[disabled], input[readonly]"))
         val source = driver.pageSource ?: ""
         assert(inputs.isNotEmpty() || source.contains("ENV ONLY", ignoreCase = true) ||
                source.contains("readonly", ignoreCase = true) || source.contains("disabled", ignoreCase = true) ||
-               source.contains("DB_PATH", ignoreCase = true) || source.length > 200) {
-            "DB_PATH input should be disabled or page should be rendered"
+               source.length > 200) {
+            "PORT input should be disabled or page should be rendered"
         }
-    }
-
-    @Then("the PORT input should have the disabled attribute")
-    fun portInputDisabled() {
-        // Verified together with DB_PATH — multiple disabled inputs expected
     }
 
     // ── Validation ──────────────────────────────────────────

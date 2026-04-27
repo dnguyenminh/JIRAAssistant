@@ -106,6 +106,7 @@ internal object UserPermissionPanel {
                 completeSidebarSync()
                 val action = if (enabled) "ENABLED" else "DISABLED"
                 UserAuditLog.addEntry("IAM_SYNC", "${toggle.label} $action for ${user.displayName}")
+                UserAuditLog.loadFromBackend()
             } catch (e: Exception) {
                 window.clearInterval(intervalId)
                 failSidebarSync()

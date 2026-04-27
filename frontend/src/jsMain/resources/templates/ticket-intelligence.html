@@ -4,7 +4,7 @@
 </header>
 
 <!-- Input Section -->
-<div id="ti-input-section" class="glass-card" style="padding:32px;margin-bottom:32px;position:relative;">
+<div id="ti-input-section" class="glass-card" style="padding:32px;margin-bottom:32px;position:relative;z-index:10;overflow:visible;">
 
     <!-- Error Banner (hidden by default) -->
     <div id="ticket-error" style="display:none; padding:16px; margin-bottom:16px; border-radius:10px; background:rgba(255,110,132,0.08); border:1px solid rgba(255,110,132,0.2);">
@@ -18,12 +18,11 @@
         </div>
     </div>
 
-    <div style="display:flex;gap:16px;align-items:flex-end;">
+    <div style="display:flex;gap:16px;align-items:flex-end;position:relative;z-index:100;">
         <div style="flex:1;">
             <label style="font-size:11px;font-weight:700;letter-spacing:2px;opacity:0.5;display:block;margin-bottom:8px;">TICKET</label>
             <div id="ticket-combobox" class="ticket-combobox">
                 <input id="ticket-search" class="field-input" type="text" placeholder="Search tickets by ID or summary..." style="width:100%;" autocomplete="off" />
-                <div id="ticket-dropdown" class="ticket-dropdown"></div>
             </div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;">
@@ -44,8 +43,41 @@
     </div>
 </div>
 
+<!-- Skeleton Loading (shown while loading from KB cache) — Req 23.4 -->
+<div id="ti-skeleton-section" style="display:none;margin-bottom:24px;">
+    <div class="glass-card" style="padding:32px;">
+        <div class="ti-skeleton-line" style="width:40%;height:12px;margin-bottom:20px;"></div>
+        <div class="ti-skeleton-line" style="width:100%;height:14px;margin-bottom:10px;"></div>
+        <div class="ti-skeleton-line" style="width:90%;height:14px;margin-bottom:10px;"></div>
+        <div class="ti-skeleton-line" style="width:75%;height:14px;margin-bottom:24px;"></div>
+        <div style="display:flex;gap:8px;">
+            <div class="ti-skeleton-line" style="width:80px;height:28px;border-radius:8px;"></div>
+            <div class="ti-skeleton-line" style="width:100px;height:28px;border-radius:8px;"></div>
+            <div class="ti-skeleton-line" style="width:60px;height:28px;border-radius:8px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Collection Job Conflict Banner (shown when ticket is being analyzed by background job) — Req 14.8 -->
+<div id="ti-conflict-banner" style="display:none;align-items:center;gap:10px;padding:12px 20px;margin-bottom:16px;border-radius:10px;background:rgba(45,254,207,0.06);border:1px solid rgba(45,254,207,0.2);">
+    <span style="font-size:16px;">🔄</span>
+    <span id="ti-conflict-msg" style="font-size:12px;font-weight:600;letter-spacing:0.5px;color:var(--primary);"></span>
+</div>
+
+<!-- Permission Denied Warning (shown when traversal encountered 403 tickets) — Req 1.10 -->
+<div id="ti-permission-warning" style="display:none;align-items:center;gap:10px;padding:12px 20px;margin-bottom:16px;border-radius:10px;background:rgba(255,180,50,0.08);border:1px solid rgba(255,180,50,0.25);">
+    <span style="font-size:16px;">🔒</span>
+    <span id="ti-permission-msg" style="font-size:12px;font-weight:600;letter-spacing:0.5px;color:#ffb432;"></span>
+</div>
+
+<!-- Update Warning Badge (shown for HAS_UPDATES tickets) — Req 23.6 -->
+<div id="ti-update-warning" style="display:none;align-items:center;gap:10px;padding:12px 20px;margin-bottom:16px;border-radius:10px;background:rgba(255,180,50,0.08);border:1px solid rgba(255,180,50,0.25);">
+    <span style="font-size:16px;">⚠️</span>
+    <span style="font-size:12px;font-weight:600;letter-spacing:1px;color:#ffb432;">Ticket has been updated since last analysis. Results may be outdated.</span>
+</div>
+
 <!-- Results Section (hidden until analysis completes) -->
-<div id="ti-results-section" style="display:none;">
+<div id="ti-results-section" style="display:none;position:relative;z-index:1;">
     <!-- Tabs -->
     <div style="display:flex;gap:4px;margin-bottom:24px;">
         <button class="ti-tab active" data-tab="context" style="background:rgba(45,254,207,0.15);border:1px solid rgba(45,254,207,0.3);color:var(--primary);padding:10px 24px;border-radius:8px;font-size:12px;font-weight:700;letter-spacing:1.5px;cursor:pointer;transition:0.3s;">CONTEXT</button>
@@ -55,4 +87,334 @@
 
     <!-- Tab Content -->
     <div id="ti-tab-content" style="animation:fadeIn 0.5s ease;"></div>
+</div>
+
+<!-- Cascade Analysis Log Panel — Req 26.8, 26.9, 26.10 -->
+<div id="ti-cascade-panel" style="display:none;margin-top:24px;position:relative;z-index:1;">
+    <div class="glass-card" style="padding:24px;">
+        <!-- Panel Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:2px;opacity:0.4;">CASCADE ANALYSIS LOG</div>
+            <span id="cascade-progress-label" style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;color:var(--primary);">0 / 0 — 0%</span>
+        </div>
+        <!-- Progress Bar -->
+        <div class="neural-loader" style="height:3px;margin-bottom:16px;">
+            <div id="cascade-progress-bar" class="neural-progress" style="width:0%;"></div>
+        </div>
+        <!-- Log Entries -->
+        <div id="cascade-log-entries" style="max-height:300px;overflow-y:auto;padding:8px 12px;border-radius:8px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.04);"></div>
+    </div>
+</div>
+
+<!-- Collection Job Monitoring Panel — Req 13.7, 13.8, 13.12 -->
+<div id="ti-collection-jobs-panel" style="display:none;margin-top:24px;position:relative;z-index:1;">
+    <div class="glass-card" style="padding:24px;">
+        <!-- Panel Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:2px;opacity:0.4;">COLLECTION JOBS</div>
+            <span id="cj-overall-status" style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;color:var(--primary);"></span>
+        </div>
+        <!-- Job List Container -->
+        <div id="cj-job-list" style="display:flex;flex-direction:column;gap:16px;"></div>
+        <!-- Empty State -->
+        <div id="cj-empty" style="display:none;text-align:center;padding:16px;font-size:12px;opacity:0.4;">No active collection jobs</div>
+    </div>
+</div>
+
+<!-- Templates for Collection Job panel dynamic elements -->
+<template id="tmpl-cj-job">
+    <div class="cj-job-card" style="padding:16px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
+        <!-- Job Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span class="cj-job-icon" style="font-size:14px;"></span>
+                <span class="cj-job-type" style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:var(--text-main);"></span>
+            </div>
+            <span class="cj-job-status" style="font-size:9px;font-weight:700;letter-spacing:1.5px;padding:2px 8px;border-radius:4px;"></span>
+        </div>
+        <!-- Progress Bar -->
+        <div style="margin-bottom:8px;">
+            <div class="neural-loader" style="height:4px;">
+                <div class="cj-progress-fill neural-progress" style="width:0%;"></div>
+            </div>
+        </div>
+        <!-- Summary -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span class="cj-job-summary" style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--primary);"></span>
+            <span class="cj-job-percent" style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;opacity:0.5;"></span>
+        </div>
+        <!-- Item List -->
+        <div class="cj-item-list" style="display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto;padding:8px;border-radius:6px;background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.03);"></div>
+    </div>
+</template>
+
+<template id="tmpl-cj-item">
+    <div class="cj-item-row" style="display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:4px;transition:background 0.15s ease;">
+        <span class="cj-item-icon" style="font-size:12px;flex-shrink:0;"></span>
+        <span class="cj-item-id" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-main);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+        <span class="cj-item-status" style="font-size:10px;font-weight:600;letter-spacing:0.5px;opacity:0.7;flex-shrink:0;"></span>
+    </div>
+</template>
+
+<!-- ============================================================
+     DOCUMENT GENERATION Section — Req 6.1, 6.2, 6.3, 6.4, 11.5
+     Hidden by default, shown when ticket is ANALYZED
+     ============================================================ -->
+<section id="ti-docgen-section" style="display:none;margin-top:24px;position:relative;z-index:1;">
+    <div class="glass-card" style="padding:24px;">
+        <!-- Section Title -->
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;opacity:0.4;margin-bottom:20px;">DOCUMENT GENERATION</div>
+
+        <!-- Generate Buttons Row -->
+        <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;">
+
+            <!-- Generate All Button — Req 1.6, 9.2 -->
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <button id="btn-generate-all" class="btn-generate-all" disabled>
+                    🔗 GENERATE ALL
+                </button>
+            </div>
+
+            <!-- Generate BRD -->
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <button id="btn-generate-brd" class="btn-vibrant" style="padding:10px 22px;font-size:11px;letter-spacing:1.5px;white-space:nowrap;">
+                        GENERATE BRD
+                    </button>
+                    <span id="brd-badge-area"></span>
+                </div>
+                <div id="brd-progress-area" class="docgen-inline-progress" style="display:none;"></div>
+            </div>
+
+            <!-- Generate FSD -->
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <button id="btn-generate-fsd" class="btn-vibrant" style="padding:10px 22px;font-size:11px;letter-spacing:1.5px;white-space:nowrap;">
+                        GENERATE FSD
+                    </button>
+                    <span id="fsd-badge-area"></span>
+                </div>
+                <div id="fsd-progress-area" class="docgen-inline-progress" style="display:none;"></div>
+            </div>
+
+            <!-- Generate Slides (disabled by default, enabled when BRD exists) -->
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <button id="btn-generate-slides" class="btn-vibrant" style="padding:10px 22px;font-size:11px;letter-spacing:1.5px;white-space:nowrap;opacity:0.5;cursor:not-allowed;" disabled>
+                        GENERATE SLIDES
+                    </button>
+                    <span id="slides-badge-area"></span>
+                </div>
+                <div id="slides-progress-area" class="docgen-inline-progress" style="display:none;"></div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     DOCUMENT PREVIEW Modal — Req 7.1, 7.2, 7.3, 7.4, 8.1
+     Full-width overlay, hidden by default
+     ============================================================ -->
+<div id="doc-preview-modal" class="modal-overlay" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);">
+    <div style="width:95vw;max-width:1400px;height:90vh;margin:auto;display:flex;flex-direction:column;background:rgba(12,14,22,0.97);border:1px solid var(--glass-border);border-radius:16px;box-shadow:0 20px 80px rgba(0,0,0,0.6);overflow:hidden;">
+
+        <!-- Metadata Bar -->
+        <div id="doc-preview-meta" style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--glass-border);flex-shrink:0;">
+            <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+                <span id="doc-meta-type" style="font-size:12px;font-weight:700;letter-spacing:2px;color:var(--primary);"></span>
+                <span id="doc-meta-ticket" style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;opacity:0.6;"></span>
+                <span id="doc-meta-timestamp" style="font-size:10px;opacity:0.4;"></span>
+                <span id="doc-meta-provider" style="font-size:10px;opacity:0.4;font-style:italic;"></span>
+                <span id="doc-meta-sources" style="font-size:10px;opacity:0.4;"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <!-- Version History Dropdown — Req 7.6, 7.9 -->
+                <div id="version-history-area" style="display:none;position:relative;">
+                    <button id="btn-version-history" class="btn-version-history">VERSION HISTORY ▾</button>
+                    <div id="version-history-dropdown" class="version-history-dropdown" style="display:none;"></div>
+                </div>
+                <!-- Review Panel — Approve/Reject — Req 6.3 -->
+                <div id="review-panel-area" style="display:none;">
+                    <button id="btn-doc-approve" class="btn-doc-approve">✓ APPROVE</button>
+                    <button id="btn-doc-reject" class="btn-doc-reject">✕ REJECT</button>
+                </div>
+                <!-- Export Dropdown -->
+                <div style="position:relative;">
+                    <button id="btn-doc-export" style="padding:8px 16px;font-size:10px;font-weight:700;letter-spacing:1.5px;border-radius:8px;border:1px solid rgba(45,254,207,0.25);background:rgba(45,254,207,0.08);color:var(--primary);cursor:pointer;transition:background 0.2s ease;">
+                        EXPORT ▾
+                    </button>
+                    <div id="doc-export-dropdown" style="display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:160px;background:rgba(12,14,22,0.97);border:1px solid var(--glass-border);border-radius:10px;z-index:100;padding:4px 0;box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+                        <div id="btn-export-md" style="padding:10px 16px;font-size:12px;cursor:pointer;transition:background 0.15s ease;color:var(--text-main);">📄 Markdown (.md)</div>
+                        <div id="btn-export-pdf" style="padding:10px 16px;font-size:12px;cursor:pointer;transition:background 0.15s ease;color:var(--text-main);">📑 PDF (.pdf)</div>
+                    </div>
+                </div>
+                <!-- Close Button -->
+                <button id="btn-doc-close" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--glass-border);background:rgba(255,255,255,0.04);color:var(--text-sub);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s ease,color 0.2s ease;">✕</button>
+            </div>
+        </div>
+
+        <!-- Body: TOC Sidebar + Content -->
+        <div style="flex:1;display:flex;overflow:hidden;">
+            <!-- TOC Sidebar -->
+            <nav id="doc-toc-sidebar" style="width:240px;flex-shrink:0;border-right:1px solid var(--glass-border);padding:16px;overflow-y:auto;">
+                <div style="font-size:10px;font-weight:700;letter-spacing:2px;opacity:0.35;margin-bottom:12px;">TABLE OF CONTENTS</div>
+                <div id="doc-toc-list" style="display:flex;flex-direction:column;gap:4px;"></div>
+            </nav>
+            <!-- Markdown Content Area -->
+            <div id="doc-content-area" style="flex:1;padding:32px;overflow-y:auto;line-height:1.7;font-size:14px;"></div>
+            <!-- Diff View Area (hidden by default) — Req 7.9 -->
+            <div id="doc-diff-area" class="doc-diff-area" style="display:none;flex:1;padding:32px;overflow-y:auto;line-height:1.7;font-size:14px;"></div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ============================================================
+     SLIDE PREVIEW Modal — Req 11.6
+     Overlay, hidden by default
+     ============================================================ -->
+<div id="slide-preview-modal" class="modal-overlay" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);">
+    <div style="width:85vw;max-width:1100px;height:80vh;margin:auto;display:flex;flex-direction:column;background:rgba(12,14,22,0.97);border:1px solid var(--glass-border);border-radius:16px;box-shadow:0 20px 80px rgba(0,0,0,0.6);overflow:hidden;">
+
+        <!-- Slide Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--glass-border);flex-shrink:0;">
+            <span style="font-size:12px;font-weight:700;letter-spacing:2px;color:var(--primary);">REQUIREMENT SLIDES</span>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span id="slide-counter" style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;opacity:0.5;">1 / 1</span>
+                <button id="btn-slide-close" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--glass-border);background:rgba(255,255,255,0.04);color:var(--text-sub);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s ease,color 0.2s ease;">✕</button>
+            </div>
+        </div>
+
+        <!-- Slide Content Area -->
+        <div id="slide-content-area" style="flex:1;padding:48px;overflow-y:auto;display:flex;align-items:center;justify-content:center;">
+            <div id="slide-current" style="max-width:800px;width:100%;line-height:1.7;font-size:16px;"></div>
+        </div>
+
+        <!-- Slide Navigation Footer -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:16px;padding:16px 24px;border-top:1px solid var(--glass-border);flex-shrink:0;">
+            <button id="btn-slide-prev" style="padding:8px 20px;font-size:11px;font-weight:700;letter-spacing:1.5px;border-radius:8px;border:1px solid var(--glass-border);background:rgba(255,255,255,0.04);color:var(--text-sub);cursor:pointer;transition:background 0.2s ease,color 0.2s ease;">← PREV</button>
+            <button id="btn-slide-next" style="padding:8px 20px;font-size:11px;font-weight:700;letter-spacing:1.5px;border-radius:8px;border:1px solid rgba(45,254,207,0.25);background:rgba(45,254,207,0.08);color:var(--primary);cursor:pointer;transition:background 0.2s ease;">NEXT →</button>
+        </div>
+
+    </div>
+</div>
+
+<!-- ============================================================
+     TEMPLATE TAGS for Dynamic Elements — Req 6.3, 7.3, 11.6
+     ============================================================ -->
+
+<!-- tmpl-doc-badge: Generated badge with timestamp (used in badge areas) -->
+<template id="tmpl-doc-badge">
+    <span class="status-badge analyzed" style="cursor:pointer;font-size:9px;letter-spacing:1px;">
+        <span class="doc-badge-label">GENERATED</span>
+        <span class="doc-badge-timestamp" style="margin-left:4px;opacity:0.7;font-weight:400;"></span>
+    </span>
+</template>
+
+<!-- tmpl-approval-badge: Approval status badge (DRAFT/APPROVED/REJECTED) — Req 9.5, 9.6, 9.7 -->
+<template id="tmpl-approval-badge">
+    <span class="approval-badge" style="cursor:pointer;font-size:9px;letter-spacing:1px;">
+        <span class="approval-badge-label"></span>
+        <span class="approval-badge-detail" style="margin-left:4px;opacity:0.7;font-weight:400;"></span>
+    </span>
+</template>
+
+<!-- tmpl-inline-progress: Inline progress bar for active jobs — Req 9.4, 2.2, 3.1, 4.1 -->
+<template id="tmpl-inline-progress">
+    <div class="inline-job-progress">
+        <div class="inline-progress-info">
+            <span class="inline-progress-phase-label"></span>
+            <span class="inline-progress-elapsed"></span>
+        </div>
+        <div class="inline-progress-bar-track">
+            <div class="inline-progress-bar-fill"></div>
+        </div>
+        <div class="inline-progress-actions">
+            <button class="btn-cancel-job" title="Hủy">✕</button>
+        </div>
+        <div class="inline-progress-timeout-warning" style="display:none;">
+            ⚠️ Job sắp hết thời gian (5 phút). Cân nhắc hủy và thử lại.
+        </div>
+    </div>
+</template>
+
+<!-- tmpl-error-panel: Error panel for failed jobs — Req 5.1, 5.3, 5.5 -->
+<template id="tmpl-error-panel">
+    <div class="docgen-error-panel">
+        <div class="error-panel-header">
+            <span class="error-panel-icon">❌</span>
+            <span class="error-panel-message"></span>
+            <button class="btn-error-close" title="Đóng">✕</button>
+        </div>
+        <div class="error-panel-actions">
+            <button class="btn-error-retry">Thử lại</button>
+            <a class="error-panel-link" style="display:none;"></a>
+        </div>
+    </div>
+</template>
+
+<!-- tmpl-job-indicator-item: Job item in global indicator panel — Req 4.3 -->
+<template id="tmpl-job-indicator-item">
+    <div class="job-indicator-item">
+        <div class="job-indicator-info">
+            <span class="job-indicator-ticket"></span>
+            <span class="job-indicator-type"></span>
+            <span class="job-indicator-status"></span>
+        </div>
+        <div class="job-indicator-progress-track">
+            <div class="job-indicator-progress-fill"></div>
+        </div>
+        <div class="job-indicator-actions">
+            <button class="btn-job-pause" title="Pause">⏸</button>
+            <button class="btn-job-cancel" title="Cancel">✕</button>
+        </div>
+    </div>
+</template>
+
+<!-- tmpl-version-item: Version entry in version history dropdown — Req 7.6 -->
+<template id="tmpl-version-item">
+    <div class="version-history-item">
+        <span class="version-number"></span>
+        <span class="version-date"></span>
+        <span class="version-reviewer"></span>
+    </div>
+</template>
+
+<!-- tmpl-toc-item: TOC sidebar entry (used in doc-preview-modal) -->
+<template id="tmpl-toc-item">
+    <div class="doc-toc-entry" style="padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;opacity:0.7;transition:background 0.15s ease,opacity 0.15s ease;" data-section-id="">
+        <span class="toc-entry-text"></span>
+    </div>
+</template>
+
+<!-- tmpl-slide: Single slide container (used in slide-preview-modal) -->
+<template id="tmpl-slide">
+    <div class="slide-item" style="display:none;">
+        <div class="slide-content" style="line-height:1.7;font-size:16px;"></div>
+    </div>
+</template>
+
+<!-- Reject Reason Dialog — Req 6.5 -->
+<div id="reject-reason-dialog" class="modal-overlay" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);">
+    <div class="reject-dialog-content">
+        <div class="reject-dialog-title">Reject Document</div>
+        <p class="reject-dialog-desc">Nhập lý do reject (tối thiểu 10 ký tự):</p>
+        <textarea id="reject-reason-input" class="reject-reason-textarea" placeholder="Lý do reject..." rows="4"></textarea>
+        <div id="reject-reason-error" class="reject-reason-error" style="display:none;">Lý do phải có ít nhất 10 ký tự</div>
+        <div class="reject-dialog-actions">
+            <button id="btn-reject-cancel" class="btn-reject-cancel">HỦY</button>
+            <button id="btn-reject-confirm" class="btn-reject-confirm">XÁC NHẬN REJECT</button>
+        </div>
+    </div>
+</div>
+
+<!-- Global Job Indicator Panel (dropdown from navbar) — Req 4.3 -->
+<div id="global-job-panel" class="global-job-panel" style="display:none;">
+    <div class="global-job-panel-header">
+        <span>ACTIVE JOBS</span>
+        <span id="global-job-count-label" style="opacity:0.5;font-size:10px;"></span>
+    </div>
+    <div id="global-job-list" class="global-job-list"></div>
+    <div id="global-job-empty" class="global-job-empty" style="display:none;">No active jobs</div>
 </div>

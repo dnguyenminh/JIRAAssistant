@@ -17,6 +17,50 @@ internal object CytoscapeRenderer {
 
     fun cyRef(): dynamic = cy
 
+    /** True when Cytoscape instance exists (graph has been rendered at least once). */
+    fun isInitialized(): Boolean = cy != null
+
+    /**
+     * Incrementally add new nodes/edges with fade-in animation (opacity 0→1).
+     * Preserves existing node positions — layout runs only on new nodes.
+     * Fallback: re-render full graph if cy not initialized.
+     * Requirements: 2.2, 2.3
+     */
+    fun addElementsWithFadeIn(
+        newNodes: List<GraphNode>,
+        newEdges: List<GraphEdge>,
+        newNodeIds: Set<String>
+    ) {
+        val c = cy ?: run { renderGraph(); return }
+        val fadeClass = CytoscapeStyles.fadeInClass()
+        val addedEles = addNewElements(c, newNodes, newEdges, fadeClass)
+        CytoscapeLayoutHelper.runIncrementalLayout(c, newNodeIds)
+        triggerFadeIn(addedEles, fadeClass)
+        c.fit(null, 40)
+    }
+
+    /** Add nodes/edges to cy with fade-in class (opacity 0). */
+    private fun addNewElements(
+        c: dynamic,
+        nodes: List<GraphNode>,
+        edges: List<GraphEdge>,
+        fadeClass: String
+    ): dynamic {
+        val batch = js("[]")
+        for (n in nodes) { val el = buildNode(n); batch.push(el) }
+        for (e in edges) { val el = buildEdge(e); batch.push(el) }
+        val added = c.add(batch)
+        added.addClass(fadeClass)
+        return added
+    }
+
+    /** Remove fade-in class after a tick so CSS transition animates opacity 0→1. */
+    private fun triggerFadeIn(eles: dynamic, fadeClass: String) {
+        kotlinx.browser.window.setTimeout({
+            eles.removeClass(fadeClass)
+        }, 50)
+    }
+
     fun renderGraph() {
         destroy()
         val container = getContainer() ?: return
@@ -38,11 +82,7 @@ internal object CytoscapeRenderer {
 
     fun destroy() { cy?.destroy(); cy = null }
 
-    /**
-     * Filter: hide/show nodes + layout visible.
-     * Focus Mode → concentric layout (focused node center, neighbors in rings).
-     * Non-focus ≤ 30 → circle layout. Non-focus > 30 → fit only (no re-layout).
-     */
+    /** Filter: hide/show nodes + layout visible. Focus/concentric or circle layout. */
     fun applyFilter(filteredIds: Set<String>?) {
         val c = cy ?: return
         clearFocusedClass(c)
@@ -117,55 +157,11 @@ internal object CytoscapeRenderer {
         }
     }
 
-    private fun layoutVisible(c: dynamic, count: Int) {
-        val name = if (count <= 30) "circle" else "cose"
-        val opts = js("({})")
-        opts.name = name; opts.animate = true
-        opts.animationDuration = 300; opts.fit = true; opts.padding = 40
-        if (name == "cose") {
-            opts.nodeRepulsion = js("(function(){return 8000;})")
-            opts.idealEdgeLength = js("(function(){return 80;})")
-        }
-        c.nodes(":visible").layout(opts).run()
-    }
+    private fun layoutVisible(c: dynamic, count: Int) =
+        CytoscapeLayoutHelper.layoutVisible(c, count)
 
-    /** Concentric layout: focused node at center, neighbors in rings by BFS depth. */
-    private fun layoutConcentric(c: dynamic, focusId: String) {
-        val depths = computeDepthMap(c, focusId)
-        val opts = js("({})")
-        opts.name = "concentric"
-        opts.animate = true; opts.animationDuration = 400
-        opts.fit = true; opts.padding = 50
-        opts.minNodeSpacing = 30
-        opts.concentric = { node: dynamic ->
-            val id = node.id() as String
-            val d = depths[id] ?: 99
-            (100 - d).toDouble()
-        }
-        opts.levelWidth = js("(function(){return 1;})")
-        c.nodes(":visible").layout(opts).run()
-    }
-
-    /** BFS from focusId on visible nodes, returns nodeId → depth map. */
-    private fun computeDepthMap(c: dynamic, focusId: String): Map<String, Int> {
-        val map = mutableMapOf(focusId to 0)
-        var frontier = listOf(focusId)
-        var depth = 0
-        while (frontier.isNotEmpty()) {
-            depth++
-            val next = mutableListOf<String>()
-            for (nid in frontier) {
-                val node = c.getElementById(nid)
-                if (node.length == 0) continue
-                node.neighborhood("node:visible").forEach { nb: dynamic ->
-                    val nbId = nb.id() as String
-                    if (nbId !in map) { map[nbId] = depth; next.add(nbId) }
-                }
-            }
-            frontier = next
-        }
-        return map
-    }
+    private fun layoutConcentric(c: dynamic, focusId: String) =
+        CytoscapeLayoutHelper.layoutConcentric(c, focusId)
 
     // -- Events ---------------------------------------------------------------
 

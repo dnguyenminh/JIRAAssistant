@@ -20,7 +20,6 @@ interface SettingsRepository {
 data class AppSettings(
     val jiraHost: String? = null,
     val aiProviderUrl: String? = null,
-    val dbPath: String? = null,
     val jwtSecret: String? = null,
     val encryptionKey: String? = null,
     val port: Int? = null
@@ -34,8 +33,6 @@ data class AppSettings(
 data class AppSettingsResponse(
     val jiraHost: String? = null,
     val aiProviderUrl: String? = null,
-    val dbPath: String? = null,
-    val dbPathReadOnly: Boolean = true,
     val jwtSecret: String? = null,
     val encryptionKey: String? = null,
     val port: Int? = null,
@@ -45,14 +42,12 @@ data class AppSettingsResponse(
         /**
          * Build a masked response from raw settings.
          * jwtSecret and encryptionKey show only the last 4 characters.
-         * dbPath and port are marked readOnly.
+         * port is marked readOnly.
          */
         fun fromSettings(settings: AppSettings): AppSettingsResponse =
             AppSettingsResponse(
                 jiraHost = settings.jiraHost,
                 aiProviderUrl = settings.aiProviderUrl,
-                dbPath = settings.dbPath,
-                dbPathReadOnly = true,
                 jwtSecret = settings.jwtSecret?.maskToLast4(),
                 encryptionKey = settings.encryptionKey?.maskToLast4(),
                 port = settings.port,

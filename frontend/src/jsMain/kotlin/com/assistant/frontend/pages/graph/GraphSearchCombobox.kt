@@ -119,9 +119,14 @@ internal object GraphSearchCombobox {
 
     private fun selectItem(key: String) {
         val inp = input() ?: return
-        inp.value = key
+        inp.value = ""
         hide()
-        GraphFilterPanel.onFilterChange()
+        val node = GraphState.allNodes.find { it.key == key }
+        if (node != null) {
+            GraphFilterPanel.activateFocusMode(node.id)
+        } else {
+            GraphFilterPanel.onFilterChange()
+        }
     }
 
     private fun handleKeydown(e: dynamic) {

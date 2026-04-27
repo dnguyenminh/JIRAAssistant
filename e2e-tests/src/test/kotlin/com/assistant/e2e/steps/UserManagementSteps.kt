@@ -167,8 +167,18 @@ class UserManagementSteps {
     fun adminTogglesPermission(permissionName: String) {
         val toggles = driver.findElements(
             By.cssSelector("input[type='checkbox'], [role='switch'], [class*='toggle']")
-        )
-        if (toggles.isNotEmpty()) toggles.first().click()
+        ).filter { it.isDisplayed }
+        if (toggles.isNotEmpty()) {
+            val el = toggles.first()
+            try {
+                TestHelper.js(driver).executeScript(
+                    "arguments[0].scrollIntoView({block:'center'})", el
+                )
+                el.click()
+            } catch (_: Exception) {
+                TestHelper.js(driver).executeScript("arguments[0].click()", el)
+            }
+        }
     }
 
     @Then("the sync indicator should display {string}")

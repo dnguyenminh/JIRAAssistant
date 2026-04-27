@@ -144,7 +144,12 @@ class BatchScanEngine(
     private val jiraClientProvider: () -> JiraClient,
     private val featureNetworkMapper: FeatureNetworkMapper,
     private val scanStateRepository: ScanStateRepository,
-    private val scanLogRepository: ScanLogRepository
+    private val scanLogRepository: ScanLogRepository,
+    // ... callback params (onScanComplete, onKBRecordSaved) ...
+    /** Settings repository for reading batch_prompt_size. Req: AC 34 */
+    internal val settingsRepository: SettingsRepository? = null,
+    /** Deep Analysis content extractor — used by fetchTicketContentForBatch() for batch mode, and internally by analyzeTicket() for single-ticket mode. Req: 21.3 */
+    internal val jiraContentExtractor: JiraContentExtractor? = null
 ) {
     // Active scan jobs per project — max 1 concurrent scan per project
     private val activeJobs = ConcurrentHashMap<String, Job>()
@@ -191,12 +196,20 @@ class BatchScanEngine(
     /**
      * Core scan loop: iterates through ticket list starting from offset.
      * Runs in a coroutine, checks for cancellation between tickets.
+     * When batch_prompt_size > 1, uses processBatchPrompt() for multi-ticket
+     * AI calls; otherwise uses processBatchParallel() for single-ticket mode.
      */
     private suspend fun scanLoop(projectKey: String, startIndex: Int)
 
     /**
      * Process a single ticket: call AIOrchestrator.analyzeTicket(),
      * update KB, update FeatureNetworkMapper, log result.
+     * Phase 1: Content fetch (parallel, no semaphore) — for batch mode,
+     *   fetchTicketContentForBatch() calls jiraContentExtractor.extract() when available,
+     *   falls back to fetchLegacyBatchContent() on error or when extractor is null.
+     *   For single-ticket mode, analyzeTicket() calls extractor internally.
+     * Phase 2: AI analysis (semaphore-limited)
+     * Phase 3: Relationships + attachments (parallel via coroutineScope)
      * On error: log failure, skip ticket, continue.
      */
     private suspend fun processTicket(projectKey: String, ticketId: String): Boolean
@@ -631,7 +644,7 @@ data class ScanStatusResponse(
     val currentTicketId: String?,
     val startedAt: String?,
     val updatedAt: String?,
-    val recentLog: List<ScanLogEntryResponse> = emptyList()  // Last 5 entries (for status endpoint)
+    val recentLog: List<ScanLogEntryResponse> = emptyList()  // Last 50 entries (for status endpoint)
 )
 ```
 
@@ -714,7 +727,7 @@ fun Routing.scanRoutes() {
                 val projectKey = call.parameters["key"]
                     ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("project key is required"))
                 val state = batchScanEngine.getStatus(projectKey)
-                val recentLog = batchScanEngine.getLog(projectKey, limit = 5)
+                val recentLog = batchScanEngine.getLog(projectKey, limit = 50)
                 call.respond(HttpStatusCode.OK, state.toResponse(recentLog))
             }
 
@@ -795,3 +808,308 @@ routing {
 ```
 
 *(Validates: Req 18.7–18.12, 18.15)*
+
+
+---
+
+# Batch Prompt Optimization — Thiết kế Chi tiết
+
+## Tổng quan
+
+Batch Prompt Optimization gộp nhiều ticket vào 1 AI prompt duy nhất thay vì gửi từng ticket riêng lẻ. Với 1308 tickets và batch size 3, hệ thống giảm từ 1308 xuống ~436 AI calls → giảm ~66% thời gian scan. Batch size cấu hình qua `batch_prompt_size` trong app_settings (mặc định 3, phạm vi 1–10+).
+
+## Kiến trúc
+
+```mermaid
+graph TB
+    subgraph "BatchScanEngine (shared module)"
+        BSE[BatchScanEngine<br>scanLoop → processBatchPrompt]
+        BPB[BatchPromptBuilder<br>buildBatchPrompt + splitByContentLimit]
+        BRP[BatchResponseParser<br>parseBatchResponse]
+    end
+
+    subgraph "AIOrchestrator"
+        AIO[AIOrchestrator<br>+ analyzeTicketBatch]
+        AIOI[AIOrchestratorImpl<br>batch prompt → AI → parse array]
+    end
+
+    subgraph "Settings"
+        SR[SettingsRepository<br>batch_prompt_size]
+    end
+
+    subgraph "AI Provider"
+        AG[AIAgent.analyze<br>single prompt interface]
+    end
+
+    BSE -->|reads batch_prompt_size| SR
+    BSE -->|groups tickets| BPB
+    BSE -->|calls| AIO
+    AIO --> AIOI
+    AIOI -->|builds prompt| BPB
+    AIOI -->|parses response| BRP
+    AIOI -->|sends prompt| AG
+```
+
+## Components and Interfaces
+
+### AIOrchestrator — New Batch Method
+
+```kotlin
+// shared/.../ai/AIOrchestrator.kt — thêm method mới
+interface AIOrchestrator {
+    // ... existing methods ...
+
+    /**
+     * Analyze multiple tickets in a single AI prompt.
+     * Returns map of ticketId → AnalysisResult.
+     * Falls back to single-ticket mode on parse failure.
+     */
+    suspend fun analyzeTicketBatch(
+        tickets: List<Pair<String, String>>,
+        forceReanalyze: Boolean = false
+    ): Map<String, AnalysisResult>
+}
+```
+
+### BatchPromptBuilder (new file, shared module)
+
+```kotlin
+// shared/.../ai/BatchPromptBuilder.kt
+object BatchPromptBuilder {
+    const val MAX_PROMPT_CHARS = 12000
+    const val TICKET_SEPARATOR = "--- TICKET {index} ---"
+
+    /** Build a single prompt containing multiple tickets. */
+    fun buildBatchPrompt(tickets: List<Pair<String, String>>, isRetry: Boolean = false): String
+
+    /** Split tickets into sub-batches respecting MAX_PROMPT_CHARS. */
+    fun splitByContentLimit(tickets: List<Pair<String, String>>): List<List<Pair<String, String>>>
+}
+```
+
+### BatchResponseParser (new file, shared module)
+
+```kotlin
+// shared/.../ai/BatchResponseParser.kt
+object BatchResponseParser {
+    /** Parse AI JSON array response into map of ticketId → AnalysisResult. */
+    fun parseBatchResponse(
+        response: String,
+        expectedTicketIds: List<String>
+    ): Map<String, AnalysisResult>?
+}
+```
+
+### AIOrchestratorImpl — Batch Implementation
+
+```kotlin
+// shared/.../ai/AIOrchestratorImpl.kt — thêm implementation
+override suspend fun analyzeTicketBatch(
+    tickets: List<Pair<String, String>>,
+    forceReanalyze: Boolean
+): Map<String, AnalysisResult> {
+    // 1. Filter out KB-cached tickets (unless forceReanalyze)
+    // 2. Split remaining into sub-batches by content limit
+    // 3. For each sub-batch: build prompt → send to AI → parse response
+    // 4. On parse failure: retry once → fallback to single-ticket
+    // 5. Return combined results
+}
+```
+
+### BatchScanEngine — Integration
+
+Thay đổi `scanLoop()` flow:
+
+```mermaid
+sequenceDiagram
+    participant BSE as BatchScanEngine
+    participant SR as SettingsRepository
+    participant AIO as AIOrchestrator
+    participant AG as AIAgent
+
+    BSE->>SR: get("batch_prompt_size") → "3"
+    Note over BSE: Group tickets into batches of 3
+
+    loop For each batch of 3 tickets
+        BSE->>BSE: fetchTicketContentForBatch() parallel — calls jiraContentExtractor.extract() or legacy fetch
+        BSE->>AIO: analyzeTicketBatch([(id1,content1), (id2,content2), (id3,content3)])
+        AIO->>AG: analyze(batchPrompt) — 1 AI call
+        AG-->>AIO: JSON array response
+        AIO-->>BSE: Map<ticketId, AnalysisResult>
+        BSE->>BSE: saveBatchResults() — skip placeholders, return placeholder IDs
+        BSE->>BSE: processTicket() fallback for placeholder ticket IDs
+        BSE->>BSE: updateProcessedCount(+3)
+        BSE->>BSE: logBatchResult()
+    end
+```
+
+### Settings Page — Batch Prompt Size Combobox
+
+Thêm combobox vào scan control panel trong `dashboard.html`:
+
+```html
+<!-- Trong scan-control-panel, cạnh scan-concurrency -->
+<input type="text" id="scan-batch-prompt-size" title="Tickets per AI prompt (1–20)"
+       value="3" list="batch-prompt-options" autocomplete="off"
+       style="background:rgba(12,14,22,0.95);border:1px solid var(--glass-border);
+              border-radius:6px;color:var(--primary);padding:8px 10px;
+              font-size:11px;font-family:'JetBrains Mono',monospace;
+              width:72px;text-align:center;" />
+<datalist id="batch-prompt-options">
+    <option value="1">×1</option>
+    <option value="2">×2</option>
+    <option value="3">×3</option>
+    <option value="5">×5</option>
+    <option value="8">×8</option>
+    <option value="10">×10</option>
+</datalist>
+```
+
+## Data Models
+
+### BatchAnalysisRequest (internal, not serialized)
+
+```kotlin
+data class BatchAnalysisRequest(
+    val tickets: List<Pair<String, String>>,  // (ticketId, ticketContent)
+    val batchIndex: Int,
+    val totalBatches: Int
+)
+```
+
+### Batch Prompt Format
+
+```
+Analyze the following Jira tickets. Return a JSON array with one object per ticket.
+
+--- TICKET 1 ---
+Ticket ID: PROJ-1
+Summary: Fix login bug
+Description: Users cannot login...
+
+--- TICKET 2 ---
+Ticket ID: PROJ-2
+Summary: Add search feature
+Description: Implement full-text search...
+
+--- TICKET 3 ---
+Ticket ID: PROJ-3
+Summary: Update dashboard
+Description: Refresh dashboard layout...
+
+Return ONLY a valid JSON array:
+[
+  { "ticketId": "PROJ-1", "requirementSummary": {...}, "evolution": [...], "complexity": {...} },
+  { "ticketId": "PROJ-2", ... },
+  { "ticketId": "PROJ-3", ... }
+]
+```
+
+### Batch Response Format
+
+```json
+[
+  {
+    "ticketId": "PROJ-1",
+    "requirementSummary": { "unified": "...", "affectedModules": [...] },
+    "evolution": [...],
+    "complexity": { "scrumPoints": 5.0, "description": "...", "kbReferences": [...] }
+  },
+  { "ticketId": "PROJ-2", ... }
+]
+```
+
+## Correctness Properties
+
+*A property is a characteristic or behavior that should hold true across all valid executions of a system — essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+
+### Property 1: Batch prompt size validation always returns valid value
+
+*For any* integer value (including negatives, zero, and large numbers), the `getBatchPromptSize()` function SHALL return a value >= 1. When the stored value is missing or < 1, it SHALL return the default value 3.
+
+**Validates: Requirements 34, 49**
+
+### Property 2: Batch prompt contains all tickets with correct separators
+
+*For any* non-empty list of (ticketId, ticketContent) pairs, `buildBatchPrompt()` SHALL produce a prompt string that contains every ticketId, every non-empty ticketContent, and exactly `N-1` separator markers for N tickets.
+
+**Validates: Requirements 37**
+
+### Property 3: Batch splitting respects content length limit
+
+*For any* list of tickets with varying content lengths, `splitByContentLimit()` SHALL produce sub-batches where each sub-batch's total content length (all ticket contents combined) does not exceed 12000 characters, and the union of all sub-batches equals the original list.
+
+**Validates: Requirements 39**
+
+### Property 4: Batch response parsing returns complete results
+
+*For any* valid JSON array response containing N ticket results matching N expected ticket IDs, `parseBatchResponse()` SHALL return exactly N AnalysisResult entries, each with the correct ticketId. For responses with fewer results than expected, the missing ticket IDs SHALL be identifiable for single-ticket fallback.
+
+**Validates: Requirements 40, 42**
+
+### Property 5: Progress updates by batch granularity
+
+*For any* batch size B and total ticket count T, after processing each batch the processedCount SHALL increment by exactly the batch size (or remaining tickets for the last batch), never by 1 within a batch.
+
+**Validates: Requirements 44**
+
+### Property 6: Batch log message contains all ticket IDs
+
+*For any* completed batch of tickets, the scan log entry SHALL contain all ticket IDs from that batch, the correct count, and a valid source value (FRESH_AI or MIXED).
+
+**Validates: Requirements 45**
+
+## Error Handling
+
+| Tình huống | Hành vi |
+|---|---|
+| batch_prompt_size < 1 hoặc missing | Sử dụng giá trị mặc định 3 |
+| batch_prompt_size = 1 | Fallback về single-ticket mode (gọi analyzeTicket) |
+| Tổng content vượt 12000 chars | Tự động giảm batch size cho batch đó |
+| AI response không parse được JSON array | Retry 1 lần → fallback single-ticket cho toàn batch |
+| AI response thiếu kết quả cho một số ticket | Fallback single-ticket cho các ticket bị thiếu |
+| AI response chứa placeholder results (`"..."`, `"Placeholder"`, < 10 chars) | Skip lưu KB, fallback single-ticket cho tickets bị ảnh hưởng (Req 21.7) |
+| Provider không hỗ trợ batch format | Log warning, fallback single-ticket, ghi cảnh báo |
+| Settings API nhận batch_prompt_size < 1 | Trả 400 Bad Request |
+| Frontend nhập giá trị < 1 | Hiển thị validation error, không gửi request |
+
+## Testing Strategy
+
+### Unit Tests (Example-based)
+- batch_prompt_size = 1 → single-ticket mode (AC 36)
+- Settings update mid-scan → next batch uses new size (AC 35)
+- Invalid JSON response → retry once → fallback (AC 41)
+- Provider returns non-array → fallback + warning log (AC 47)
+- Settings page combobox renders with suggested values (AC 48)
+- Concurrent scan count validation >= 1 (AC 50)
+
+### Property Tests (Kotest property-based, min 100 iterations)
+- **Property 1**: `getBatchPromptSize()` validation — random integers, always returns >= 1
+  - Tag: **Feature: batch-prompt-optimization, Property 1: Batch prompt size validation always returns valid value**
+- **Property 2**: `buildBatchPrompt()` construction — random ticket lists, all IDs and separators present
+  - Tag: **Feature: batch-prompt-optimization, Property 2: Batch prompt contains all tickets with correct separators**
+- **Property 3**: `splitByContentLimit()` — random content lengths, each sub-batch <= 12000 chars
+  - Tag: **Feature: batch-prompt-optimization, Property 3: Batch splitting respects content length limit**
+- **Property 4**: `parseBatchResponse()` — random valid JSON arrays, correct result count and IDs
+  - Tag: **Feature: batch-prompt-optimization, Property 4: Batch response parsing returns complete results**
+- **Property 5**: Progress update granularity — random batch sizes and ticket counts
+  - Tag: **Feature: batch-prompt-optimization, Property 5: Progress updates by batch granularity**
+- **Property 6**: Batch log message format — random ticket ID lists
+  - Tag: **Feature: batch-prompt-optimization, Property 6: Batch log message contains all ticket IDs**
+
+### E2E Tests
+- API test: `PUT /api/settings/feature` with `batch_prompt_size` — valid and invalid values
+- UI test: Batch prompt size combobox in dashboard scan control panel
+
+*(Validates: Req 34–50)*
+
+---
+
+## Liên kết Spec
+
+> **Deep Analysis Enhancement (spec `ticket-intelligence`, phần Deep Analysis)**: Nâng cấp pipeline `AIOrchestrator.analyzeTicket()` mà `BatchScanEngine.processTicket()` và `analyzeTicketBatch()` đang sử dụng:
+> - `fetchTicketContentForBatch()` gọi `jiraContentExtractor.extract()` trực tiếp cho batch mode, chuyển đổi `StructuredTicketContent` → plain text qua `formatStructuredContent()` (capped 3000 chars). Fallback sang `fetchLegacyBatchContent()` khi extractor null hoặc throw. *(Cập nhật bởi bugfix `batch-scan-placeholder-analysis`)*
+> - `saveBatchResults()` detect placeholder results (`"..."`, `"Placeholder"`, < 10 chars) và fallback sang single-ticket mode cho tickets bị ảnh hưởng *(Thêm bởi bugfix `batch-scan-placeholder-analysis`)*
+> - `buildAnalysisPrompt()` → thay bằng `Deep_Analysis_Prompt_Builder` (6 khía cạnh phân tích)
+> - `AnalysisResult`/`KBRecord` mở rộng data model
+> - `BatchScanEngine.processTicket()` không cần thay đổi — vẫn gọi `analyzeTicket()` như cũ

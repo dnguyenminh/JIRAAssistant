@@ -4,6 +4,7 @@ import com.assistant.mcp.McpProcessManager
 import com.assistant.mcp.McpServerRepository
 import com.assistant.mcp.models.McpToolCallRequest
 import com.assistant.mcp.models.McpToolCallResponse
+import com.assistant.server.mcp.internal.InternalMcpBridge
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -13,18 +14,23 @@ import org.koin.ktor.ext.inject
 
 /**
  * Handlers for MCP tool discovery and execution endpoints.
- * Requirements: 6.45, 6.46, 6.48, 6.50
+ * Requirements: 6.45, 6.46, 6.48, 6.50, 6.71, 6.107
  */
 
 private val json = Json { ignoreUnknownKeys = true }
 
-/** GET /{id}/tools — Reader+. Req: 6.45 */
+/** GET /{id}/tools — Reader+. Req: 6.45, 6.71 */
 internal suspend fun RoutingContext.handleServerTools(
     processManager: McpProcessManager
 ) {
     extractUserClaims() ?: return
     val id = call.parameters["id"]
         ?: return call.respond(HttpStatusCode.BadRequest, ErrorResponse("Missing id"))
+    if (id == InternalMcpBridge.INTERNAL_SERVER_ID) {
+        val bridge by call.application.inject<InternalMcpBridge>()
+        call.respond(HttpStatusCode.OK, bridge.getAggregatedTools())
+        return
+    }
     val client = processManager.getClient(id)
     if (client == null) {
         call.respond(HttpStatusCode.Conflict, ErrorResponse("Server not running"))
@@ -34,26 +40,55 @@ internal suspend fun RoutingContext.handleServerTools(
     call.respond(HttpStatusCode.OK, tools)
 }
 
-/** GET /tools — Reader+. Aggregated tools from all servers. Req: 6.46 */
+/** GET /tools — Reader+. Aggregated: internal first + external. Req: 6.46, 6.107 */
 internal suspend fun RoutingContext.handleAggregatedTools(
     processManager: McpProcessManager
 ) {
     extractUserClaims() ?: return
-    val tools = processManager.getActiveTools()
-    call.respond(HttpStatusCode.OK, tools)
+    val internalBridge by call.application.inject<InternalMcpBridge>()
+    val internalTools = internalBridge.getAggregatedTools()
+    val externalTools = processManager.getActiveTools()
+    call.respond(HttpStatusCode.OK, internalTools + externalTools)
 }
 
-/** POST /tools/call — Administrator. Req: 6.48, 6.50 */
+/** POST /tools/call — Internal: any role (executor checks RBAC), External: Administrator. Req: 6.48, 6.50, 6.71 */
 internal suspend fun RoutingContext.handleToolCall(
     processManager: McpProcessManager
 ) {
-    val (_, role) = extractUserClaims() ?: return
+    val (userId, role) = extractUserClaims() ?: return
+    val request = call.receive<McpToolCallRequest>()
+    val internalBridge by call.application.inject<InternalMcpBridge>()
+    if (internalBridge.isInternalServer(request.serverId)) {
+        handleInternalToolCall(internalBridge, request, userId, role)
+        return
+    }
+    handleExternalToolCall(request, role, processManager)
+}
+
+/** Route internal tool call — RBAC handled by executor. Req: 6.71 */
+private suspend fun RoutingContext.handleInternalToolCall(
+    bridge: InternalMcpBridge, request: McpToolCallRequest,
+    userId: String, role: String
+) {
+    try {
+        val result = bridge.callTool(request.toolName, request.arguments, userId, role)
+        call.respond(HttpStatusCode.OK, result)
+    } catch (e: Exception) {
+        val errorResp = McpToolCallResponse(isError = true)
+        call.respond(HttpStatusCode.OK, errorResp)
+    }
+}
+
+/** Route external tool call — Administrator only + approval check. Req: 6.48, 6.50 */
+private suspend fun RoutingContext.handleExternalToolCall(
+    request: McpToolCallRequest, role: String,
+    processManager: McpProcessManager
+) {
     if (role != "ADMINISTRATOR") {
         call.respond(HttpStatusCode.Forbidden, ErrorResponse("Administrator required"))
         return
     }
-    val request = call.receive<McpToolCallRequest>()
-    val needsApproval = checkApprovalNeeded(request, processManager)
+    val needsApproval = checkApprovalNeeded(request)
     if (needsApproval) {
         val pending = McpToolCallResponse(
             requiresApproval = true,
@@ -68,8 +103,7 @@ internal suspend fun RoutingContext.handleToolCall(
 
 /** Check if tool requires approval. */
 private suspend fun RoutingContext.checkApprovalNeeded(
-    request: McpToolCallRequest,
-    processManager: McpProcessManager
+    request: McpToolCallRequest
 ): Boolean {
     if (request.approved) return false
     val mcpRepo by call.application.inject<McpServerRepository>()

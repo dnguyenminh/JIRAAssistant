@@ -25,7 +25,8 @@ object Sidebar {
         NavItem("analysis", "📊", "Project Analysis"),
         NavItem("ticket_intelligence", "✨", "Ticket Intelligence"),
         NavItem("integrations", "🔌", "Integrations"),
-        NavItem("user_management", "👥", "User Management")
+        NavItem("user_management", "👥", "User Management"),
+        NavItem("settings", "⚙️", "Settings")
     )
 
     /**

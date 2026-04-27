@@ -1,11 +1,13 @@
 package com.assistant.scan
 
 import com.assistant.ai.AIOrchestrator
+import com.assistant.ai.deepanalysis.JiraContentExtractor
 import com.assistant.domain.FeatureNetworkMapper
 import com.assistant.jira.JiraAttachment
 import com.assistant.jira.JiraClient
 import com.assistant.kb.KBRecord
 import com.assistant.kb.KBRepository
+import com.assistant.settings.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.ensureActive
@@ -35,7 +37,13 @@ class BatchScanEngine(
     /** Called async after scan completes and graph is built. Req: 12.1, 16.1 */
     internal val onScanComplete: (suspend (projectKey: String) -> Unit)? = null,
     /** Called async after each KBRecord is saved during scan. Req: 14.1, 16.1 */
-    internal val onKBRecordSaved: (suspend (projectKey: String, record: KBRecord) -> Unit)? = null
+    internal val onKBRecordSaved: (suspend (projectKey: String, record: KBRecord) -> Unit)? = null,
+    /** Settings repository for reading batch_prompt_size. Req: AC 34 */
+    internal val settingsRepository: SettingsRepository? = null,
+    /** Deep Analysis content extractor — replaces fetchTicketContent() when available. Req: 21.3 */
+    internal val jiraContentExtractor: JiraContentExtractor? = null,
+    /** Linked attachment processor — processes attachments from linked tickets. Req: 9.1 */
+    internal val linkedAttachmentProcessor: (suspend (String) -> Unit)? = null
 ) {
     /** Active scan jobs per project — max 1 concurrent scan per project. */
     internal val activeJobs = mutableMapOf<String, Job>()
@@ -49,9 +57,12 @@ class BatchScanEngine(
     /** Whether to force re-analyze tickets already in KB. */
     internal var forceReanalyze: Boolean = false
 
+    /** Optional incremental graph builder — when set, triggers graph rebuild after each batch. */
+    var incrementalGraphBuilder: IncrementalGraphBuilder? = null
+
     suspend fun startScan(projectKey: String, concurrency: Int? = null, aiConcurrency: Int? = null, force: Boolean = false): ScanState {
-        if (concurrency != null) parallelBatchSize = concurrency.coerceIn(1, MAX_CONCURRENCY)
-        if (aiConcurrency != null) aiSemaphore = Semaphore(aiConcurrency.coerceIn(1, MAX_AI_CONCURRENCY))
+        if (concurrency != null) parallelBatchSize = concurrency.coerceAtLeast(1)
+        if (aiConcurrency != null) aiSemaphore = Semaphore(aiConcurrency.coerceAtLeast(1))
         forceReanalyze = force
         checkNoActiveScan(projectKey)
         scanLogRepository.deleteByProjectKey(projectKey)
@@ -112,18 +123,27 @@ class BatchScanEngine(
     internal suspend fun scanLoop(projectKey: String, startIndex: Int) {
         val state = scanStateRepository.findByProjectKey(projectKey) ?: return
         val tickets = state.ticketIds
+        val batchPromptSize = getBatchPromptSize()
         var i = startIndex
         while (i < tickets.size) {
             coroutineContext.ensureActive()
-            val batchEnd = (i + parallelBatchSize).coerceAtMost(tickets.size)
+            // Use batch_prompt_size as chunk size when > 1, else use parallelBatchSize
+            val effectiveSize = if (batchPromptSize > 1) batchPromptSize else parallelBatchSize
+            val batchEnd = (i + effectiveSize).coerceAtMost(tickets.size)
             val batch = tickets.subList(i, batchEnd)
-            processBatchParallel(projectKey, batch, i)
+            if (batchPromptSize > 1) {
+                processBatchPrompt(projectKey, batch)
+                updateProcessedCount(projectKey, batchEnd)
+            } else {
+                processBatchParallel(projectKey, batch, i)
+            }
             i = batchEnd
+            incrementalGraphBuilder?.triggerBuild(projectKey)
         }
         completeScan(projectKey)
     }
 
-    /** Process a batch of tickets in parallel using coroutines. */
+    /** Process a batch of tickets in parallel using coroutines (single-ticket mode). */
     private suspend fun processBatchParallel(projectKey: String, batch: List<String>, startIdx: Int) {
         kotlinx.coroutines.coroutineScope {
             batch.mapIndexed { idx, ticketId ->
@@ -182,7 +202,11 @@ class BatchScanEngine(
     }
 
     private suspend fun updateScanStatus(projectKey: String, status: ScanStatus, cancelJob: Boolean): ScanState {
-        if (cancelJob) { activeJobs[projectKey]?.cancel(); activeJobs.remove(projectKey) }
+        if (cancelJob) {
+            incrementalGraphBuilder?.cancel()
+            activeJobs[projectKey]?.cancel()
+            activeJobs.remove(projectKey)
+        }
         val current = scanStateRepository.findByProjectKey(projectKey)
             ?: throw IllegalStateException("No scan found for project $projectKey")
         val updated = current.copy(status = status, updatedAt = Clock.System.now().toString())
@@ -202,6 +226,8 @@ class BatchScanEngine(
 
     private suspend fun completeScan(projectKey: String) {
         val current = scanStateRepository.findByProjectKey(projectKey) ?: return
+        // Cancel any pending incremental build before final graph build
+        incrementalGraphBuilder?.cancel()
         // Build graph before marking as completed
         try {
             buildAndSaveGraph(projectKey)

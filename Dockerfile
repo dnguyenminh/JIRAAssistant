@@ -14,9 +14,7 @@ COPY gradle/libs.versions.toml gradle/libs.versions.toml
 COPY shared/build.gradle.kts shared/build.gradle.kts
 COPY server/build.gradle.kts server/build.gradle.kts
 COPY frontend/build.gradle.kts frontend/build.gradle.kts
-COPY composeApp/build.gradle.kts composeApp/build.gradle.kts
-COPY e2e-tests/build.gradle.kts e2e-tests/build.gradle.kts
-COPY compose-web/build.gradle.kts compose-web/build.gradle.kts
+
 
 # Download dependencies (cached unless build files change)
 RUN gradle dependencies --no-daemon || true
@@ -25,9 +23,7 @@ RUN gradle dependencies --no-daemon || true
 COPY shared/ shared/
 COPY server/ server/
 COPY frontend/ frontend/
-COPY composeApp/ composeApp/
-COPY compose-web/ compose-web/
-COPY e2e-tests/ e2e-tests/
+
 
 # Build the server fat JAR
 RUN gradle :server:fatJar --no-daemon
@@ -56,14 +52,13 @@ COPY --from=build /app/frontend/src/jsMain/resources/ /app/static/
 # Copy frontend index.html
 COPY --from=build /app/frontend/index.html /app/static/index.html
 
-# Create data directory for SQLite
-RUN mkdir -p /app/data && chown -R appuser:appgroup /app
+# Create app directory
+RUN mkdir -p /app && chown -R appuser:appgroup /app
 
 USER appuser
 
 # Environment defaults
 ENV PORT=8080 \
-    DB_PATH=/app/data/jira-assistant.db \
     AI_PROVIDER_URL=http://ollama:11434 \
     JIRA_HOST=https://jira.example.com \
     JWT_SECRET=change-me-in-production \

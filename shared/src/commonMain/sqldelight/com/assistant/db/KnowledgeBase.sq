@@ -10,7 +10,8 @@ CREATE TABLE kb_records (
     rationale TEXT NOT NULL,
     similar_ticket_refs TEXT NOT NULL,
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    deep_analysis_json TEXT NOT NULL DEFAULT '{}'
 );
 
 CREATE TABLE graph_data (
@@ -55,7 +56,7 @@ findKBRecordByTicketId:
 SELECT * FROM kb_records WHERE ticket_id = ?;
 
 insertOrReplaceKBRecord:
-INSERT OR REPLACE INTO kb_records VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO kb_records VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- Graph data queries
 findGraphByProjectKey:
@@ -252,10 +253,10 @@ DELETE FROM chat_conversations WHERE id = ?;
 
 CREATE TABLE user_ai_config (
     user_id TEXT NOT NULL PRIMARY KEY,
-    skills TEXT NOT NULL DEFAULT '',
-    workflow TEXT NOT NULL DEFAULT '',
-    instructions TEXT NOT NULL DEFAULT '',
-    rules TEXT NOT NULL DEFAULT '',
+    skills_json TEXT NOT NULL DEFAULT '[]',
+    workflow_json TEXT NOT NULL DEFAULT '[]',
+    instructions_json TEXT NOT NULL DEFAULT '[]',
+    rules_json TEXT NOT NULL DEFAULT '[]',
     updated_at TEXT NOT NULL
 );
 
@@ -264,7 +265,7 @@ findUserAIConfig:
 SELECT * FROM user_ai_config WHERE user_id = ?;
 
 upsertUserAIConfig:
-INSERT OR REPLACE INTO user_ai_config (user_id, skills, workflow, instructions, rules, updated_at) VALUES (?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO user_ai_config (user_id, skills_json, workflow_json, instructions_json, rules_json, updated_at) VALUES (?, ?, ?, ?, ?, ?);
 
 -- ═══════════════════════════════════════════════════════════════
 -- MCP Servers
@@ -282,7 +283,8 @@ CREATE TABLE mcp_servers (
     disabled INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'OFFLINE',
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    internal INTEGER NOT NULL DEFAULT 0
 );
 
 -- MCP Server queries
@@ -293,7 +295,7 @@ findMcpServerById:
 SELECT * FROM mcp_servers WHERE id = ?;
 
 insertMcpServer:
-INSERT INTO mcp_servers (id, name, type, command, url, args, env, auto_approve, disabled, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO mcp_servers (id, name, type, command, url, args, env, auto_approve, disabled, status, created_at, updated_at, internal) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateMcpServer:
 UPDATE mcp_servers SET name = ?, type = ?, command = ?, url = ?, args = ?, env = ?, auto_approve = ?, disabled = ?, updated_at = ? WHERE id = ?;
@@ -358,3 +360,110 @@ DELETE FROM attachment_chunks WHERE ticket_id LIKE ? || '%';
 
 deleteChunksByProjectKeyAndType:
 DELETE FROM attachment_chunks WHERE ticket_id LIKE ? || '%' AND chunk_type = ?;
+
+-- ═══════════════════════════════════════════════════════════════
+-- Per-User Tool Permissions
+-- ═══════════════════════════════════════════════════════════════
+
+CREATE TABLE user_tool_permissions (
+    user_id TEXT NOT NULL PRIMARY KEY,
+    permissions_json TEXT NOT NULL DEFAULT '{}',
+    updated_at TEXT NOT NULL
+);
+
+findUserToolPermissions:
+SELECT * FROM user_tool_permissions WHERE user_id = ?;
+
+upsertUserToolPermissions:
+INSERT OR REPLACE INTO user_tool_permissions (user_id, permissions_json, updated_at) VALUES (?, ?, ?);
+
+deleteUserToolPermissions:
+DELETE FROM user_tool_permissions WHERE user_id = ?;
+
+-- ═══════════════════════════════════════════════════════════════
+-- Deep Ticket Data Collection — Background Jobs (Req 13.3)
+-- ═══════════════════════════════════════════════════════════════
+
+CREATE TABLE collection_jobs (
+    job_id TEXT NOT NULL PRIMARY KEY,
+    parent_ticket_id TEXT NOT NULL,
+    job_type TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'QUEUED',
+    total_items INTEGER NOT NULL,
+    completed_items INTEGER NOT NULL DEFAULT 0,
+    failed_items INTEGER NOT NULL DEFAULT 0,
+    items_json TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE INDEX idx_collection_jobs_parent ON collection_jobs(parent_ticket_id);
+CREATE INDEX idx_collection_jobs_status ON collection_jobs(status);
+
+-- Collection Job queries
+findCollectionJobById:
+SELECT * FROM collection_jobs WHERE job_id = ?;
+
+findCollectionJobsByParentTicketId:
+SELECT * FROM collection_jobs WHERE parent_ticket_id = ? ORDER BY created_at DESC;
+
+findActiveCollectionJobs:
+SELECT * FROM collection_jobs WHERE status IN ('QUEUED', 'RUNNING') ORDER BY created_at ASC;
+
+insertCollectionJob:
+INSERT INTO collection_jobs (job_id, parent_ticket_id, job_type, status, total_items, completed_items, failed_items, items_json, created_at, updated_at, version)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateCollectionJobStatus:
+UPDATE collection_jobs SET status = ?, updated_at = ?, version = version + 1 WHERE job_id = ? AND version = ?;
+
+updateCollectionJobProgress:
+UPDATE collection_jobs SET completed_items = ?, failed_items = ?, items_json = ?, updated_at = ?, version = version + 1 WHERE job_id = ? AND version = ?;
+
+deleteCollectionJob:
+DELETE FROM collection_jobs WHERE job_id = ?;
+
+-- ═══════════════════════════════════════════════════════════════
+-- Deep Ticket Data Collection — Traversal Cache (Req 15.1)
+-- ═══════════════════════════════════════════════════════════════
+
+CREATE TABLE traversal_cache (
+    root_ticket_id TEXT NOT NULL PRIMARY KEY,
+    graph_json TEXT NOT NULL,
+    cached_at TEXT NOT NULL,
+    root_updated_at TEXT NOT NULL
+);
+
+-- Traversal Cache queries
+findTraversalCache:
+SELECT * FROM traversal_cache WHERE root_ticket_id = ?;
+
+insertOrReplaceTraversalCache:
+INSERT OR REPLACE INTO traversal_cache (root_ticket_id, graph_json, cached_at, root_updated_at)
+VALUES (?, ?, ?, ?);
+
+deleteTraversalCache:
+DELETE FROM traversal_cache WHERE root_ticket_id = ?;
+
+-- ═══════════════════════════════════════════════════════════════
+-- Deep Ticket Data Collection — Rate Limits (Req 16.1)
+-- ═══════════════════════════════════════════════════════════════
+
+CREATE TABLE deep_collection_rate_limits (
+    user_id TEXT NOT NULL,
+    requested_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, requested_at)
+);
+
+CREATE INDEX idx_rate_limits_user ON deep_collection_rate_limits(user_id);
+
+-- Rate Limit queries
+countRateLimitsByUser:
+SELECT COUNT(*) FROM deep_collection_rate_limits WHERE user_id = ? AND requested_at > ?;
+
+insertRateLimit:
+INSERT INTO deep_collection_rate_limits (user_id, requested_at) VALUES (?, ?);
+
+deleteExpiredRateLimits:
+DELETE FROM deep_collection_rate_limits WHERE requested_at < ?;

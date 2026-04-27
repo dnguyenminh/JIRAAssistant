@@ -60,6 +60,9 @@ object Navbar {
         NavbarDropdown.renderProjectSelector(navActions)
         NavbarDropdown.renderUserWidget(navActions)
 
+        // Global Job Indicator — Req 4.1
+        GlobalJobIndicator.render(navActions)
+
         navbar.appendChild(navActions)
 
         document.addEventListener("click", { _ ->

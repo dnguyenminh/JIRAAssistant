@@ -25,8 +25,28 @@ data class BottleneckAlert(
 )
 
 /**
- * Analysis status for long-polling progress tracking.
- * phase: "METADATA", "AI_ANALYZING", "KB_SYNCING", "COMPLETE"
+ * Analysis phases for deep analysis progress tracking (Req 21.4).
+ * Each phase maps to a progress percentage range.
+ */
+enum class AnalysisPhase(val startPercent: Int, val endPercent: Int) {
+    FETCHING_JIRA(0, 20),
+    EXTRACTING_CONTENT(20, 35),
+    AI_ANALYZING(35, 85),
+    KB_SYNCING(85, 100),
+    COMPLETE(100, 100);
+
+    /** Legacy phase names for backward compatibility. */
+    companion object {
+        fun fromLegacy(phase: String): AnalysisPhase = when (phase) {
+            "METADATA" -> FETCHING_JIRA
+            else -> values().find { it.name == phase } ?: COMPLETE
+        }
+    }
+}
+
+/**
+ * Analysis status for long-polling progress tracking (Req 21.4).
+ * phase: FETCHING_JIRA, EXTRACTING_CONTENT, AI_ANALYZING, KB_SYNCING, COMPLETE
  * progressPercent: 0-100
  */
 @Serializable

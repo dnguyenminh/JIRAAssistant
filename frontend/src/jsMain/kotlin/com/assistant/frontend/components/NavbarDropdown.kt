@@ -22,7 +22,6 @@ internal object NavbarDropdown {
 
     fun renderProjectSelector(container: HTMLElement) {
         val projectKey = ApiClient.getProjectKey()
-        if (projectKey.isNullOrBlank()) return
 
         val selector = document.createElement("div") as HTMLElement
         selector.className = "project-selector"
@@ -30,17 +29,22 @@ internal object NavbarDropdown {
 
         val badge = document.createElement("div") as HTMLElement
         badge.className = "project-badge"
-        badge.textContent = "[$projectKey]"
+        badge.textContent = if (projectKey.isNullOrBlank()) "Select Project" else "[$projectKey]"
         selector.appendChild(badge)
 
-        val dropdown = buildProjectDropdown()
-        selector.appendChild(dropdown)
-
-        selector.addEventListener("click", { e ->
-            e.stopPropagation()
-            dropdown.classList.toggle("active")
-            closeUserDropdown()
-        })
+        if (projectKey.isNullOrBlank()) {
+            selector.addEventListener("click", {
+                Router.navigateTo("project_select")
+            })
+        } else {
+            val dropdown = buildProjectDropdown()
+            selector.appendChild(dropdown)
+            selector.addEventListener("click", { e ->
+                e.stopPropagation()
+                dropdown.classList.toggle("active")
+                closeUserDropdown()
+            })
+        }
         container.appendChild(selector)
     }
 
@@ -152,6 +156,17 @@ internal object NavbarDropdown {
             e.preventDefault(); closeAll(); ApiClient.signOut()
         })
         dropdown.appendChild(item)
+    }
+
+    /**
+     * Refresh the project selector badge to reflect current sessionStorage value.
+     * Called after project selection or navigation to ensure badge is up-to-date.
+     */
+    fun refreshProjectSelector() {
+        val container = document.getElementById("navbar-project-selector")
+            ?.parentElement as? HTMLElement ?: return
+        (document.getElementById("navbar-project-selector") as? HTMLElement)?.remove()
+        renderProjectSelector(container)
     }
 
     fun closeAll() {

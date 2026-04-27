@@ -1,5 +1,6 @@
 package com.assistant.frontend.pages
 
+import com.assistant.auth.UserRole
 import com.assistant.frontend.api.ApiClient
 import com.assistant.frontend.components.BlockingOverlay
 import com.assistant.frontend.router.Router
@@ -11,9 +12,13 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.HTMLInputElement
+import org.w3c.dom.HTMLTemplateElement
 
 /**
  * Standalone project selection page with sortable, searchable, paginated table.
@@ -79,6 +84,10 @@ object ProjectSelectPage {
                 }
                 if (resp.status == HttpStatusCode.OK) {
                     allProjects = json.decodeFromString<List<JiraProject>>(resp.bodyAsText())
+                    if (allProjects.isEmpty()) {
+                        checkJiraStatus()
+                        return@launch
+                    }
                     applyFilter(); applySort(); renderTable()
                 } else {
                     renderEmpty("Failed to load projects (${resp.status})")
@@ -159,6 +168,90 @@ object ProjectSelectPage {
     private fun renderEmpty(msg: String) {
         val tbody = document.getElementById("project-table-body") as? HTMLElement ?: return
         tbody.innerHTML = "<tr><td colspan='3' style='text-align:center;padding:48px;opacity:0.5;'>$msg</td></tr>"
+    }
+
+    /** 2.1 — Check Jira config status; branch by role. */
+    private fun checkJiraStatus() {
+        scope.launch {
+            try {
+                val resp = ApiClient.get("/api/integrations/jira/status")
+                if (resp.status == HttpStatusCode.OK) {
+                    val body = resp.bodyAsText()
+                    val obj = Json.parseToJsonElement(body).jsonObject
+                    val configured = obj["configured"]
+                        ?.jsonPrimitive?.boolean ?: true
+                    handleJiraConfigResult(configured)
+                } else {
+                    showEmptyWithRetry()
+                }
+            } catch (e: Exception) {
+                console.log("[ProjectSelect] Jira status check failed: ${e.message}")
+                showEmptyWithRetry()
+            } finally {
+                BlockingOverlay.remove("project-select-page")
+            }
+        }
+    }
+
+    private fun handleJiraConfigResult(configured: Boolean) {
+        if (!configured) {
+            val role = ApiClient.getUserRole()
+            if (role == UserRole.ADMINISTRATOR) {
+                Router.navigateTo("integrations")
+            } else {
+                showJiraNotConfigured()
+            }
+        } else {
+            showEmptyWithRetry()
+        }
+    }
+
+    /** 2.3 — Non-admin: show disconnect footer + popup. */
+    private fun showJiraNotConfigured() {
+        cloneAndAppendFooter()
+        cloneAndShowPopup()
+    }
+
+    private fun cloneAndAppendFooter() {
+        val tmpl = document.getElementById("tmpl-jira-disconnect")
+            as? HTMLTemplateElement ?: return
+        val footer = tmpl.content.firstElementChild
+            ?.cloneNode(true) as? HTMLElement ?: return
+        document.body?.appendChild(footer)
+    }
+
+    private fun cloneAndShowPopup() {
+        val tmpl = document.getElementById("tmpl-jira-not-configured-popup")
+            as? HTMLTemplateElement ?: return
+        val overlay = tmpl.content.firstElementChild
+            ?.cloneNode(true) as? HTMLElement ?: return
+        document.body?.appendChild(overlay)
+        overlay.querySelector("#jira-popup-ok-btn")
+            ?.addEventListener("click", { overlay.remove() })
+    }
+
+    /** 2.4 — Fallback: normal empty state with RETRY. */
+    private fun showEmptyWithRetry() {
+        val tbody = document.getElementById("project-table-body")
+            as? HTMLElement ?: return
+        tbody.innerHTML = ""
+        val tr = document.createElement("tr") as HTMLElement
+        val td = document.createElement("td") as HTMLElement
+        td.setAttribute("colspan", "3")
+        td.style.cssText = "text-align:center;padding:48px;"
+        val msg = document.createElement("span") as HTMLElement
+        msg.style.opacity = "0.5"
+        msg.textContent = "No projects available."
+        val btn = document.createElement("button") as HTMLElement
+        btn.className = "chat-action-btn"
+        btn.style.cssText = "margin-top:16px;padding:8px 24px;"
+        btn.textContent = "RETRY"
+        btn.addEventListener("click", { loadProjects() })
+        td.appendChild(msg)
+        td.appendChild(document.createElement("br"))
+        td.appendChild(btn)
+        tr.appendChild(td)
+        tbody.appendChild(tr)
     }
 
     private fun selectProject(key: String) {

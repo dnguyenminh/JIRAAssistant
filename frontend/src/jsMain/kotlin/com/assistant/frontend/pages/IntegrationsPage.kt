@@ -38,6 +38,7 @@ object IntegrationsPage {
             })
             loadProviders()
             initMcpSection()
+            initPipelineToggle()
         }
     }
 
@@ -122,6 +123,8 @@ object IntegrationsPage {
         ProviderInfo("gemini", "Google Gemini API", "GEMINI", "OFFLINE", priority = 2),
         ProviderInfo("lm_studio", "LM Studio", "LM_STUDIO", "OFFLINE", priority = 3),
         ProviderInfo("gemini_cli", "Gemini CLI Interface", "GEMINI_CLI", "OFFLINE", priority = 4),
+        ProviderInfo("copilot_cli", "Copilot CLI (GitHub)", "COPILOT_CLI", "OFFLINE", priority = 5),
+        ProviderInfo("kiro_cli", "Kiro CLI (Amazon)", "KIRO_CLI", "OFFLINE", priority = 6),
         ProviderInfo("embedding", "Embedding Model", "EMBEDDING", "ACTIVE", priority = 10,
             endpoint = "http://localhost:11434", model = "nomic-embed-text")
     )

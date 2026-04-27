@@ -118,6 +118,51 @@ private fun renderMetrics(data: AnalysisResponse) {
 3. **Inline styles trong Kotlin chỉ cho dynamic values** (ví dụ: `bar.style.height = "${percent}%"` cho chart bars). Layout styles phải nằm trong CSS files
 4. **Tạo DOM elements động** (ví dụ: list items, chart bars) dùng `document.createElement()` + CSS classes, KHÔNG dùng innerHTML với HTML string
 5. **HTML templates dùng `id` attributes** làm hook cho Kotlin code bind data và events
+6. **Dynamic repeated elements ƯU TIÊN dùng `<template>` clone pattern** — layout nằm trong HTML, Kotlin chỉ clone và gán data
+
+### `<template>` clone pattern cho dynamic elements
+
+Khi cần tạo nhiều elements cùng cấu trúc (list items, cards, rows, alerts), ƯU TIÊN dùng `<template>` tag trong HTML template file thay vì `document.createElement()` nhiều lần.
+
+```html
+<!-- ✅ ĐÚNG — Template trong HTML file (resources/templates/analysis.html) -->
+<template id="tmpl-alert">
+    <div class="bottleneck-alert">
+        <span class="alert-icon"></span>
+        <div>
+            <h4 class="alert-title"></h4>
+            <p class="alert-desc"></p>
+            <span class="alert-severity"></span>
+        </div>
+    </div>
+</template>
+```
+
+```kotlin
+// ✅ ĐÚNG — Kotlin chỉ clone + populate data
+private fun createAlertElement(alert: BottleneckAlert): HTMLElement {
+    val tmpl = document.getElementById("tmpl-alert") as HTMLTemplateElement
+    val el = tmpl.content.firstElementChild!!.cloneNode(true) as HTMLElement
+    el.querySelector(".alert-icon")!!.textContent = if (alert.type == "RISK") "⚠️" else "🚀"
+    el.querySelector(".alert-title")!!.textContent = alert.title
+    el.querySelector(".alert-desc")!!.textContent = alert.description
+    el.querySelector(".alert-severity")!!.textContent = alert.severity
+    return el
+}
+```
+
+```kotlin
+// ❌ CẤM — innerHTML với HTML string (XSS risk, layout trong Kotlin)
+el.innerHTML = """
+    <span style="font-size:20px;">$icon</span>
+    <div><h4>${HtmlUtils.escapeHtml(alert.title)}</h4></div>
+""".trimIndent()
+```
+
+Lợi ích:
+- **Layout nằm hoàn toàn trong HTML file** — designer có thể sửa mà không đụng Kotlin
+- **`textContent` tự động XSS-safe** — không cần gọi `HtmlUtils.escapeHtml()` thủ công
+- **CSS classes thay vì inline styles** — dễ maintain, consistent với design system
 
 ---
 

@@ -23,6 +23,9 @@
 7. THE Frontend_App SHALL hiển thị trang Login standalone (không Shell) với form đăng nhập. POST `/api/auth/login` với `{email: username, password}` → nhận JWT + user info → lưu sessionStorage → redirect `#project_select` hoặc `#dashboard`
 8. THE Frontend_App SHALL hiển thị trang Project Selection standalone (không Shell) với grid projects từ `GET /api/projects`. Click project → `ApiClient.saveProjectKey()` → redirect `#dashboard`
 9. THE Navbar SHALL hiển thị project badge `[PROJ]` với project key hiện tại từ `ApiClient.getProjectKey()`, có dropdown cho phép đổi project (redirect `#project_select`)
+9a. WHEN người dùng chọn project từ trang Project Selection và hệ thống navigate sang trang đích, THE Navbar SHALL cập nhật project badge hiển thị project key mới ngay khi trang đích được render — badge KHÔNG ĐƯỢC giữ giá trị "Select Project" từ lần render trước
+9b. WHEN project key thay đổi (chọn project mới hoặc đổi project qua dropdown), THE NavbarDropdown SHALL refresh project selector badge để phản ánh project key hiện tại từ sessionStorage
+9c. WHEN hệ thống navigate từ trang project_select sang trang khác, THE Navbar SHALL cập nhật breadcrumb hiển thị đúng route đích (ví dụ: "DASHBOARD / OVERVIEW") thay vì route cũ "PROJECT_SELECT / PROJECT_SELECT"
 
 ---
 

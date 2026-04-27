@@ -1,13 +1,29 @@
-/* Ticket Intelligence Page — Obsidian Kinetic page-specific styles */
-/* Supplements master_style.css for TicketIntelligencePage.kt */
+/* ============================================================
+   TICKET INTELLIGENCE — Page-specific Styles
+   Obsidian Kinetic Design System (Luminous V3)
+   Supplements master_style.css + components.css
+   Requirements: 22.1-22.5, 26.8, 26.10
+   ============================================================ */
 
-/* Tab content fade-in animation */
+/* --- Animations --- */
+
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Tab button styles */
+@keyframes skeletonPulse {
+    0%, 100% { opacity: 0.15; }
+    50% { opacity: 0.3; }
+}
+
+@keyframes warningPulse {
+    0%, 100% { border-color: rgba(255, 80, 80, 0.25); }
+    50% { border-color: rgba(255, 80, 80, 0.45); }
+}
+
+/* --- Tab Buttons (Req 5.4) --- */
+
 .ti-tab {
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--glass-border);
@@ -18,11 +34,1574 @@
     font-weight: 700;
     letter-spacing: 1.5px;
     cursor: pointer;
-    transition: 0.3s;
+    transition: background 0.3s, border-color 0.3s, color 0.3s;
+}
+
+.ti-tab:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-main);
 }
 
 .ti-tab.active {
     background: rgba(45, 254, 207, 0.15);
     border-color: rgba(45, 254, 207, 0.3);
     color: var(--primary);
+}
+
+/* --- Tab Content — fadeIn on switch (Req 5.4) --- */
+
+#ti-tab-content {
+    animation: fadeIn 0.5s ease;
+}
+
+/* Disable hover-lift on glass-cards inside tab content (Req 22.1-22.3) */
+#ti-tab-content .glass-card:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* --- Skeleton Loading (Req 23.4) --- */
+
+.ti-skeleton-line {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+/* --- Confidence Warning Banner (Req 22.4) --- */
+
+#ti-tab-content .confidence-warning {
+    animation: warningPulse 3s ease-in-out infinite;
+}
+
+/* --- Evolution Tab — Neural Console scrollbar (Req 22.2) --- */
+
+#ti-tab-content .neural-console {
+    height: auto;
+    min-height: 200px;
+    max-height: 600px;
+}
+
+#ti-tab-content .neural-console::-webkit-scrollbar {
+    width: 4px;
+}
+
+#ti-tab-content .neural-console::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#ti-tab-content .neural-console::-webkit-scrollbar-thumb {
+    background: rgba(45, 254, 207, 0.15);
+    border-radius: 4px;
+}
+
+#ti-tab-content .neural-console::-webkit-scrollbar-thumb:hover {
+    background: rgba(45, 254, 207, 0.3);
+}
+
+/* --- Cascade Log Panel (Req 26.8, 26.10) --- */
+
+#cascade-log-entries::-webkit-scrollbar {
+    width: 4px;
+}
+
+#cascade-log-entries::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#cascade-log-entries::-webkit-scrollbar-thumb {
+    background: rgba(45, 254, 207, 0.15);
+    border-radius: 4px;
+}
+
+#cascade-log-entries::-webkit-scrollbar-thumb:hover {
+    background: rgba(45, 254, 207, 0.3);
+}
+
+/* Cascade log line — subtle hover highlight (Req 26.9) */
+.cascade-log-line {
+    transition: background 0.15s ease;
+    border-radius: 4px;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.cascade-log-line:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* Cascade summary line — glow on completion */
+.cascade-summary-line {
+    animation: fadeIn 0.4s ease;
+}
+
+/* --- Cascade Panel — disable hover-lift on inner glass-card --- */
+
+#ti-cascade-panel .glass-card:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* ============================================================
+   COLLECTION JOB MONITORING PANEL — CSS Styles
+   Requirements: 13.7, 13.8, 13.12, 14.8
+   ============================================================ */
+
+/* --- Collection Job Panel — disable hover-lift --- */
+
+#ti-collection-jobs-panel .glass-card:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* --- Job Card hover --- */
+
+.cj-job-card:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* --- Item Row hover --- */
+
+.cj-item-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* --- Item List scrollbar --- */
+
+.cj-item-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.cj-item-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.cj-item-list::-webkit-scrollbar-thumb {
+    background: rgba(45, 254, 207, 0.15);
+    border-radius: 4px;
+}
+
+.cj-item-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(45, 254, 207, 0.3);
+}
+
+/* --- Job Status Badges --- */
+
+.cj-status-queued {
+    background: rgba(255, 180, 50, 0.1);
+    border: 1px solid rgba(255, 180, 50, 0.3);
+    color: #ffb432;
+}
+
+.cj-status-running {
+    background: rgba(45, 254, 207, 0.1);
+    border: 1px solid rgba(45, 254, 207, 0.3);
+    color: var(--primary);
+}
+
+.cj-status-completed {
+    background: rgba(45, 254, 207, 0.15);
+    border: 1px solid rgba(45, 254, 207, 0.3);
+    color: var(--primary);
+}
+
+.cj-status-failed {
+    background: rgba(255, 80, 80, 0.1);
+    border: 1px solid rgba(255, 80, 80, 0.3);
+    color: #ff5050;
+}
+
+/* --- Conflict Banner animation --- */
+
+@keyframes conflictPulse {
+    0%, 100% { border-color: rgba(45, 254, 207, 0.2); }
+    50% { border-color: rgba(45, 254, 207, 0.4); }
+}
+
+#ti-conflict-banner {
+    animation: conflictPulse 3s ease-in-out infinite;
+}
+
+
+/* ============================================================
+   DOCUMENT GENERATION & PREVIEW — CSS Styles
+   Obsidian Kinetic Design System (Luminous V3)
+   Requirements: 7.1–7.5, 8.1–8.3, 11.6, Task 20
+   ============================================================ */
+
+/* --- Document Preview Modal — full-width overlay (Req 7.1) --- */
+
+#doc-preview-modal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- Slide Preview Modal — centered overlay (Req 11.6) --- */
+
+#slide-preview-modal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --- TOC Sidebar — scrollable, fixed left (Req 7.3) --- */
+
+#doc-toc-sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+
+#doc-toc-sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#doc-toc-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(45, 254, 207, 0.15);
+    border-radius: 4px;
+}
+
+#doc-toc-sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(45, 254, 207, 0.3);
+}
+
+/* --- TOC Entry — hover & active states (Req 7.3) --- */
+
+.doc-toc-entry:hover {
+    background: rgba(45, 254, 207, 0.08);
+    opacity: 1;
+}
+
+.doc-toc-entry.active {
+    color: var(--primary);
+    opacity: 1;
+    background: rgba(45, 254, 207, 0.06);
+}
+
+/* --- Export Dropdown Items — hover (Req 8.1) --- */
+
+#btn-export-md:hover,
+#btn-export-pdf:hover {
+    background: rgba(45, 254, 207, 0.08);
+}
+
+/* --- Export Dropdown — animation & positioning --- */
+
+#doc-export-dropdown {
+    animation: fadeIn 0.2s ease;
+}
+
+/* --- Slide Navigation Buttons — hover (Req 11.6) --- */
+
+#btn-slide-prev:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+}
+
+#btn-slide-next:hover {
+    background: rgba(45, 254, 207, 0.15);
+}
+
+/* --- Close Buttons — hover (Req 7.4) --- */
+
+#btn-doc-close:hover,
+#btn-slide-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+}
+
+/* --- Markdown Content Area — dark theme typography (Req 7.1) --- */
+
+#doc-content-area h2 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--primary);
+    margin-top: 36px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+#doc-content-area h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-top: 24px;
+    margin-bottom: 12px;
+}
+
+#doc-content-area p {
+    color: var(--text-sub);
+    margin-bottom: 12px;
+}
+
+#doc-content-area code {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    padding: 2px 6px;
+    color: var(--primary);
+}
+
+#doc-content-area pre {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    margin-bottom: 16px;
+}
+
+#doc-content-area pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--text-main);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+#doc-content-area table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+    font-size: 13px;
+}
+
+#doc-content-area th {
+    text-align: left;
+    padding: 10px 14px;
+    background: rgba(45, 254, 207, 0.06);
+    border: 1px solid var(--glass-border);
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 1px;
+}
+
+#doc-content-area td {
+    padding: 10px 14px;
+    border: 1px solid var(--glass-border);
+    color: var(--text-sub);
+}
+
+#doc-content-area tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+#doc-content-area ul,
+#doc-content-area ol {
+    padding-left: 24px;
+    margin-bottom: 12px;
+    color: var(--text-sub);
+}
+
+#doc-content-area li {
+    margin-bottom: 6px;
+    line-height: 1.6;
+}
+
+#doc-content-area blockquote {
+    border-left: 3px solid var(--primary);
+    padding: 12px 20px;
+    margin: 16px 0;
+    background: rgba(45, 254, 207, 0.04);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-sub);
+    font-style: italic;
+}
+
+#doc-content-area a {
+    color: var(--primary);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(45, 254, 207, 0.3);
+    transition: border-color 0.2s ease;
+}
+
+#doc-content-area a:hover {
+    border-bottom-color: var(--primary);
+}
+
+#doc-content-area hr {
+    border: none;
+    height: 1px;
+    background: var(--glass-border);
+    margin: 24px 0;
+}
+
+/* --- Draw.io Diagram Containers (Req 5.1) --- */
+
+.drawio-inline-diagram {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+    border: 1px solid var(--glass-border);
+    overflow-x: auto;
+    min-height: 200px;
+}
+
+.drawio-inline-diagram svg {
+    max-width: 100%;
+    height: auto;
+}
+
+.drawio-fallback {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 16px;
+}
+
+.drawio-fallback-label {
+    font-size: 13px;
+    opacity: 0.7;
+    margin-bottom: 12px;
+    color: var(--text-sub);
+}
+
+.drawio-fallback-xml {
+    font-size: 11px;
+    line-height: 1.4;
+    max-height: 300px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--text-sub);
+    opacity: 0.5;
+}
+
+/* --- Markdown Content Area — scrollbar --- */
+
+#doc-content-area::-webkit-scrollbar {
+    width: 4px;
+}
+
+#doc-content-area::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#doc-content-area::-webkit-scrollbar-thumb {
+    background: rgba(45, 254, 207, 0.15);
+    border-radius: 4px;
+}
+
+#doc-content-area::-webkit-scrollbar-thumb:hover {
+    background: rgba(45, 254, 207, 0.3);
+}
+
+/* --- Slide Content Area — typography --- */
+
+#slide-current h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 20px;
+}
+
+#slide-current ul,
+#slide-current ol {
+    padding-left: 24px;
+    color: var(--text-sub);
+}
+
+#slide-current li {
+    margin-bottom: 10px;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+#slide-current table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+}
+
+#slide-current th {
+    text-align: left;
+    padding: 10px 14px;
+    background: rgba(45, 254, 207, 0.06);
+    border: 1px solid var(--glass-border);
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 12px;
+}
+
+#slide-current td {
+    padding: 10px 14px;
+    border: 1px solid var(--glass-border);
+    color: var(--text-sub);
+}
+
+/* --- Print CSS — optimized for PDF export (Req 8.3) --- */
+
+@media print {
+    /* Hide non-content elements */
+    #doc-toc-sidebar,
+    #doc-preview-meta .btn-doc-export,
+    #btn-doc-export,
+    #doc-export-dropdown,
+    #btn-doc-close,
+    #btn-slide-close,
+    #btn-slide-prev,
+    #btn-slide-next,
+    #slide-counter {
+        display: none !important;
+    }
+
+    /* Reset modal to fill page */
+    #doc-preview-modal,
+    #slide-preview-modal {
+        position: static !important;
+        background: #fff !important;
+        backdrop-filter: none !important;
+    }
+
+    #doc-preview-modal > div,
+    #slide-preview-modal > div {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        background: #fff !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+    }
+
+    /* Content area — white background, black text */
+    #doc-content-area {
+        padding: 0 !important;
+        overflow: visible !important;
+        color: #000 !important;
+        font-size: 12pt !important;
+        line-height: 1.5 !important;
+    }
+
+    #doc-content-area h2 {
+        color: #000 !important;
+        border-bottom-color: #ccc !important;
+        page-break-after: avoid;
+    }
+
+    #doc-content-area h3 {
+        color: #333 !important;
+        page-break-after: avoid;
+    }
+
+    #doc-content-area p,
+    #doc-content-area li,
+    #doc-content-area td {
+        color: #000 !important;
+    }
+
+    #doc-content-area th {
+        color: #000 !important;
+        background: #f0f0f0 !important;
+    }
+
+    #doc-content-area code {
+        color: #333 !important;
+        background: #f5f5f5 !important;
+        border-color: #ddd !important;
+    }
+
+    #doc-content-area pre {
+        background: #f5f5f5 !important;
+        border-color: #ddd !important;
+    }
+
+    #doc-content-area pre code {
+        color: #000 !important;
+    }
+
+    #doc-content-area blockquote {
+        border-left-color: #333 !important;
+        background: #f9f9f9 !important;
+        color: #333 !important;
+    }
+
+    #doc-content-area table {
+        border-color: #ccc !important;
+    }
+
+    #doc-content-area td,
+    #doc-content-area th {
+        border-color: #ccc !important;
+    }
+
+    #doc-content-area a {
+        color: #000 !important;
+        text-decoration: underline !important;
+    }
+
+    /* Metadata bar — simplified for print */
+    #doc-preview-meta {
+        border-bottom-color: #ccc !important;
+        padding: 8px 0 !important;
+    }
+
+    #doc-preview-meta span {
+        color: #000 !important;
+        opacity: 1 !important;
+    }
+
+    /* Slide content — white background */
+    #slide-content-area {
+        padding: 0 !important;
+    }
+
+    #slide-current h2 {
+        color: #000 !important;
+    }
+
+    #slide-current li,
+    #slide-current td {
+        color: #000 !important;
+    }
+
+    #slide-current th {
+        color: #000 !important;
+        background: #f0f0f0 !important;
+    }
+}
+
+
+/* ============================================================
+   DOCUMENT JOB MANAGER — CSS Styles
+   Global Job Indicator, Progress Bars, Approval Badges,
+   Version History, Diff View, Reject Dialog, Generate All
+   Requirements: 4.1-4.6, 9.1-9.7, 6.2-6.5, 7.5-7.9
+   ============================================================ */
+
+/* --- Global Job Indicator Badge — Req 4.1, 4.2 --- */
+
+.global-job-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: rgba(45, 254, 207, 0.12);
+    border: 1px solid rgba(45, 254, 207, 0.25);
+    cursor: pointer;
+    transition: background 0.2s ease;
+    position: relative;
+}
+
+.global-job-badge:hover {
+    background: rgba(45, 254, 207, 0.2);
+}
+
+.job-badge-icon {
+    font-size: 14px;
+}
+
+.job-badge-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: 1px;
+}
+
+/* --- Global Job Indicator Panel — Req 4.3 --- */
+
+.global-job-panel {
+    position: fixed;
+    top: 56px;
+    right: 16px;
+    width: 380px;
+    max-height: 400px;
+    background: rgba(12, 14, 22, 0.97);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+    z-index: 5000;
+    overflow: hidden;
+    animation: fadeIn 0.2s ease;
+}
+
+.global-job-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--glass-border);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--primary);
+}
+
+.global-job-list {
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.global-job-list::-webkit-scrollbar { width: 4px; }
+.global-job-list::-webkit-scrollbar-track { background: transparent; }
+.global-job-list::-webkit-scrollbar-thumb { background: rgba(45, 254, 207, 0.15); border-radius: 4px; }
+
+.global-job-empty {
+    padding: 24px;
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.4;
+}
+
+/* --- Job Indicator Item — Req 4.3 --- */
+
+.job-indicator-item {
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 6px;
+    transition: background 0.15s ease;
+}
+
+.job-indicator-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.job-indicator-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.job-indicator-ticket {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.job-indicator-type {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    opacity: 0.6;
+}
+
+.job-indicator-status {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(45, 254, 207, 0.1);
+    color: var(--primary);
+}
+
+.job-indicator-progress-track {
+    height: 3px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 2px;
+    margin-bottom: 6px;
+    overflow: hidden;
+}
+
+.job-indicator-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), rgba(45, 254, 207, 0.6));
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.job-indicator-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.job-indicator-actions button {
+    padding: 4px 10px;
+    font-size: 11px;
+    border-radius: 6px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-sub);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.job-indicator-actions button:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+}
+
+
+/* --- Inline Job Progress Bars — Req 9.4 --- */
+
+.docgen-inline-progress {
+    margin-top: 4px;
+}
+
+.inline-job-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.inline-progress-bar-track {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.inline-progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), rgba(45, 254, 207, 0.6));
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.inline-progress-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--primary);
+    white-space: nowrap;
+}
+
+/* --- Approval Badges — Req 9.5, 9.6, 9.7, 6.2 --- */
+
+.approval-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.approval-draft {
+    background: rgba(255, 180, 50, 0.1);
+    border: 1px solid rgba(255, 180, 50, 0.3);
+    color: #ffb432;
+}
+
+.approval-draft:hover {
+    background: rgba(255, 180, 50, 0.18);
+}
+
+.approval-approved {
+    background: rgba(45, 254, 207, 0.1);
+    border: 1px solid rgba(45, 254, 207, 0.3);
+    color: var(--primary);
+}
+
+.approval-approved:hover {
+    background: rgba(45, 254, 207, 0.18);
+}
+
+.approval-rejected {
+    background: rgba(255, 80, 80, 0.1);
+    border: 1px solid rgba(255, 80, 80, 0.3);
+    color: #ff5050;
+}
+
+.approval-rejected:hover {
+    background: rgba(255, 80, 80, 0.18);
+}
+
+/* --- "Generate All" Button — Req 1.6, 9.2 --- */
+
+/* --- Document Generation Error Toast --- */
+.docgen-error-toast {
+    margin-top: 12px;
+    padding: 12px 20px;
+    background: rgba(255, 80, 80, 0.12);
+    border: 1px solid rgba(255, 80, 80, 0.3);
+    border-radius: 8px;
+    color: #ff5050;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+}
+
+.btn-generate-all {
+    padding: 10px 22px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    white-space: nowrap;
+    border-radius: 8px;
+    border: 1px solid rgba(45, 254, 207, 0.4);
+    background: linear-gradient(135deg, rgba(45, 254, 207, 0.15), rgba(45, 254, 207, 0.08));
+    color: var(--primary);
+    cursor: pointer;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-generate-all:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(45, 254, 207, 0.25), rgba(45, 254, 207, 0.12));
+    box-shadow: 0 0 16px rgba(45, 254, 207, 0.15);
+}
+
+.btn-generate-all:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* --- Review Panel Buttons — Req 6.3 --- */
+
+.btn-doc-approve {
+    padding: 8px 16px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    border-radius: 8px;
+    border: 1px solid rgba(45, 254, 207, 0.3);
+    background: rgba(45, 254, 207, 0.12);
+    color: var(--primary);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.btn-doc-approve:hover {
+    background: rgba(45, 254, 207, 0.22);
+}
+
+.btn-doc-reject {
+    padding: 8px 16px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 80, 80, 0.3);
+    background: rgba(255, 80, 80, 0.08);
+    color: #ff5050;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    margin-left: 6px;
+}
+
+.btn-doc-reject:hover {
+    background: rgba(255, 80, 80, 0.18);
+}
+
+
+/* --- Version History Panel — Req 7.6, 7.9 --- */
+
+.btn-version-history {
+    padding: 8px 16px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-sub);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.btn-version-history:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+}
+
+.version-history-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 240px;
+    max-height: 300px;
+    overflow-y: auto;
+    background: rgba(12, 14, 22, 0.97);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    z-index: 200;
+    padding: 6px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.2s ease;
+}
+
+.version-history-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    font-size: 12px;
+}
+
+.version-history-item:hover {
+    background: rgba(45, 254, 207, 0.08);
+}
+
+.version-number {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 11px;
+    letter-spacing: 1px;
+}
+
+.version-date {
+    font-size: 10px;
+    opacity: 0.5;
+}
+
+.version-reviewer {
+    font-size: 10px;
+    opacity: 0.4;
+    font-style: italic;
+}
+
+.version-compare-btn {
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--primary);
+    border-top: 1px solid var(--glass-border);
+    margin-top: 4px;
+    transition: background 0.15s ease;
+}
+
+.version-compare-btn:hover {
+    background: rgba(45, 254, 207, 0.08);
+}
+
+/* --- Diff View — Req 7.8, 7.9 --- */
+
+.doc-diff-area {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.diff-header {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--primary);
+    margin-bottom: 12px;
+}
+
+.btn-diff-close {
+    padding: 6px 14px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    border-radius: 6px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-sub);
+    cursor: pointer;
+    margin-bottom: 16px;
+    transition: background 0.15s ease;
+}
+
+.btn-diff-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+}
+
+.diff-content {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-sub);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* --- Reject Reason Dialog — Req 6.5 --- */
+
+#reject-reason-dialog {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.reject-dialog-content {
+    width: 440px;
+    background: rgba(12, 14, 22, 0.97);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.reject-dialog-title {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #ff5050;
+    margin-bottom: 12px;
+}
+
+.reject-dialog-desc {
+    font-size: 12px;
+    color: var(--text-sub);
+    margin-bottom: 16px;
+}
+
+.reject-reason-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--text-main);
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+.reject-reason-textarea:focus {
+    border-color: var(--primary);
+}
+
+.reject-reason-error {
+    font-size: 11px;
+    color: #ff5050;
+    margin-top: 6px;
+}
+
+.reject-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.btn-reject-cancel {
+    padding: 8px 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-sub);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.btn-reject-cancel:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-reject-confirm {
+    padding: 8px 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 80, 80, 0.3);
+    background: rgba(255, 80, 80, 0.12);
+    color: #ff5050;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.btn-reject-confirm:hover {
+    background: rgba(255, 80, 80, 0.22);
+}
+
+/* --- Job Toast Notifications — Req 4.5, 4.6 --- */
+
+.job-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    max-width: 500px;
+}
+
+.job-toast-success {
+    background: rgba(45, 254, 207, 0.95);
+    color: #1a1a2e;
+}
+
+.job-toast-error {
+    background: rgba(255, 80, 80, 0.95);
+    color: #fff;
+    cursor: pointer;
+}
+
+/* --- Review Panel Area — flex layout --- */
+
+#review-panel-area {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+
+/* ============================================================
+   DOCUMENT GENERATION UX IMPROVEMENT — Progress Animations
+   Requirements: 6.1, 6.2, 6.3, 6.4, 5.1, 3.2
+   ============================================================ */
+
+/* --- Shimmer animation for GENERATING_DOCUMENT phase (Req 6.2) --- */
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.inline-progress-bar-fill.shimmer {
+    background: linear-gradient(
+        90deg,
+        var(--primary),
+        rgba(45, 254, 207, 0.6),
+        var(--primary)
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s ease-in-out infinite;
+}
+
+/* --- Smooth transition for progress bar (Req 6.1) --- */
+
+.inline-progress-bar-fill {
+    transition: width 0.5s ease-in-out;
+}
+
+/* --- Success state (Req 6.3) --- */
+
+.inline-progress-bar-fill.success {
+    background: var(--accent-green, #2dfecf);
+}
+
+/* --- Failed state (Req 6.4) --- */
+
+.inline-progress-bar-fill.failed {
+    background: var(--accent-red, #ff5050);
+}
+
+/* --- Inline progress info row --- */
+
+.inline-progress-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.inline-progress-phase-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--primary);
+}
+
+.inline-progress-elapsed {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    opacity: 0.5;
+}
+
+/* --- Cancel button in progress actions --- */
+
+.inline-progress-actions {
+    display: flex;
+    align-items: center;
+    margin-left: 8px;
+}
+
+.btn-cancel-job {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-sub);
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.btn-cancel-job:hover {
+    background: rgba(255, 80, 80, 0.12);
+    color: #ff5050;
+    border-color: rgba(255, 80, 80, 0.3);
+}
+
+.btn-cancel-job:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* --- Timeout warning (Req 3.2) --- */
+
+.inline-progress-timeout-warning {
+    color: var(--warning-color, #ffb432);
+    font-size: 10px;
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+}
+
+/* --- Error panel (Req 5.1, 5.3, 5.5) --- */
+
+.docgen-error-panel {
+    background: rgba(255, 80, 80, 0.08);
+    border: 1px solid rgba(255, 80, 80, 0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-top: 6px;
+    animation: fadeIn 0.3s ease;
+}
+
+.error-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.error-panel-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.error-panel-message {
+    flex: 1;
+    font-size: 12px;
+    color: #ff5050;
+    letter-spacing: 0.5px;
+}
+
+.btn-error-close {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 80, 80, 0.2);
+    background: transparent;
+    color: #ff5050;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s ease;
+}
+
+.btn-error-close:hover {
+    background: rgba(255, 80, 80, 0.12);
+}
+
+.error-panel-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.btn-error-retry {
+    padding: 6px 16px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    border-radius: 6px;
+    border: 1px solid rgba(45, 254, 207, 0.3);
+    background: rgba(45, 254, 207, 0.08);
+    color: var(--primary);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.btn-error-retry:hover {
+    background: rgba(45, 254, 207, 0.18);
+}
+
+.error-panel-link {
+    font-size: 11px;
+    color: var(--primary);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(45, 254, 207, 0.3);
+    transition: border-color 0.2s ease;
+}
+
+.error-panel-link:hover {
+    border-bottom-color: var(--primary);
+}
+
+/* ── ReadinessDialog ── */
+
+.readiness-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+
+.readiness-dialog {
+    max-width: 500px;
+    width: 90%;
+    padding: 24px;
+    border-radius: 12px;
+    background: rgba(12, 14, 22, 0.97);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+/* Disable hover-lift on readiness dialog */
+.readiness-dialog:hover {
+    transform: none;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.readiness-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-main);
+}
+
+.readiness-server-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.readiness-server-list::-webkit-scrollbar { width: 4px; }
+.readiness-server-list::-webkit-scrollbar-track { background: transparent; }
+.readiness-server-list::-webkit-scrollbar-thumb { background: rgba(45, 254, 207, 0.15); border-radius: 4px; }
+.readiness-server-list::-webkit-scrollbar-thumb:hover { background: rgba(45, 254, 207, 0.3); }
+
+.readiness-server-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    transition: background 0.15s ease;
+}
+
+.readiness-server-ready {
+    border-left: 3px solid #4ade80;
+}
+
+.readiness-server-down {
+    border-left: 3px solid #f59e0b;
+}
+
+.readiness-critical {
+    border-left: 3px solid #ef4444;
+    background: rgba(239, 68, 68, 0.08);
+}
+
+.readiness-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.readiness-server-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.readiness-server-name {
+    font-weight: 500;
+    color: var(--text-main);
+    font-size: 13px;
+}
+
+.readiness-server-error {
+    font-size: 12px;
+    color: #f59e0b;
+}
+
+.readiness-warning {
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(245, 158, 11, 0.1);
+    color: #fbbf24;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.readiness-strong-warning {
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 16px;
+}
+
+.readiness-btn-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.readiness-btn-continue {
+    background: linear-gradient(135deg, var(--primary), rgba(45, 254, 207, 0.7));
+    color: #0a0b10;
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 500;
+    font-size: 13px;
+    cursor: pointer;
+    transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.readiness-btn-continue:hover {
+    box-shadow: 0 0 16px rgba(45, 254, 207, 0.3);
+    transform: translateY(-1px);
+}
+
+.readiness-btn-cancel {
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-sub);
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.readiness-btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-main);
 }

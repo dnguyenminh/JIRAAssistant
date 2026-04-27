@@ -1,13 +1,91 @@
 <configuration>
+    <!-- Console appender -->
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
+
+    <!-- Daily rolling file appender (INFO+) -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${DATA_DIR:-data}/logs/jira-assistant.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${DATA_DIR:-data}/logs/jira-assistant.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Debug rolling file appender (DEBUG+) -->
+    <appender name="DEBUG_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${DATA_DIR:-data}/logs/jira-assistant-debug.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${DATA_DIR:-data}/logs/jira-assistant-debug.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>7</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Agent activity rolling file appender (DEBUG+) -->
+    <appender name="AGENT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${DATA_DIR:-data}/logs/agent-activity.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${DATA_DIR:-data}/logs/agent-activity.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>14</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Pipeline interaction appender — BA Agent ↔ AI turn-by-turn log -->
+    <appender name="PIPELINE_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${DATA_DIR:-data}/logs/pipeline-interaction.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${DATA_DIR:-data}/logs/pipeline-interaction.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>14</maxHistory>
+            <totalSizeCap>200MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %msg%n</pattern>
+        </encoder>
+    </appender>
+
     <root level="INFO">
         <appender-ref ref="STDOUT" />
+        <appender-ref ref="FILE" />
     </root>
     <logger name="io.ktor" level="INFO" />
     <logger name="io.ktor.server.Application" level="INFO" />
-    <logger name="com.assistant" level="INFO" />
+    <logger name="com.assistant" level="DEBUG" additivity="true">
+        <appender-ref ref="DEBUG_FILE" />
+    </logger>
+    <!-- Agent-specific loggers → agent-activity.log -->
+    <logger name="com.assistant.server.agent" level="DEBUG" additivity="true">
+        <appender-ref ref="AGENT_FILE" />
+    </logger>
+    <logger name="com.assistant.server.jobs" level="DEBUG" additivity="true">
+        <appender-ref ref="AGENT_FILE" />
+    </logger>
+    <logger name="com.assistant.server.ai" level="DEBUG" additivity="true">
+        <appender-ref ref="AGENT_FILE" />
+    </logger>
+    <!-- Pipeline interaction logger → pipeline-interaction.log -->
+    <logger name="PipelineInteraction" level="INFO" additivity="false">
+        <appender-ref ref="PIPELINE_FILE" />
+        <appender-ref ref="STDOUT" />
+    </logger>
 </configuration>

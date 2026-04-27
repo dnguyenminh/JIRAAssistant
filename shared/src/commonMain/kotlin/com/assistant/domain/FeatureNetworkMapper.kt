@@ -29,25 +29,28 @@ class FeatureNetworkMapper(
         }
         val edges = mutableListOf<TicketEdge>()
         val added = mutableSetOf<String>()
+        val externalNodes = mutableMapOf<String, TicketNode>()
 
-        addIssueLinkEdges(issues, idSet, edges, added)
+        addIssueLinkEdges(issues, idSet, edges, added, externalNodes)
         addParentSubtaskEdges(issues, idSet, edges, added)
         addKeywordEdges(issues, edges, added)
 
-        println("[FeatureNetworkMapper] ${nodes.size} nodes, ${edges.size} edges (links=${countType(edges, "link")}, parent=${countType(edges, "parent")}, keyword=${countType(edges, "keyword")})")
-        return NetworkGraph(nodes, edges)
+        val allNodes = nodes + externalNodes.values
+        println("[FeatureNetworkMapper] ${allNodes.size} nodes (${externalNodes.size} external), ${edges.size} edges (links=${countType(edges, "link")}, parent=${countType(edges, "parent")}, keyword=${countType(edges, "keyword")})")
+        return NetworkGraph(allNodes, edges)
     }
 
     // --- 1. Jira Issue Links ---
 
     private fun addIssueLinkEdges(
         issues: List<JiraIssue>, idSet: Set<String>,
-        edges: MutableList<TicketEdge>, added: MutableSet<String>
+        edges: MutableList<TicketEdge>, added: MutableSet<String>,
+        externalNodes: MutableMap<String, TicketNode>
     ) {
         for (issue in issues) {
             val links = issue.fields.issuelinks ?: continue
             for (link in links) {
-                addSingleLink(issue.id, link, idSet, edges, added)
+                addSingleLink(issue.id, link, idSet, edges, added, externalNodes)
             }
         }
     }
@@ -55,16 +58,30 @@ class FeatureNetworkMapper(
     private fun addSingleLink(
         issueId: String, link: JiraIssueLink,
         idSet: Set<String>, edges: MutableList<TicketEdge>,
-        added: MutableSet<String>
+        added: MutableSet<String>,
+        externalNodes: MutableMap<String, TicketNode>
     ) {
         val typeName = link.type?.name ?: "relates"
-        val targetId = link.outwardIssue?.id ?: link.inwardIssue?.id ?: return
-        if (targetId !in idSet) return
+        val targetIssue = link.outwardIssue ?: link.inwardIssue ?: return
+        val targetId = targetIssue.id
+        if (targetId.isBlank()) return
+        // Create external node if target not in project
+        if (targetId !in idSet && targetId !in externalNodes) {
+            externalNodes[targetId] = buildExternalNode(targetIssue)
+        }
         val pair = pairKey(issueId, targetId)
         if (pair in added) return
         added.add(pair)
         edges.add(TicketEdge(issueId, targetId, "link:$typeName", isSemantic = false))
     }
+
+    private fun buildExternalNode(issue: JiraLinkedIssue): TicketNode =
+        TicketNode(
+            id = issue.id, key = issue.key,
+            summary = issue.fields?.summary ?: "",
+            status = issue.fields?.status?.name ?: "Unknown",
+            isExternal = true
+        )
 
     // --- 2. Parent / Subtask ---
 

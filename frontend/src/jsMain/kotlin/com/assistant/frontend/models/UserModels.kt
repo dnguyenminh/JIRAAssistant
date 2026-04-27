@@ -1,24 +1,26 @@
 package com.assistant.frontend.models
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class UserInfo(
-    val userId: String = "",
+    @SerialName("id") val userId: String = "",
     val email: String = "",
-    val displayName: String = "",
+    @SerialName("name") val displayName: String = "",
     val role: String = "",
-    val permissions: List<String> = emptyList()
+    @SerialName("customPermissions") val permissions: List<String> = emptyList()
 )
 
 @Serializable
 data class AuditLogEntry(
     val timestamp: String = "",
-    val actor: String = "",
-    val target: String = "",
+    @SerialName("actorId") val actor: String = "",
+    @SerialName("targetUserId") val target: String = "",
     val action: String = "",
     val oldValue: String = "",
-    val newValue: String = ""
+    val newValue: String = "",
+    val tag: String = ""
 )
 
 @Serializable

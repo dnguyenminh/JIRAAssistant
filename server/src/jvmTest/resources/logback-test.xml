@@ -1,0 +1,37 @@
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="TEST_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>build/logs/ba-agent-test.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>build/logs/ba-agent-test.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>7</maxHistory>
+            <totalSizeCap>200MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+    </root>
+
+    <!-- BA agent logs → file at DEBUG level -->
+    <logger name="com.assistant.server.agent.ba" level="DEBUG" additivity="true">
+        <appender-ref ref="TEST_FILE" />
+    </logger>
+    <logger name="com.assistant.server.agent.home" level="DEBUG" additivity="true">
+        <appender-ref ref="TEST_FILE" />
+    </logger>
+    <logger name="com.assistant.server.agent.subprocess" level="DEBUG" additivity="true">
+        <appender-ref ref="TEST_FILE" />
+    </logger>
+    <logger name="com.assistant.server.mcp" level="DEBUG" additivity="true">
+        <appender-ref ref="TEST_FILE" />
+    </logger>
+</configuration>

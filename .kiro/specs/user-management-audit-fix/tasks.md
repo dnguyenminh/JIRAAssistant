@@ -1,0 +1,157 @@
+# Implementation Plan
+
+- [x] 1. Write bug condition exploration test
+  - **Property 1: Bug Condition** — User Data & Audit Deserialization Failures
+  - **CRITICAL**: This test MUST FAIL on unfixed code — failure confirms the bugs exist
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior — it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate the 6 interconnected bugs
+  - **Scoped PBT Approach**: Scope properties to concrete failing cases for reproducibility
+  - Test 1a — UserDto→UserInfo field mismatch: Serialize `UserDto(id="u1", name="Alice", customPermissions=["ANALYZE_AI"])` to JSON, deserialize as `UserInfo` → assert `userId=="u1"`, `displayName=="Alice"`, `permissions==["ANALYZE_AI"]` (will FAIL because `UserInfo` expects `userId`/`displayName`/`permissions` but JSON has `id`/`name`/`customPermissions`)
+  - Test 1b — Backend AuditLogEntry→Frontend AuditLogEntry model mismatch: Serialize backend `AuditLogEntry(actorId="admin1", targetUserId="u2", tag="IAM_SYNC", action="ROLE_CHANGE", ...)` to JSON, deserialize as frontend `AuditLogEntry` → assert `actor=="admin1"`, `target=="u2"` (will FAIL because frontend expects `actor`/`target` but JSON has `actorId`/`targetUserId`)
+  - Test 1c — GET `/api/users/audit-log` endpoint missing: Call GET `/api/users/audit-log` → assert HTTP 200 (will FAIL with 404 because endpoint does not exist in `UserRoutes.kt`)
+  - Test 1d — InMemoryAuditLogStore volatility: Append entries to `InMemoryAuditLogStore`, create new instance, call `getAll()` → assert entries persist (will FAIL because new instance has empty list)
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests FAIL (this is correct — it proves the bugs exist)
+  - Document counterexamples found to understand root causes
+  - Mark task complete when tests are written, run, and failures are documented
+  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6_
+
+- [x] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** — Role Change, Permission Toggle, Access Control & RBAC Audit Appending
+  - **IMPORTANT**: Follow observation-first methodology
+  - Observe behavior on UNFIXED code for non-buggy inputs (role changes, permission toggles, access control)
+  - Test 2a — Role Change API: For any valid `(adminId, targetUserId, newRole)` triple, PUT `/api/users/{userId}/role` returns HTTP 200 with success message and `RBACEngineImpl` mutates user role. Observe on unfixed code, write property-based test asserting same response shape and state mutation
+  - Test 2b — Permission Toggle API: For any valid `(userId, permission, enabled)` triple, PUT `/api/users/{userId}/permissions` returns HTTP 200 with success message and `RBACEngineImpl` toggles permission. Observe on unfixed code, write property-based test asserting same response shape
+  - Test 2c — Access Control: For any non-Administrator JWT, all user management endpoints (`GET /api/users`, `PUT .../role`, `PUT .../permissions`) return HTTP 403. Write property-based test generating random non-admin tokens
+  - Test 2d — RBACEngineImpl Audit Appending: For any successful role change or permission toggle, verify `AuditLogStore.append()` is called with all 7 fields populated (`timestamp`, `actorId`, `targetUserId`, `action`, `oldValue`, `newValue`, `tag`)
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
+
+- [x] 3. Fix for User Management audit log and data deserialization bugs
+
+  - [x] 3.1 Align UserInfo field names with UserDto (Change 1)
+    - File: `frontend/src/jsMain/kotlin/com/assistant/frontend/models/UserModels.kt`
+    - Add `@SerialName("id")` annotation to `userId` field in `UserInfo`
+    - Add `@SerialName("name")` annotation to `displayName` field in `UserInfo`
+    - Add `@SerialName("customPermissions")` annotation to `permissions` field in `UserInfo`
+    - This preserves existing Kotlin field names (`userId`, `displayName`, `permissions`) used throughout frontend code while fixing JSON deserialization from backend `UserDto(id, name, customPermissions)`
+    - Verify: `Json.decodeFromString<UserInfo>("""{"id":"u1","name":"Alice","email":"a@b.com","role":"ADMINISTRATOR","customPermissions":["ANALYZE_AI"]}""")` produces `UserInfo(userId="u1", displayName="Alice", permissions=["ANALYZE_AI"])`
+    - _Bug_Condition: isBugCondition(input) where input.type == "DESERIALIZE_USER_LIST" AND backendFieldNames(UserDto) != frontendFieldNames(UserInfo)_
+    - _Expected_Behavior: UserInfo.userId == UserDto.id, UserInfo.displayName == UserDto.name, UserInfo.permissions == UserDto.customPermissions_
+    - _Preservation: All existing references to user.userId, user.displayName, user.permissions in UserManagementPage.kt, UserPermissionPanel.kt, UserRoleChanger.kt remain unchanged_
+    - _Requirements: 2.1_
+
+  - [x] 3.2 Align frontend AuditLogEntry with backend model (Change 2)
+    - File: `frontend/src/jsMain/kotlin/com/assistant/frontend/models/UserModels.kt`
+    - Add `@SerialName("actorId")` annotation to `actor` field in frontend `AuditLogEntry`
+    - Add `@SerialName("targetUserId")` annotation to `target` field in frontend `AuditLogEntry`
+    - Add `tag: String = ""` field to frontend `AuditLogEntry` to match backend model
+    - Add `import kotlinx.serialization.SerialName` to file
+    - Verify: `Json.decodeFromString<AuditLogEntry>("""{"timestamp":"12:00:00","actorId":"admin1","targetUserId":"u2","action":"ROLE_CHANGE","oldValue":"READER","newValue":"ADMINISTRATOR","tag":"IAM_SYNC"}""")` produces `AuditLogEntry(actor="admin1", target="u2", tag="IAM_SYNC")`
+    - _Bug_Condition: isBugCondition(input) where input.type == "DESERIALIZE_AUDIT_ENTRY" AND backendFieldNames differ from frontendFieldNames_
+    - _Expected_Behavior: frontend AuditLogEntry.actor == backend AuditLogEntry.actorId, frontend AuditLogEntry.target == backend AuditLogEntry.targetUserId_
+    - _Preservation: Existing UserAuditLog.addEntry() calls that set actor/action/newValue continue to work_
+    - _Requirements: 2.6_
+
+  - [x] 3.3 Add GET audit-log endpoint in UserRoutes.kt (Change 3)
+    - File: `server/src/jvmMain/kotlin/com/assistant/server/routes/UserRoutes.kt`
+    - Add `get("/audit-log")` route inside the existing `/api/users` route block, within the `withPermission(Permission.MANAGE_USERS)` block
+    - Accept optional query parameter `limit` (default 50): `val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 50`
+    - Call `auditLogStore.getRecent(limit)` (already injected via Koin)
+    - Respond with `call.respond(HttpStatusCode.OK, entries)`
+    - Verify: GET `/api/users/audit-log` with admin JWT returns HTTP 200 and list of `AuditLogEntry`
+    - Verify: GET `/api/users/audit-log?limit=10` returns at most 10 entries
+    - _Bug_Condition: isBugCondition(input) where input.type == "FETCH_AUDIT_LOG" AND NOT endpointExists("GET /api/users/audit-log")_
+    - _Expected_Behavior: HTTP 200 with List<AuditLogEntry> sorted by timestamp descending, limited to requested count_
+    - _Preservation: Existing GET /api/users, PUT .../role, PUT .../permissions routes unchanged_
+    - _Requirements: 2.2, 2.3_
+
+  - [x] 3.4 Create FileBasedAuditLogStore (Change 4)
+    - New file: `shared/src/jvmMain/kotlin/com/assistant/rbac/FileBasedAuditLogStore.kt`
+    - Implement `AuditLogStore` interface with JSON file persistence
+    - Constructor takes `dataDir: String` parameter (e.g., `"data"`)
+    - Backing file: `$dataDir/audit-log.json`
+    - On init: load existing entries from file into in-memory list (handle missing/empty file gracefully)
+    - `append()`: add entry to in-memory list + write full list to file (use `Mutex` for thread safety)
+    - `getRecent(limit)`: return from in-memory list sorted by timestamp descending, take `limit`
+    - `getAll()`: return all entries from in-memory list
+    - Use `kotlinx.serialization.json.Json` for file read/write with `encodeDefaults = true`
+    - Keep `InMemoryAuditLogStore` unchanged for test usage
+    - Verify: append entries → create new `FileBasedAuditLogStore` instance with same `dataDir` → `getAll()` returns same entries
+    - _Bug_Condition: isBugCondition(input) where input.type == "SERVER_RESTART" AND auditStore IS InMemoryAuditLogStore_
+    - _Expected_Behavior: Entries survive JVM restart via file persistence_
+    - _Preservation: AuditLogStore interface unchanged, InMemoryAuditLogStore kept for tests_
+    - _Requirements: 2.4_
+
+  - [x] 3.5 Wire FileBasedAuditLogStore in DI (Change 5)
+    - File: `server/src/jvmMain/kotlin/com/assistant/server/di/ServerModule.kt`
+    - Change `single<AuditLogStore> { InMemoryAuditLogStore() }` to `single<AuditLogStore> { FileBasedAuditLogStore("data") }`
+    - Add import for `FileBasedAuditLogStore`
+    - Verify: Application starts successfully with `FileBasedAuditLogStore` and `data/audit-log.json` is created on first write
+    - _Bug_Condition: DI wires volatile InMemoryAuditLogStore instead of persistent store_
+    - _Expected_Behavior: DI provides FileBasedAuditLogStore for production use_
+    - _Preservation: All existing code that injects AuditLogStore continues to work (same interface)_
+    - _Requirements: 2.4_
+
+  - [x] 3.6 Add backend audit fetch to UserAuditLog (Change 6)
+    - File: `frontend/src/jsMain/kotlin/com/assistant/frontend/pages/usermgmt/UserAuditLog.kt`
+    - Add `suspend fun loadFromBackend()` method that calls `ApiClient.get("/api/users/audit-log")`
+    - Deserialize response body as `List<AuditLogEntry>` using aligned model (with `@SerialName` annotations from Change 2)
+    - Replace `auditLog` contents with fetched entries and call `renderConsole()`
+    - Handle errors gracefully (log to console, show "Failed to load audit log" in console element)
+    - Keep existing `addEntry()` method for optimistic local display, but `loadFromBackend()` becomes the source of truth
+    - _Bug_Condition: isBugCondition(input) where input.type == "FRONTEND_AUDIT_ENTRY" AND entry.persistedToBackend == false_
+    - _Expected_Behavior: Audit entries fetched from backend via GET /api/users/audit-log and displayed in Neural Console_
+    - _Preservation: renderConsole() rendering logic unchanged, tag color mapping unchanged_
+    - _Requirements: 2.2, 2.5_
+
+  - [x] 3.7 Fetch audit log on page load in UserManagementPage (Change 7)
+    - File: `frontend/src/jsMain/kotlin/com/assistant/frontend/pages/UserManagementPage.kt`
+    - After `loadUsers()` completes successfully, call `UserAuditLog.loadFromBackend()`
+    - Add import for coroutine scope if needed
+    - Verify: On page load, Neural Console shows recent audit entries instead of "Awaiting audit events..."
+    - _Bug_Condition: isBugCondition(input) where input.type == "PAGE_LOAD" AND NOT auditFetchCalledOnLoad()_
+    - _Expected_Behavior: Audit log fetched and displayed on page load_
+    - _Preservation: loadUsers() behavior unchanged, loading/error states unchanged_
+    - _Requirements: 2.2_
+
+  - [x] 3.8 Refresh audit from backend after mutations (Change 8)
+    - Files: `frontend/src/jsMain/kotlin/com/assistant/frontend/pages/usermgmt/UserRoleChanger.kt` and `UserPermissionPanel.kt`
+    - In `UserRoleChanger.changeRole()`: after successful role change API call, call `UserAuditLog.loadFromBackend()` instead of (or after) `UserAuditLog.addEntry()`
+    - In `UserPermissionPanel.togglePermission()`: after successful permission toggle API call, call `UserAuditLog.loadFromBackend()` instead of (or after) `UserAuditLog.addEntry()`
+    - This ensures the Neural Console shows the authoritative server-side audit entry (with correct `actorId`, `targetUserId`, `tag`) rather than the local-only entry
+    - Verify: After role change, Neural Console refreshes with server-side audit entry
+    - Verify: After permission toggle, Neural Console refreshes with server-side audit entry
+    - _Bug_Condition: Frontend creates local-only audit entries that are not persisted_
+    - _Expected_Behavior: After mutations, audit log refreshes from backend showing server-persisted entries_
+    - _Preservation: Role change and permission toggle API calls unchanged, BlockingOverlay and sidebar animation unchanged_
+    - _Requirements: 2.5_
+
+  - [x] 3.9 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** — User Data & Audit Deserialization Fixed
+    - **IMPORTANT**: Re-run the SAME tests from task 1 — do NOT write new tests
+    - The tests from task 1 encode the expected behavior
+    - When these tests pass, it confirms the expected behavior is satisfied
+    - Run bug condition exploration tests from step 1 (1a, 1b, 1c, 1d)
+    - **EXPECTED OUTCOME**: Tests PASS (confirms all 6 bugs are fixed)
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
+
+  - [x] 3.10 Verify preservation tests still pass
+    - **Property 2: Preservation** — Role Change, Permission Toggle, Access Control & RBAC Audit Appending
+    - **IMPORTANT**: Re-run the SAME tests from task 2 — do NOT write new tests
+    - Run preservation property tests from step 2 (2a, 2b, 2c, 2d)
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm all preservation tests still pass after fix (no regressions in role change API, permission toggle API, access control, RBAC audit appending)
+
+- [x] 4. Checkpoint — Ensure all tests pass
+  - Run all bug condition exploration tests (task 1) — expect PASS
+  - Run all preservation property tests (task 2) — expect PASS
+  - Run existing project test suite to verify no regressions
+  - Verify User Management page loads with correct user data (names, emails, roles displayed)
+  - Verify Neural Console shows audit entries on page load
+  - Verify audit log refreshes after role change and permission toggle
+  - Verify audit entries persist across server restart (FileBasedAuditLogStore)
+  - Ensure all tests pass, ask the user if questions arise

@@ -10,17 +10,20 @@ import com.assistant.security.CryptoUtils
  * Repository for provider configurations with encryption at rest.
  * The api_key field is encrypted using AES-256-GCM before writing to SQLite
  * and decrypted when reading.
+ *
+ * Open for extension by PostgreSQL-backed implementation.
  */
-class ProviderConfigRepository(
-    private val database: JiraDatabase,
-    private val encryptionKey: String
+open class ProviderConfigRepository(
+    private val database: JiraDatabase? = null,
+    private val encryptionKey: String = ""
 ) {
 
     /**
      * Get all provider configs, decrypting api_key fields.
      */
-    fun getAllProviders(): List<ProviderConfig> {
-        return database.knowledgeBaseQueries.getAllProviders().executeAsList().map { row ->
+    open fun getAllProviders(): List<ProviderConfig> {
+        val db = database ?: return emptyList()
+        return db.knowledgeBaseQueries.getAllProviders().executeAsList().map { row ->
             ProviderConfig(
                 providerId = row.provider_id,
                 name = row.name,
@@ -37,8 +40,9 @@ class ProviderConfigRepository(
     /**
      * Get a single provider config by ID, decrypting api_key.
      */
-    fun findById(providerId: String): ProviderConfig? {
-        val row = database.knowledgeBaseQueries.findProviderById(providerId).executeAsOneOrNull()
+    open fun findById(providerId: String): ProviderConfig? {
+        val db = database ?: return null
+        val row = db.knowledgeBaseQueries.findProviderById(providerId).executeAsOneOrNull()
             ?: return null
         return ProviderConfig(
             providerId = row.provider_id,
@@ -55,9 +59,10 @@ class ProviderConfigRepository(
     /**
      * Save a provider config, encrypting the api_key before writing.
      */
-    fun save(config: ProviderConfig): Boolean {
+    open fun save(config: ProviderConfig): Boolean {
+        val db = database ?: return false
         return try {
-            database.knowledgeBaseQueries.insertOrReplaceProvider(
+            db.knowledgeBaseQueries.insertOrReplaceProvider(
                 provider_id = config.providerId,
                 name = config.name,
                 type = config.type.name,
@@ -78,22 +83,23 @@ class ProviderConfigRepository(
      * Find first provider config by type (e.g., OLLAMA, JIRA).
      * Avoids hardcoding provider IDs which may differ from defaults.
      */
-    fun findByType(type: ProviderType): ProviderConfig? {
+    open fun findByType(type: ProviderType): ProviderConfig? {
         return getAllProviders().firstOrNull { it.type == type }
     }
 
     /**
      * Check if any provider of given type exists.
      */
-    fun existsByType(type: ProviderType): Boolean {
+    open fun existsByType(type: ProviderType): Boolean {
         return getAllProviders().any { it.type == type }
     }
 
     /**
      * Update only the status of a provider.
      */
-    fun updateStatus(providerId: String, status: ConnectionStatus) {
-        database.knowledgeBaseQueries.updateProviderStatus(
+    open fun updateStatus(providerId: String, status: ConnectionStatus) {
+        val db = database ?: return
+        db.knowledgeBaseQueries.updateProviderStatus(
             status = status.name,
             provider_id = providerId
         )

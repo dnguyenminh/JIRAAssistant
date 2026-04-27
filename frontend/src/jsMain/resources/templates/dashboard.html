@@ -72,6 +72,19 @@
                     <option value="20">×20</option>
                 </datalist>
             </div>
+            <div style="position:relative;" title="Tickets per AI prompt (batch size)">
+                <input type="text" id="scan-batch-prompt-size" title="Tickets per AI prompt (1–10)" value="3" list="batch-prompt-options" autocomplete="off"
+                       style="background:rgba(12,14,22,0.95);border:1px solid var(--glass-border);border-radius:6px;color:var(--accent);padding:8px 10px;font-size:11px;font-family:'JetBrains Mono',monospace;width:72px;text-align:center;"
+                />
+                <datalist id="batch-prompt-options">
+                    <option value="1">×1</option>
+                    <option value="2">×2</option>
+                    <option value="3">×3</option>
+                    <option value="5">×5</option>
+                    <option value="8">×8</option>
+                    <option value="10">×10</option>
+                </datalist>
+            </div>
             <label style="display:flex;align-items:center;gap:6px;font-size:10px;letter-spacing:1px;opacity:0.6;cursor:pointer;" title="Re-analyze all tickets even if already in KB">
                 <input type="checkbox" id="scan-force-reanalyze" style="accent-color:var(--primary);cursor:pointer;" />
                 FORCE

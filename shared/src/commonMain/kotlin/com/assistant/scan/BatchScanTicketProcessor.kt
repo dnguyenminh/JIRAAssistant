@@ -18,7 +18,7 @@ import kotlinx.datetime.Clock
 internal suspend fun BatchScanEngine.processTicket(projectKey: String, ticketId: String) {
     logToBoth(projectKey, ticketId, ScanLogStatus.ANALYZING, "Analyzing ticket $ticketId")
     try {
-        // Phase 1: Jira fetch — runs in parallel (no semaphore)
+        // Phase 1: Content — deep analysis path skips fetch (analyzeTicket calls extractor internally)
         val content = fetchTicketContent(ticketId)
         // Phase 2: AI analysis — semaphore-limited (Ollama handles 1 at a time)
         val result = aiSemaphore.withPermit {
@@ -26,17 +26,32 @@ internal suspend fun BatchScanEngine.processTicket(projectKey: String, ticketId:
         }
         saveKBRecord(projectKey, result)
         logToBoth(projectKey, ticketId, ScanLogStatus.COMPLETED, "AI analysis completed (source: ${result.source})")
-        // Phase 3: Relationships + attachments — parallel-safe
-        logIssueRelationships(projectKey, ticketId)
-        processAttachmentsIfAvailable(projectKey, ticketId)
+        // Phase 3: Relationships + attachments — parallel
+        kotlinx.coroutines.coroutineScope {
+            launch { logIssueRelationships(projectKey, ticketId) }
+            launch { processAttachmentsIfAvailable(projectKey, ticketId) }
+        }
+        // Phase 4: Linked ticket attachments — synchronous (Req 9.1, 9.2, 9.4)
+        processLinkedAttachmentsIfAvailable(ticketId)
     } catch (e: Exception) {
         println("[BatchScanEngine] processTicket failed for $ticketId in $projectKey: ${e.message}")
         logToBoth(projectKey, ticketId, ScanLogStatus.FAILED, "Analysis failed: ${e.message ?: "Unknown error"}")
     }
 }
 
-/** Fetch ticket summary + description from Jira for enriched AI prompt. */
+/**
+ * Fetch ticket content for AI prompt. Req 21.3:
+ * When JiraContentExtractor is available, skip legacy fetch — analyzeTicket()
+ * calls the extractor internally via deep analysis pipeline.
+ * Falls back to legacy Jira fetch when extractor is not injected.
+ */
 private suspend fun BatchScanEngine.fetchTicketContent(ticketId: String): String {
+    if (jiraContentExtractor != null) return ""
+    return fetchLegacyTicketContent(ticketId)
+}
+
+/** Legacy fetch: summary + description string for non-deep-analysis path. */
+private suspend fun BatchScanEngine.fetchLegacyTicketContent(ticketId: String): String {
     return try {
         val issue = jiraClientProvider().getIssueDetails(ticketId) ?: return ""
         buildString {
@@ -121,6 +136,20 @@ private suspend fun BatchScanEngine.processAttachmentsIfAvailable(projectKey: St
             "Processed ${attachments.size} attachments for $ticketId ($chunks chunks)")
     } catch (e: Exception) {
         println("[BatchScanEngine] Attachment processing failed for $ticketId: ${e.message}")
+    }
+}
+
+/**
+ * Process linked ticket attachments synchronously during batch scan.
+ * Uses TicketGraphHolder (via lambda) to get graph from deep extraction.
+ * Error isolation: catch exception, log error, continue scan. Req: 9.1, 9.2, 9.4
+ */
+private suspend fun BatchScanEngine.processLinkedAttachmentsIfAvailable(ticketId: String) {
+    val processor = linkedAttachmentProcessor ?: return
+    try {
+        processor(ticketId)
+    } catch (e: Exception) {
+        println("[BatchScanEngine] Linked attachment processing failed for $ticketId: ${e.message}")
     }
 }
 

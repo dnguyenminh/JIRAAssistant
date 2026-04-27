@@ -348,3 +348,9 @@ fun onProjectSwitch(newProjectKey: String) {
 ```
 
 *(Validates: Req 2.9–2.15)*
+
+---
+
+## Liên kết Spec
+
+> **Deep Analysis Enhancement (spec `ticket-intelligence`, phần Deep Analysis)**: Dashboard START SCAN gọi `BatchScanEngine.processTicket()` → `AIOrchestrator.analyzeTicket()`. Deep Analysis nâng cấp `analyzeTicket()` (Jira extraction + prompt + data model) — scan tự động sử dụng pipeline mới mà không cần thay đổi code Dashboard hay BatchScanEngine.

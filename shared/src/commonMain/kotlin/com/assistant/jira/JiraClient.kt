@@ -17,7 +17,8 @@ data class JiraProject(
 data class JiraIssue(
     val id: String,
     val key: String,
-    val fields: JiraIssueFields
+    val fields: JiraIssueFields,
+    val changelog: JiraChangelog? = null
 )
 
 @Serializable
@@ -38,7 +39,15 @@ data class JiraIssueFields(
     val parent: JiraParent? = null,
     val subtasks: List<JiraSubtask>? = null,
     val issuelinks: List<JiraIssueLink>? = null,
-    val attachment: List<JiraAttachment>? = null
+    val attachment: List<JiraAttachment>? = null,
+    val priority: JiraPriority? = null,
+    val assignee: JiraUser? = null,
+    val reporter: JiraUser? = null,
+    val labels: List<String>? = null,
+    val components: List<JiraComponent>? = null,
+    val comment: JiraCommentWrapper? = null,
+    @kotlinx.serialization.SerialName("customfield_10016")
+    val storyPoints: Double? = null
 ) {
     /** Get description as plain text. Handles both Jira v2 (string) and v3 (ADF JSON). */
     val descriptionText: String
@@ -164,4 +173,17 @@ interface JiraClient {
      * Fetch full details for a specific issue.
      */
     suspend fun getIssueDetails(issueKey: String): JiraIssue?
+
+    /**
+     * Fetch comments for an issue with pagination. Req 9.1
+     * @param issueKey Jira issue key (e.g., "PROJ-100")
+     * @param startAt Starting index (0-based)
+     * @param maxResults Max comments per page (default 50)
+     * @return JiraCommentPageResponse with pagination metadata
+     */
+    suspend fun getIssueComments(
+        issueKey: String,
+        startAt: Int = 0,
+        maxResults: Int = 50
+    ): JiraCommentPageResponse = JiraCommentPageResponse()
 }

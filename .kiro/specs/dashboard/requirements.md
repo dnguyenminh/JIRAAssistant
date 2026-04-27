@@ -44,8 +44,14 @@ Dashboard hiển thị dữ liệu thực từ API (`GET /api/projects/{key}/ana
 
 ### Scan Log UX Improvements
 
-16. THE Frontend_App SHALL hiển thị scan log với append-only strategy: mỗi lần poll API, chỉ thêm entries mới (chưa render) vào cuối danh sách, giữ lại toàn bộ entries cũ. Entries được dedup theo `id` field
+16. THE Frontend_App SHALL hiển thị scan log với append-only strategy: mỗi lần poll API, chỉ thêm entries mới (chưa render) vào cuối danh sách, giữ lại toàn bộ entries cũ. Entries được dedup theo `id` field. WHEN user navigate away và quay lại Dashboard, THE Frontend_App SHALL detect DOM đã bị clear và re-render toàn bộ recentLog entries từ API response (bỏ qua sessionStorage dedup cho lần render đầu tiên) để đảm bảo scan log hiển thị đầy đủ
 17. THE Frontend_App SHALL hiển thị scrollbar rõ ràng trên scan log section khi số entries vượt quá chiều cao container (max-height 280px), cho phép người dùng cuộn xem log cũ
 18. THE Frontend_App SHALL hiển thị nút expand (⛶) ở góc trên phải scan log section, cho phép phóng to scan log thành dialog fullscreen (90vw × 80vh) để xem nhiều log hơn
 19. WHEN scan log dialog đang mở, THE Frontend_App SHALL live-update dialog body mỗi khi có entries mới từ polling, auto-scroll xuống cuối
 20. WHEN người dùng nhấn START SCAN mới, THE Frontend_App SHALL reset toàn bộ scan log entries đã render (xóa `renderedIds` cache) để bắt đầu log mới
+
+---
+
+## Liên kết Spec
+
+> **Deep Analysis Enhancement (spec `ticket-intelligence`, phần Deep Analysis)**: Scan trên Dashboard sử dụng cùng pipeline `AIOrchestrator.analyzeTicket()` với Ticket Intelligence. Deep Analysis nâng cấp pipeline này (Jira extraction + prompt + data model) tại tầng AIOrchestrator — khi scan chạy, mỗi ticket cũng được phân tích sâu tự động. BatchScanEngine.processTicket() không cần thay đổi.

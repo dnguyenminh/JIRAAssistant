@@ -55,6 +55,8 @@ class BatchScanSteps {
                 TestHelper.js(driver).executeScript("arguments[0].click()", elements.first())
             }
         }
+        // Accept any confirm dialog (e.g. "No AI provider" warning)
+        try { driver.switchTo().alert().accept() } catch (_: Exception) {}
         TestHelper.waitForOverlayGone(driver)
     }
 

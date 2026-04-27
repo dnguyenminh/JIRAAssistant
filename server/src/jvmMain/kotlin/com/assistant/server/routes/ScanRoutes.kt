@@ -88,6 +88,7 @@ class ConflictException(message: String) : RuntimeException(message)
 fun Routing.scanRoutes() {
     val batchScanEngine by inject<BatchScanEngine>()
     val aiOrchestrator by inject<com.assistant.ai.AIOrchestrator>()
+    val settingsRepo by inject<com.assistant.settings.SettingsRepository>()
 
     // Cross-project: active scans endpoint
     route("/api/scan") {
@@ -122,7 +123,12 @@ fun Routing.scanRoutes() {
                 val concurrency = call.request.queryParameters["concurrency"]?.toIntOrNull()
                 val aiConcurrency = call.request.queryParameters["aiConcurrency"]?.toIntOrNull()
                 val forceReanalyze = call.request.queryParameters["forceReanalyze"]?.toBoolean() ?: false
-                application.log.info("[ScanRoutes] Starting scan for project: $projectKey (concurrency: ${concurrency ?: "default"}, ai: ${aiConcurrency ?: "default"}, force: $forceReanalyze)")
+                // Save batch_prompt_size to settings if provided. Req: AC 35, AC 43
+                val batchPromptSize = call.request.queryParameters["batchPromptSize"]?.toIntOrNull()
+                if (batchPromptSize != null && batchPromptSize >= 1) {
+                    settingsRepo.put("batch_prompt_size", batchPromptSize.toString())
+                }
+                application.log.info("[ScanRoutes] Starting scan for project: $projectKey (concurrency: ${concurrency ?: "default"}, ai: ${aiConcurrency ?: "default"}, force: $forceReanalyze, batchPrompt: ${batchPromptSize ?: "default"})")
                 try {
                     val state = batchScanEngine.startScan(projectKey, concurrency, aiConcurrency, forceReanalyze)
                     val logEntries = batchScanEngine.getLog(projectKey, limit = 5)
@@ -163,7 +169,7 @@ fun Routing.scanRoutes() {
                 val projectKey = call.parameters["key"]
                     ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("project key is required"))
                 val state = batchScanEngine.getStatus(projectKey)
-                val recentLog = batchScanEngine.getLog(projectKey, limit = 20)
+                val recentLog = batchScanEngine.getLog(projectKey, limit = 50)
                 call.respond(HttpStatusCode.OK, state.toResponse(recentLog))
             }
 

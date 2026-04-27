@@ -42,6 +42,54 @@
         <span class="typing-dot"></span>
     </div>
 
+    <!-- ── MCP Tools Available (collapsible) ────────────────── -->
+    <div class="mcp-tools-section" id="mcp-tools-section">
+        <div class="mcp-tools-header" id="mcp-tools-toggle">
+            <span class="toggle-arrow">▸</span>
+            <span>MCP Tools Available</span>
+            <span class="mcp-tools-count" id="mcp-tools-count">(0)</span>
+        </div>
+        <div class="mcp-tools-body" id="mcp-tools-list"></div>
+    </div>
+
+    <!-- ── Tool Permissions (collapsible) ── Req: 4.1, 4.7 ── -->
+    <div class="tool-perms-section" id="tool-perms-section">
+        <div class="tool-perms-header" id="tool-perms-toggle">
+            <span class="toggle-arrow">▸</span>
+            <span>🔧 Tool Permissions</span>
+        </div>
+        <div class="tool-perms-body" id="tool-perms-body"></div>
+    </div>
+
+    <!-- Template: server group -->
+    <template id="tmpl-perm-group">
+        <div class="perm-group">
+            <div class="perm-group-header">
+                <span class="perm-group-name"></span>
+                <span class="perm-group-counter"></span>
+            </div>
+            <div class="perm-group-actions">
+                <button class="perm-bulk-btn perm-enable-all">Enable All</button>
+                <button class="perm-bulk-btn perm-disable-all">Disable All</button>
+            </div>
+            <div class="perm-group-tools"></div>
+        </div>
+    </template>
+
+    <!-- Template: tool toggle row -->
+    <template id="tmpl-perm-tool">
+        <div class="perm-tool-row">
+            <div class="perm-tool-info">
+                <span class="perm-tool-name"></span>
+                <span class="perm-tool-default"></span>
+            </div>
+            <div class="perm-toggle-switch">
+                <div class="perm-toggle-track"></div>
+                <div class="perm-toggle-thumb"></div>
+            </div>
+        </div>
+    </template>
+
     <!-- ── File Preview Area (hidden by default) ────────────── -->
     <div id="chat-file-preview" class="file-preview" style="display:none;"></div>
 

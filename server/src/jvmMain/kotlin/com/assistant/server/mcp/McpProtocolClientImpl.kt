@@ -85,8 +85,17 @@ class McpProtocolClientImpl(
             put("name", name)
             put("arguments", arguments)
         }
+        val startMs = System.currentTimeMillis()
+        logger.info("Agent {} call {}.{}: arguments={}", serverId, serverId, name, arguments.toString().take(200))
         val result = sendRequest("tools/call", params)
-        return json.decodeFromJsonElement<McpToolCallResponse>(result)
+        val durationMs = System.currentTimeMillis() - startMs
+        val response = json.decodeFromJsonElement<McpToolCallResponse>(result)
+        if (response.isError) {
+            logger.warn("Agent {} call {}.{}: FAILED in {}ms", serverId, serverId, name, durationMs)
+        } else {
+            logger.info("Agent {} call {}.{}: OK in {}ms", serverId, serverId, name, durationMs)
+        }
+        return response
     }
 
     /** Close client and release resources. */

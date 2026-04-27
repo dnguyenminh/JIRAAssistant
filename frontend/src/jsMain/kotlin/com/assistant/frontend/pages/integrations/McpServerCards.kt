@@ -43,8 +43,10 @@ object McpServerCards {
         val grid = document.getElementById("mcp-grid") as? HTMLElement ?: return
         val empty = document.getElementById("mcp-empty") as? HTMLElement
         grid.innerHTML = ""
+        // Local KB card always at top of grid (Req: 19.75)
+        LocalKBCard.render(grid)
         if (servers.isEmpty()) {
-            empty?.style?.display = "block"; return
+            empty?.style?.display = "none"; return
         }
         empty?.style?.display = "none"
         for (server in servers) grid.appendChild(createCard(server))
@@ -75,9 +77,17 @@ object McpServerCards {
         name.textContent = server.name
         name.style.cssText = "font-weight:600;font-size:14px;flex:1;"
         header.appendChild(dot); header.appendChild(name)
-        val startStop = McpStartStopControl.createButton(server.id, server.name, server.status)
+        if (server.internal) header.appendChild(createBuiltinBadge())
+        val startStop = LocalServerStartStop.createButton(server, card)
         if (startStop != null) header.appendChild(startStop)
         card.appendChild(header)
+    }
+
+    private fun createBuiltinBadge(): HTMLElement {
+        val badge = document.createElement("span") as HTMLElement
+        badge.className = "local-kb-type-badge"
+        badge.textContent = "LOCAL"
+        return badge
     }
 
     private fun createStatusDot(status: String): HTMLElement {
@@ -110,6 +120,7 @@ object McpServerCards {
     }
 
     private fun appendCardActions(card: HTMLElement, server: McpServerInfo) {
+        if (server.internal) return
         val actions = document.createElement("div") as HTMLElement
         actions.style.cssText = "display:flex;gap:8px;margin-top:8px;"
         actions.appendChild(createBtn("TEST") { testServer(server) })

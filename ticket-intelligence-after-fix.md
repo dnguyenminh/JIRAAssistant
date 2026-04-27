@@ -1,0 +1,627 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e8]: JIRA ASSISTANT
+    - navigation [ref=e9]:
+      - link "🏠 Dashboard" [ref=e10] [cursor=pointer]:
+        - /url: "#dashboard"
+        - generic [ref=e11]: 🏠
+        - text: Dashboard
+      - link "🔍 Relationship Network" [ref=e12] [cursor=pointer]:
+        - /url: "#knowledge_graph"
+        - generic [ref=e13]: 🔍
+        - text: Relationship Network
+      - link "📊 Project Analysis" [ref=e14] [cursor=pointer]:
+        - /url: "#analysis"
+        - generic [ref=e15]: 📊
+        - text: Project Analysis
+      - link "✨ Ticket Intelligence" [ref=e16] [cursor=pointer]:
+        - /url: "#ticket_intelligence"
+        - generic [ref=e17]: ✨
+        - text: Ticket Intelligence
+      - link "🔌 Integrations" [ref=e18] [cursor=pointer]:
+        - /url: "#integrations"
+        - generic [ref=e19]: 🔌
+        - text: Integrations
+      - link "👥 User Management" [ref=e20] [cursor=pointer]:
+        - /url: "#user_management"
+        - generic [ref=e21]: 👥
+        - text: User Management
+    - generic [ref=e22]:
+      - generic [ref=e23]: "System Status: ACTIVE"
+      - generic [ref=e26]: READY
+  - generic [ref=e27]:
+    - generic [ref=e28]:
+      - navigation [ref=e29]:
+        - generic [ref=e30]: INTELLIGENCE / TICKET INTELLIGENCE
+        - generic [ref=e31]:
+          - button "Toggle AI Chat Sidebar" [ref=e32] [cursor=pointer]: 💬
+          - generic [ref=e33] [cursor=pointer]:
+            - generic [ref=e34]: A
+            - generic [ref=e35]: admin
+          - generic [ref=e37] [cursor=pointer]: "[ICL2]"
+      - generic [ref=e38]:
+        - banner [ref=e39]:
+          - heading "Ticket Intelligence" [level=1] [ref=e40]
+          - paragraph [ref=e41]: AI-powered deep analysis with Knowledge Base integration.
+        - generic [ref=e43]:
+          - generic [ref=e44]:
+            - generic [ref=e45]: TICKET
+            - textbox "Search tickets by ID or summary..." [ref=e47]: ICL2-15 — [CRP-84] Template để merge file PDF (Đơn KK, TBKK, TBCBTNHS)
+          - generic [ref=e48]:
+            - generic [ref=e49]: ANALYZED
+            - button "RE-ANALYZE" [ref=e50] [cursor=pointer]
+        - generic [ref=e51]:
+          - generic [ref=e52]:
+            - button "CONTEXT" [ref=e53] [cursor=pointer]
+            - button "EVOLUTION" [ref=e54] [cursor=pointer]
+            - button "COMPLEXITY" [ref=e55] [cursor=pointer]
+          - generic [ref=e57]:
+            - generic [ref=e58]:
+              - generic [ref=e59]: BUSINESS SUMMARY
+              - paragraph [ref=e60]: The primary goal is to provide a mechanism for merging specific PDF templates (for Contract, Notification, and Liability documents) by merging user-provided data, facilitating the automated generation and upload of Collection Letters to the iCollect portal.
+            - generic [ref=e61]:
+              - generic [ref=e62]: AS-IS / TO-BE COMPARISON
+              - generic [ref=e63]:
+                - generic [ref=e64]:
+                  - generic [ref=e65]: AS-IS
+                  - paragraph [ref=e66]: The feature development and testing for merging PDF templates was completed, with associated testing and sign-offs recorded, leading to the ticket being closed.
+                - generic [ref=e67]:
+                  - generic [ref=e68]: TO-BE
+                  - paragraph [ref=e69]: The feature is implemented, tested, and deployed to production (implied by the final status change to Closed and UAT signoffs), addressing performance and data integrity concerns.
+            - generic [ref=e70]:
+              - generic [ref=e71]: EXTRACTED REQUIREMENTS
+              - list [ref=e72]:
+                - listitem [ref=e73]: Implement the logic to merge PDF files for Đơn KK, TBKK, and TBCBTNHS templates.
+                - listitem [ref=e74]: Ensure the system handles various file formats (PDF, XLS) correctly during upload.
+                - listitem [ref=e75]: Implement data masking for sensitive information (NID, Mobile number, Card number).
+                - listitem [ref=e76]: Implement robust handling for duplicate contract uploads without marking invalid.
+                - listitem [ref=e77]: Ensure data integrity by correctly merging required fields (e.g., Appl_id) across templates.
+                - listitem [ref=e78]: Ensure performance optimization for bulk upload operations (related to ICL2-1343).
+            - generic [ref=e79]:
+              - generic [ref=e80]: TECHNICAL DETAILS
+              - generic [ref=e81]: API SPECIFICATIONS
+              - table [ref=e82]:
+                - rowgroup [ref=e83]:
+                  - row "METHOD PATH DESCRIPTION" [ref=e84]:
+                    - columnheader "METHOD" [ref=e85]
+                    - columnheader "PATH" [ref=e86]
+                    - columnheader "DESCRIPTION" [ref=e87]
+                - rowgroup [ref=e88]:
+                  - row "N/A N/A The ticket focuses on backend PDF merging and file upload logic, not specific public API endpoints for this feature." [ref=e89]:
+                    - cell "N/A" [ref=e90]
+                    - cell "N/A" [ref=e91]
+                    - cell "The ticket focuses on backend PDF merging and file upload logic, not specific public API endpoints for this feature." [ref=e92]
+              - generic [ref=e93]: DATABASE CHANGES
+              - table [ref=e94]:
+                - rowgroup [ref=e95]:
+                  - row "TABLE OPERATION COLUMNS" [ref=e96]:
+                    - columnheader "TABLE" [ref=e97]
+                    - columnheader "OPERATION" [ref=e98]
+                    - columnheader "COLUMNS" [ref=e99]
+                - rowgroup [ref=e100]:
+                  - row "pega_card_alop SELECT APP_ID, ACCT, LOAN_AMT, PRIN_AMT, INT_AMT" [ref=e101]:
+                    - cell "pega_card_alop" [ref=e102]
+                    - cell "SELECT" [ref=e103]
+                    - cell "APP_ID, ACCT, LOAN_AMT, PRIN_AMT, INT_AMT" [ref=e104]
+              - generic [ref=e105]: EXTERNAL INTEGRATIONS
+              - generic [ref=e107]:
+                - generic [ref=e108]: iCollect Portal
+                - generic [ref=e109]: API/Portal Upload
+                - generic [ref=e110]: https://localportal.fecredit.com.vn/InternalApps/UploadTemplateData.aspx
+            - generic [ref=e111]:
+              - generic [ref=e112]: DIAGRAMS
+              - generic [ref=e113]:
+                - generic [ref=e114]: PDF Merging and Upload Flow (CRP-84)
+                - document [ref=e116]:
+                  - generic [ref=e118]:
+                    - paragraph [ref=e126]: Backend Processing
+                    - generic [ref=e130]:
+                      - paragraph [ref=e136]: Fail
+                      - paragraph [ref=e142]: Pass
+                    - generic [ref=e143]:
+                      - paragraph [ref=e150]: "Start: User Upload Files (PDFs/XLS)"
+                      - paragraph [ref=e157]: "File Validation: Type/Size?"
+                      - paragraph [ref=e164]: Return Error Message
+                      - paragraph [ref=e171]: "Backend: Merge PDF Templates (BE/NiFi Logic)"
+                      - paragraph [ref=e178]: Apply Data Masking (NID, Card No)
+                      - paragraph [ref=e185]: Generate Collection Letters (PDF Output)
+                      - paragraph [ref=e192]: Adjust Formatting (Address/Signature for TBKK/CBTNHS)
+                      - paragraph [ref=e199]: Download Merged File (ZIP)
+                      - paragraph [ref=e206]: Upload to iCollect Portal
+                      - paragraph [ref=e213]: "End: Success"
+              - generic [ref=e214]:
+                - generic [ref=e215]: System Dependencies and Impact
+                - document [ref=e217]:
+                  - generic [ref=e224]:
+                    - paragraph [ref=e231]: "CRP-84: PDF Merging Feature"
+                    - paragraph [ref=e238]: "ICL2-1343: Performance Enhancement"
+                    - paragraph [ref=e245]: "ICL2-1364: Zip File Download Adjustment"
+                    - paragraph [ref=e252]: iCollect Portal Integration
+                    - paragraph [ref=e259]: "Backend Logic: NiFi Processor"
+                    - paragraph [ref=e266]: "Backend Logic: Zip Download"
+                    - paragraph [ref=e273]: External System
+            - generic [ref=e274]:
+              - generic [ref=e275]: DEPENDENCIES OVERVIEW
+              - generic [ref=e276]:
+                - generic [ref=e277]: "[BLOCKING]"
+                - generic [ref=e278]: ICL2-1343
+                - generic [ref=e279]: Enhancing performance for merging Collection Letter (moving logic to NiFi and optimizing file download).
+                - generic [ref=e280]: HIGH
+              - generic [ref=e281]: (3 related issues)
+            - generic [ref=e282]:
+              - generic [ref=e283]: ACCEPTANCE CRITERIA
+              - generic [ref=e284]:
+                - generic [ref=e285]: AC_MERGE_SUCCESS
+                - generic [ref=e286]:
+                  - generic [ref=e287]: The system must successfully merge the specified PDF files (Đơn KK, TBKK, TBCBTNHS) based on input data.
+                  - generic [ref=e288]: High (Verified by QC execution and evidence).
+              - generic [ref=e289]:
+                - generic [ref=e290]: AC_DATA_INTEGRITY
+                - generic [ref=e291]:
+                  - generic [ref=e292]: The system must correctly merge necessary fields (e.g., Appl_id) across templates without errors.
+                  - generic [ref=e293]: High (Verified by ICL2-711 testing).
+              - generic [ref=e294]:
+                - generic [ref=e295]: AC_VALIDATION_HANDLING
+                - generic [ref=e296]:
+                  - generic [ref=e297]: The system must handle file uploads correctly based on file type (.xls, .xlsx) and file size limits (e.g., >10MB), returning appropriate error messages.
+                  - generic [ref=e298]: High (Verified by ICL2-717 and ICL2-719 testing).
+              - generic [ref=e299]: (+2 more in Complexity tab)
+        - generic [ref=e301]:
+          - generic [ref=e302]: DOCUMENT GENERATION
+          - generic [ref=e303]:
+            - button "🔗 GENERATE ALL" [disabled] [ref=e305]
+            - generic [ref=e306]:
+              - generic [ref=e307]:
+                - button "Đang sinh..." [disabled] [ref=e308]
+                - generic [ref=e309]:
+                  - generic [ref=e310] [cursor=pointer]:
+                    - generic [ref=e311]: APPROVED v5
+                    - generic [ref=e312]: 4/19/2026 6:12:29 PM
+                  - generic [ref=e313] [cursor=pointer]:
+                    - generic [ref=e314]: DRAFT
+                    - generic [ref=e315]: Pending review
+              - generic [ref=e320]: GENERATING_DOCUMENT 35%
+            - generic [ref=e322]:
+              - button "RE-GENERATE FSD" [ref=e323] [cursor=pointer]
+              - generic [ref=e324]:
+                - generic [ref=e325] [cursor=pointer]:
+                  - generic [ref=e326]: APPROVED v1
+                  - generic [ref=e327]: 4/17/2026 10:35:56 PM
+                - generic [ref=e328] [cursor=pointer]:
+                  - generic [ref=e329]: DRAFT
+                  - generic [ref=e330]: Pending review
+            - button "GENERATE SLIDES" [ref=e333] [cursor=pointer]
+    - generic [ref=e335]:
+      - generic [ref=e337]:
+        - generic [ref=e338]:
+          - generic [ref=e339]: AI Assistant
+          - generic [ref=e340]: KNOWLEDGE-AWARE CHAT
+        - generic [ref=e341]:
+          - button "AI Config" [ref=e342] [cursor=pointer]: ⚙️
+          - button "Close AI Chat Sidebar" [ref=e343] [cursor=pointer]: ✕
+      - generic [ref=e344]:
+        - generic [ref=e345]:
+          - generic [ref=e346]: Conversations
+          - button "➕ New Chat" [ref=e347] [cursor=pointer]
+        - generic [ref=e350] [cursor=pointer]: Hi
+      - generic [ref=e351]:
+        - generic [ref=e353]: aa
+        - generic [ref=e355]: "Error: Ollama Connection Error: Connection refused: getsockopt"
+        - generic [ref=e357]: Hi
+        - generic [ref=e359]: "Error: Ollama Connection Error: Request timeout has expired [url=http://localhost:11434/api/generate, request_timeout=unknown ms]"
+        - generic [ref=e361]: Hi
+        - generic [ref=e363]: "Error: Ollama Connection Error: Request timeout has expired [url=http://localhost:11434/api/generate, request_timeout=unknown ms]"
+        - generic [ref=e365]: Hi
+        - generic [ref=e367]: "Error: Ollama Connection Error: Request timeout has expired [url=http://localhost:11434/api/generate, request_timeout=unknown ms]"
+        - generic [ref=e369]: hello
+        - generic [ref=e371]:
+          - text: "Error: Ollama Connection Error: Unexpected JSON token at offset 98: Expected EOF after parsing, but had { instead at path: $"
+          - text: "JSON input: .....esponse\":\"```\",\"done\":false}"
+          - text: "{\"model\":\"gemma4:e2b\",\"created_....."
+        - generic [ref=e373]: Hi
+        - generic [ref=e375]: Chào bạn! Tôi là trợ lý AI của Jira Assistant, sẵn sàng hỗ trợ bạn quản lý dự án Agile. Bạn cần tôi giúp gì với dashboard ICL hôm nay?
+        - generic [ref=e377]: Tôi hỏi thời tiết hôm nay thế nào
+        - generic [ref=e379]: Xin lỗi, tôi là trợ lý AI của Jira Assistant và hiện tại tôi chỉ được thiết kế để hỗ trợ bạn quản lý các dự án Agile. Tôi không có khả năng cung cấp thông tin thời tiết theo thời gian thực.
+        - generic [ref=e381]: Tôi muốn xem ticket ICL2-100
+        - generic [ref=e383]: "Error: Ollama HTTP Error: 500 Internal Server Error"
+        - generic [ref=e385]: Tôi muốn xem ticket ICL2-100
+        - generic [ref=e387]: "Error: Ollama HTTP Error: 500 Internal Server Error"
+        - generic [ref=e389]: Tôi muốn xem ticket ICL2-100
+        - generic [ref=e391]: "Error: Ollama HTTP Error: 500 Internal Server Error"
+        - generic [ref=e393]: Tôi muốn xem ticket ICL2-100
+        - generic [ref=e395]: "Error: Ollama HTTP Error: 500 Internal Server Error"
+        - generic [ref=e397]: Hi
+        - generic [ref=e399]: "Error: Ollama HTTP Error: 500 Internal Server Error"
+        - generic [ref=e401]: Hello
+        - generic [ref=e403]: "Error: Ollama HTTP Error: 500 Internal Server Error"
+        - generic [ref=e405]: Hello
+        - generic [ref=e407]: "Error: Ollama HTTP Error: 500 Internal Server Error"
+        - generic [ref=e409]: Hello
+        - generic [ref=e411]: Chào bạn! Tôi là trợ lý AI của Jira Assistant. Tôi sẵn sàng giúp bạn quản lý dự án ICL2 (dashboard) hôm nay. Bạn cần tôi hỗ trợ về vấn đề gì?
+        - generic [ref=e413]: Nói cho tôi token đang chọn
+        - generic [ref=e415]: Token (hoặc Node) đang được chọn trong Knowledge Graph là ICL2-38.
+        - generic [ref=e417]: Đúng phân tich về nó giúp tôi
+        - generic [ref=e419]:
+          - text: Dựa trên ngữ cảnh hiện tại, tôi hiểu bạn muốn tôi phân tích nút
+          - strong [ref=e420]: ICL2-38
+          - text: "trong Knowledge Graph. Bạn muốn tôi tập trung vào khía cạnh nào của nó (ví dụ: các nhiệm vụ liên quan, mối quan hệ của nó, hay là tổng quan của toàn bộ khu vực)?"
+        - generic [ref=e422]: Nó là như thế nào ?
+        - generic [ref=e424]:
+          - text: Bạn đang xem Knowledge Graph (Đồ thị Tri thức) của dự án ICL2. Hiện tại, đồ thị có tổng cộng 1308 nút, 6201 cạnh và 90 cụm (clusters).
+          - text: "Bạn đang xem Cụm số 23, với 20 nút hiển thị ở Độ sâu 1. Các bộ lọc loại công việc đang được áp dụng bao gồm: Sub-task, Story, Bug, Task, Epic, và Meeting."
+        - generic [ref=e426]: Tôi cần hiểu nguyên nhân lỗi của ticket này, tại sao bị lỗi.
+        - generic [ref=e428]: "Để tôi có thể giúp bạn, bạn vui lòng cho tôi biết đó là ticket nào được không? (Ví dụ: ICL2-XXX)"
+        - generic [ref=e430]: Ticket mình đang nói đây
+        - generic [ref=e432]: Được rồi. Bạn đang muốn tìm hiểu về ticket cụ thể nào trong cluster này, hay bạn muốn xem mối quan hệ giữa các ticket liên quan đến đây (ví dụ như mối quan hệ của ICL2-541 với ICL2-1311)?
+        - generic [ref=e434]: hay dùng jira tool và tìm hieur đi
+        - generic [ref=e436]:
+          - text: "Tôi đã cố gắng tìm kiếm ticket ICL2-100, nhưng có một lỗi xảy ra:"
+          - code [ref=e437]: "Error: server 'jira' not running"
+          - text: . Điều này cho thấy máy chủ Jira có thể đang gặp sự cố hoặc không khả dụng tại thời điểm này. Bạn có muốn tôi tìm kiếm chung một vấn đề nào đó trong dự án ICL2 không?
+        - generic [ref=e439]: hay dùng jira tool và tìm hiểu ticket dang focus
+        - code [ref=e443]:
+          - text: json
+          - text: "{"
+          - text: "\"mcpTool\": \"getJiraIssue\","
+          - text: "\"arguments\": {"
+          - text: "\"issueId\": \"ICl2\""
+          - text: "},"
+          - text: "\"toolName\": \"getJiraIssue\""
+          - text: "}"
+        - generic [ref=e445]: Tôi cần biết requiremnt này như thế nà
+        - generic [ref=e447]:
+          - text: Để tôi có thể tìm kiếm chính xác, bạn có thể cho tôi biết bạn muốn tìm hiểu về yêu cầu (requirement) của ticket/task nào không?
+          - text: "Ví dụ:"
+          - text: "1."
+          - strong [ref=e448]: "Tên ticket:"
+          - text: "\"Triển khai thanh toán mới\""
+          - text: "2."
+          - strong [ref=e449]: "ID ticket:"
+          - text: "\"INC-456\""
+          - text: "3."
+          - strong [ref=e450]: "Từ khóa:"
+          - text: "\"Login\", \"Dashboard\""
+          - text: Hãy cung cấp thêm chi tiết để tôi hỗ trợ bạn tốt nhất nhé!
+        - generic [ref=e452]: Tôi cần biết requiremnt đang chọn như thế nào
+        - generic [ref=e455]: Sao thế
+        - generic [ref=e457]:
+          - text: Có vẻ như có trục trặc nào đó với hệ thống. Bạn muốn tôi giúp gì lúc này?
+          - text: "Bạn có thể cho tôi biết rõ hơn về vấn đề bạn đang gặp phải, hoặc bạn muốn tôi giúp bạn truy cập vào thông tin gì? Ví dụ, bạn muốn:"
+          - text: "* Tìm kiếm một"
+          - strong [ref=e458]: dự án
+          - text: cụ thể?
+          - text: "* Xem các"
+          - strong [ref=e459]: nhiệm vụ
+          - text: đang chờ xử lý?
+          - text: "* Tìm kiếm"
+          - strong [ref=e460]: kiến thức
+          - text: về một tính năng nào đó?
+      - generic [ref=e461]:
+        - generic [ref=e462] [cursor=pointer]:
+          - generic [ref=e463]: ▸
+          - generic [ref=e464]: MCP Tools Available
+          - generic [ref=e465]: (101)
+        - generic:
+          - generic [ref=e466]: Jira Assistant UI
+          - generic [ref=e467] [cursor=pointer]:
+            - generic [ref=e468]: navigate_to_page
+            - generic [ref=e469]: "Navigate to a specific application page. [Permission: VIEW_ANALYSIS] [Role: Reader]"
+          - generic [ref=e470] [cursor=pointer]:
+            - generic [ref=e471]: get_current_page
+            - generic [ref=e472]: "Get the currently active page on the frontend. [Permission: VIEW_ANALYSIS] [Role: Reader]"
+          - generic [ref=e473] [cursor=pointer]:
+            - generic [ref=e474]: list_available_pages
+            - generic [ref=e475]: "List all pages the current user has permission to access. [Permission: VIEW_ANALYSIS] [Role: Reader]"
+          - generic [ref=e476] [cursor=pointer]:
+            - generic [ref=e477]: start_scan
+            - generic [ref=e478]: "Start a batch scan for a Jira project. [Permission: ANALYZE_AI] [Role: Neural_Architect]"
+          - generic [ref=e479] [cursor=pointer]:
+            - generic [ref=e480]: pause_scan
+            - generic [ref=e481]: "Pause a running scan. [Permission: ANALYZE_AI] [Role: Neural_Architect]"
+          - generic [ref=e482] [cursor=pointer]:
+            - generic [ref=e483]: resume_scan
+            - generic [ref=e484]: "Resume a paused scan. [Permission: ANALYZE_AI] [Role: Neural_Architect]"
+          - generic [ref=e485] [cursor=pointer]:
+            - generic [ref=e486]: cancel_scan
+            - generic [ref=e487]: "Cancel a running or paused scan. [Permission: ANALYZE_AI] [Role: Neural_Architect]"
+          - generic [ref=e488] [cursor=pointer]:
+            - generic [ref=e489]: get_scan_status
+            - generic [ref=e490]: "Get current scan status for a project. [Permission: VIEW_ANALYSIS] [Role: Reader]"
+          - generic [ref=e491] [cursor=pointer]:
+            - generic [ref=e492]: get_scan_log
+            - generic [ref=e493]: "Get scan log entries with pagination. [Permission: VIEW_ANALYSIS] [Role: Reader]"
+          - generic [ref=e494] [cursor=pointer]:
+            - generic [ref=e495]: analyze_ticket
+            - generic [ref=e496]: "Trigger AI analysis for a specific ticket. [Permission: ANALYZE_AI] [Role: Neural_Architect]"
+          - generic [ref=e497] [cursor=pointer]:
+            - generic [ref=e498]: get_ticket_analysis
+            - generic [ref=e499]: "Get stored AI analysis result for a ticket. [Permission: VIEW_ANALYSIS] [Role: Reader]"
+          - generic [ref=e500] [cursor=pointer]:
+            - generic [ref=e501]: list_analyzed_tickets
+            - generic [ref=e502]: "List tickets that have been analyzed in a project. [Permission: VIEW_ANALYSIS] [Role: Reader]"
+          - generic [ref=e503] [cursor=pointer]:
+            - generic [ref=e504]: send_chat_message
+            - generic [ref=e505]: "Send a message to the AI chat and get a response. [Permission: VIEW_ANALYSIS] [Role: Reader]"
+          - generic [ref=e506] [cursor=pointer]:
+            - generic [ref=e507]: get_chat_history
+            - generic [ref=e508]: "Get chat message history with pagination. [Permission: VIEW_ANALYSIS] [Role: Reader]"
+          - generic [ref=e509] [cursor=pointer]:
+            - generic [ref=e510]: list_conversations
+            - generic [ref=e511]: "List all conversations for the current user. [Permission: VIEW_ANALYSIS] [Role: Reader]"
+          - generic [ref=e512] [cursor=pointer]:
+            - generic [ref=e513]: get_settings
+            - generic [ref=e514]: "Get all application settings. [Permission: VIEW_ANALYSIS] [Role: Reader]"
+          - generic [ref=e515] [cursor=pointer]:
+            - generic [ref=e516]: update_setting
+            - generic [ref=e517]: "Update an application setting value. [Permission: MANAGE_SETTINGS] [Role: Administrator]"
+          - generic [ref=e518] [cursor=pointer]:
+            - generic [ref=e519]: get_setting
+            - generic [ref=e520]: "Get a specific application setting by key. [Permission: VIEW_ANALYSIS] [Role: Reader]"
+          - generic [ref=e521] [cursor=pointer]:
+            - generic [ref=e522]: list_users
+            - generic [ref=e523]: "List all registered users. [Permission: MANAGE_USERS] [Role: Administrator]"
+          - generic [ref=e524] [cursor=pointer]:
+            - generic [ref=e525]: update_user_role
+            - generic [ref=e526]: "Update a user's role. [Permission: MANAGE_USERS] [Role: Administrator]"
+          - generic [ref=e527] [cursor=pointer]:
+            - generic [ref=e528]: get_user_permissions
+            - generic [ref=e529]: "Get permissions for a specific user based on their role. [Permission: MANAGE_USERS] [Role: Administrator]"
+          - generic [ref=e530] [cursor=pointer]:
+            - generic [ref=e531]: list_ai_providers
+            - generic [ref=e532]: "List all configured AI providers and their status. [Permission: VIEW_ANALYSIS] [Role: Reader]"
+          - generic [ref=e533] [cursor=pointer]:
+            - generic [ref=e534]: test_ai_provider
+            - generic [ref=e535]: "Test connection to an AI provider. [Permission: MANAGE_SETTINGS] [Role: Administrator]"
+          - generic [ref=e536] [cursor=pointer]:
+            - generic [ref=e537]: list_mcp_servers
+            - generic [ref=e538]: "List all MCP servers including internal. [Permission: VIEW_ANALYSIS] [Role: Reader]"
+          - generic [ref=e539] [cursor=pointer]:
+            - generic [ref=e540]: manage_mcp_server
+            - generic [ref=e541]: "Perform an action on an MCP server (start/stop/restart/test). Cannot be used on the internal server. [Permission: MANAGE_SETTINGS] [Role: Administrator]"
+          - generic [ref=e542] [cursor=pointer]:
+            - generic [ref=e543]: get_graph_data
+            - generic [ref=e544]: "Get knowledge graph data (nodes and edges) for visualization. [Permission: VIEW_ANALYSIS] [Role: Reader]"
+          - generic [ref=e545] [cursor=pointer]:
+            - generic [ref=e546]: search_graph_nodes
+            - generic [ref=e547]: "Search nodes in the knowledge graph by keyword. [Permission: VIEW_ANALYSIS] [Role: Reader]"
+          - generic [ref=e548] [cursor=pointer]:
+            - generic [ref=e549]: get_dashboard_metrics
+            - generic [ref=e550]: "Get project dashboard metrics (tickets, complexity, velocity). [Permission: VIEW_ANALYSIS] [Role: Reader]"
+          - generic [ref=e551] [cursor=pointer]:
+            - generic [ref=e552]: list_projects
+            - generic [ref=e553]: "List all available Jira projects. [Permission: VIEW_ANALYSIS] [Role: Reader]"
+          - generic [ref=e554] [cursor=pointer]:
+            - generic [ref=e555]: get_project_analysis_summary
+            - generic [ref=e556]: "Get comprehensive analysis summary for a project (sprint analytics, velocity, bottlenecks, top complex tickets). [Permission: VIEW_ANALYSIS] [Role: Reader]"
+          - generic [ref=e557]: jira
+          - generic [ref=e558] [cursor=pointer]:
+            - generic [ref=e559]: atlassianUserInfo
+            - generic [ref=e560]: Get current user info
+          - generic [ref=e561] [cursor=pointer]:
+            - generic [ref=e562]: getAccessibleAtlassianResources
+            - generic [ref=e563]: Get cloudId to make tool calls. When a link is provided (e.g. https://site.atlassian.net/*), try passing the site hostname (e.g. site.atlassian.net) as cloudId to other tools first; if that fails, use this tool to list accessible resources.
+          - generic [ref=e564] [cursor=pointer]:
+            - generic [ref=e565]: getConfluencePage
+            - generic [ref=e566]: Get a Confluence page or blog post by ID, including body content. Use getTeamworkGraphContext with objectType ConfluencePage, ConfluenceBlogPost, ConfluenceWhiteboard, or ConfluenceSpace to get linked comments, child pages, shared users, and page owners.
+          - generic [ref=e567] [cursor=pointer]:
+            - generic [ref=e568]: searchConfluenceUsingCql
+            - generic [ref=e569]: Search content with CQL
+          - generic [ref=e570] [cursor=pointer]:
+            - generic [ref=e571]: getConfluenceSpaces
+            - generic [ref=e572]: Get spaces
+          - generic [ref=e573] [cursor=pointer]:
+            - generic [ref=e574]: getPagesInConfluenceSpace
+            - generic [ref=e575]: Get pages or blog posts in a space
+          - generic [ref=e576] [cursor=pointer]:
+            - generic [ref=e577]: getConfluencePageFooterComments
+            - generic [ref=e578]: Get footer comments for a page or blog post
+          - generic [ref=e579] [cursor=pointer]:
+            - generic [ref=e580]: getConfluencePageInlineComments
+            - generic [ref=e581]: Get inline comments for a page or blog post
+          - generic [ref=e582] [cursor=pointer]:
+            - generic [ref=e583]: getConfluenceCommentChildren
+            - generic [ref=e584]: Get reply(child) comments for a comment
+          - generic [ref=e585] [cursor=pointer]:
+            - generic [ref=e586]: getConfluencePageDescendants
+            - generic [ref=e587]: Get child pages of specified page
+          - generic [ref=e588] [cursor=pointer]:
+            - generic [ref=e589]: createConfluencePage
+            - generic [ref=e590]: Create a Confluence page or blog post
+          - generic [ref=e591] [cursor=pointer]:
+            - generic [ref=e592]: updateConfluencePage
+            - generic [ref=e593]: Update a Confluence page or blog post
+          - generic [ref=e594] [cursor=pointer]:
+            - generic [ref=e595]: createConfluenceFooterComment
+            - generic [ref=e596]: Create a footer comment on a page or blog post
+          - generic [ref=e597] [cursor=pointer]:
+            - generic [ref=e598]: createConfluenceInlineComment
+            - generic [ref=e599]: Create an inline comment on specific text in a page or blog post
+          - generic [ref=e600] [cursor=pointer]:
+            - generic [ref=e601]: getJiraIssue
+            - generic [ref=e602]: Get issue details. Use getTeamworkGraphContext to get linked deployments, PRs, builds, branches, commits, designs, issues, confluence whiteboards, feature flags, vulnerabilities, sprints and remote links to Jira Issues.
+          - generic [ref=e603] [cursor=pointer]:
+            - generic [ref=e604]: editJiraIssue
+            - generic [ref=e605]: Update issue
+          - generic [ref=e606] [cursor=pointer]:
+            - generic [ref=e607]: createJiraIssue
+            - generic [ref=e608]: Create issue
+          - generic [ref=e609] [cursor=pointer]:
+            - generic [ref=e610]: getTransitionsForJiraIssue
+            - generic [ref=e611]: Get transitions
+          - generic [ref=e612] [cursor=pointer]:
+            - generic [ref=e613]: getJiraIssueRemoteIssueLinks
+            - generic [ref=e614]: Get remote links
+          - generic [ref=e615] [cursor=pointer]:
+            - generic [ref=e616]: getVisibleJiraProjects
+            - generic [ref=e617]: Get projects
+          - generic [ref=e618] [cursor=pointer]:
+            - generic [ref=e619]: getJiraProjectIssueTypesMetadata
+            - generic [ref=e620]: Get issue types
+          - generic [ref=e621] [cursor=pointer]:
+            - generic [ref=e622]: getJiraIssueTypeMetaWithFields
+            - generic [ref=e623]: Get field metadata
+          - generic [ref=e624] [cursor=pointer]:
+            - generic [ref=e625]: addCommentToJiraIssue
+            - generic [ref=e626]: Add comment
+          - generic [ref=e627] [cursor=pointer]:
+            - generic [ref=e628]: transitionJiraIssue
+            - generic [ref=e629]: Transition issue status
+          - generic [ref=e630] [cursor=pointer]:
+            - generic [ref=e631]: searchJiraIssuesUsingJql
+            - generic [ref=e632]: Search issues with JQL
+          - generic [ref=e633] [cursor=pointer]:
+            - generic [ref=e634]: lookupJiraAccountId
+            - generic [ref=e635]: Lookup user IDs
+          - generic [ref=e636] [cursor=pointer]:
+            - generic [ref=e637]: addWorklogToJiraIssue
+            - generic [ref=e638]: Add or update a worklog on a Jira issue. When worklogId is provided, updates that worklog;
+          - generic [ref=e639] [cursor=pointer]:
+            - generic [ref=e640]: getIssueLinkTypes
+            - generic [ref=e641]: "Get available Jira issue link types (e.g. Blocks, Duplicate, Clones, Relates). For createIssueLink: inwardIssue = blocker, outwardIssue = blocked (e.g. \"A is blocked by B\" → inwardIssue: B, outwardIssue: A)."
+          - generic [ref=e642] [cursor=pointer]:
+            - generic [ref=e643]: createIssueLink
+            - generic [ref=e644]: "Create a link between two Jira issues. For directional link types (e.g. Blocks): inwardIssue = issue that blocks, outwardIssue = issue that is blocked (e.g. \"A is blocked by B\" → inwardIssue: B, outwardIssue: A). Use getIssueLinkTypes if link type is unknown."
+          - generic [ref=e645] [cursor=pointer]:
+            - generic [ref=e646]: getJsmOpsAlerts
+            - generic [ref=e647]: "Get a single alert by ID or alias, or search alerts using query and time window filters. Supports query syntax like \"priority:P1 AND status:open AND team:Web\". Parameters id, alias, and query are mutually exclusive. If no parameters are provided, returns a paginated list of alerts (default size: 20, maximum: 100)."
+          - generic [ref=e648] [cursor=pointer]:
+            - generic [ref=e649]: updateJsmOpsAlert
+            - generic [ref=e650]: "Update an alert by performing state-changing actions: acknowledge, unacknowledge, close, or escalate. Escalate action requires escalationId. Returns requestId and optionally polls request status once if pollStatus is enabled."
+          - generic [ref=e651] [cursor=pointer]:
+            - generic [ref=e652]: getJsmOpsScheduleInfo
+            - generic [ref=e653]: "Get schedule information: list all schedules, get a specific schedule by ID, or retrieve on-call responders. Use action=\"schedule\" to list schedules or get schedule details. Use action=\"oncall\" to get current or next on-call responders for a schedule."
+          - generic [ref=e654] [cursor=pointer]:
+            - generic [ref=e655]: getJsmOpsTeamInfo
+            - generic [ref=e656]: "Get team information: list all teams or get escalation policies for a specific team. Use action=\"teams\" to retrieve a list of all teams based on the user's role. Use action=\"escalations\" to list escalation policies for a team (to obtain escalationId values used by updateJsmOpsAlert)."
+          - generic [ref=e657] [cursor=pointer]:
+            - generic [ref=e658]: searchAtlassian
+            - generic [ref=e659]: Search Jira and Confluence using Rovo Search, ALWAYS use this tool to search for Jira and Confluence content unless the word CQL or JQL is used in the context
+          - generic [ref=e660] [cursor=pointer]:
+            - generic [ref=e661]: fetchAtlassian
+            - generic [ref=e662]: Get details of a Jira issue or Confluence page by ARI (Atlassian Resource Identifier), if the id is not an ARI, then use a different tool to fetch the content
+          - generic [ref=e663] [cursor=pointer]:
+            - generic [ref=e664]: bitbucketWorkspace
+            - generic [ref=e665]: Bitbucket workspace operations (list, get).
+          - generic [ref=e666] [cursor=pointer]:
+            - generic [ref=e667]: bitbucketRepository
+            - generic [ref=e668]: Bitbucket repository operations (list, get, defaultReviewers).
+          - generic [ref=e669] [cursor=pointer]:
+            - generic [ref=e670]: bitbucketPullRequest
+            - generic [ref=e671]: Bitbucket pull request operations (create, get, list, merge, approve, comment, comments, diff).
+          - generic [ref=e672] [cursor=pointer]:
+            - generic [ref=e673]: bitbucketRepoContent
+            - generic [ref=e674]: Bitbucket repo content operations (branch.get, branch.create, commit.get, commit.create, files.get).
+          - generic [ref=e675] [cursor=pointer]:
+            - generic [ref=e676]: bitbucketPipeline
+            - generic [ref=e677]: Bitbucket pipeline operations (list, run, get, steps, step.get, step.log).
+          - generic [ref=e678] [cursor=pointer]:
+            - generic [ref=e679]: bitbucketDeployment
+            - generic [ref=e680]: Bitbucket deployment operations (list, get).
+          - generic [ref=e681] [cursor=pointer]:
+            - generic [ref=e682]: bitbucketEnvironment
+            - generic [ref=e683]: Bitbucket environment operations (list, get, create, delete, update).
+          - generic [ref=e684] [cursor=pointer]:
+            - generic [ref=e685]: bitbucketUser
+            - generic [ref=e686]: Bitbucket user operations. List pull requests for a user across all repositories and workspaces, filtered by role (REVIEWER, AUTHOR, PARTICIPANT) and state.
+          - generic [ref=e687] [cursor=pointer]:
+            - generic [ref=e688]: getTeamworkGraphContext
+            - generic [ref=e689]: "Fetches entire context from Teamwork Graph for Jira Issues, Atlassian users, or Confluence entities. For Jira: linked deployments, PRs, builds, branches, commits, designs, issues, confluence whiteboards, feature flags, vulnerabilities, sprints, remote links. For users: activity context including work items created, pages edited, PRs authored/reviewed, designs updated, and more. For Confluence pages/blogposts/whiteboards/spaces: child pages, comments, shared users, owners, linked entities, and more. After calling getTeamworkGraphContext, call getTeamworkGraphObject with the ARIs from getTeamworkGraphContext's detailLevel=full response to get full object content."
+          - generic [ref=e690] [cursor=pointer]:
+            - generic [ref=e691]: getTeamworkGraphObject
+            - generic [ref=e692]: Fetches the entire available data for one or more objects (Atlassian or third-party) using their ARIs or URLs. Use for the objects gathered from getTeamworkGraphContext tool.
+          - generic [ref=e693]: markitdown
+          - generic [ref=e694] [cursor=pointer]:
+            - generic [ref=e695]: convert_to_markdown
+            - generic [ref=e696]: "Convert a resource described by an http:, https:, file: or data: URI to markdown"
+          - generic [ref=e697]: playwright
+          - generic [ref=e698] [cursor=pointer]:
+            - generic [ref=e699]: browser_close
+            - generic [ref=e700]: Close the page
+          - generic [ref=e701] [cursor=pointer]:
+            - generic [ref=e702]: browser_resize
+            - generic [ref=e703]: Resize the browser window
+          - generic [ref=e704] [cursor=pointer]:
+            - generic [ref=e705]: browser_console_messages
+            - generic [ref=e706]: Returns all console messages
+          - generic [ref=e707] [cursor=pointer]:
+            - generic [ref=e708]: browser_handle_dialog
+            - generic [ref=e709]: Handle a dialog
+          - generic [ref=e710] [cursor=pointer]:
+            - generic [ref=e711]: browser_evaluate
+            - generic [ref=e712]: Evaluate JavaScript expression on page or element
+          - generic [ref=e713] [cursor=pointer]:
+            - generic [ref=e714]: browser_file_upload
+            - generic [ref=e715]: Upload one or multiple files
+          - generic [ref=e716] [cursor=pointer]:
+            - generic [ref=e717]: browser_fill_form
+            - generic [ref=e718]: Fill multiple form fields
+          - generic [ref=e719] [cursor=pointer]:
+            - generic [ref=e720]: browser_install
+            - generic [ref=e721]: Install the browser specified in the config. Call this if you get an error about the browser not being installed.
+          - generic [ref=e722] [cursor=pointer]:
+            - generic [ref=e723]: browser_press_key
+            - generic [ref=e724]: Press a key on the keyboard
+          - generic [ref=e725] [cursor=pointer]:
+            - generic [ref=e726]: browser_type
+            - generic [ref=e727]: Type text into editable element
+          - generic [ref=e728] [cursor=pointer]:
+            - generic [ref=e729]: browser_navigate
+            - generic [ref=e730]: Navigate to a URL
+          - generic [ref=e731] [cursor=pointer]:
+            - generic [ref=e732]: browser_navigate_back
+            - generic [ref=e733]: Go back to the previous page in the history
+          - generic [ref=e734] [cursor=pointer]:
+            - generic [ref=e735]: browser_network_requests
+            - generic [ref=e736]: Returns all network requests since loading the page
+          - generic [ref=e737] [cursor=pointer]:
+            - generic [ref=e738]: browser_run_code
+            - generic [ref=e739]: Run Playwright code snippet
+          - generic [ref=e740] [cursor=pointer]:
+            - generic [ref=e741]: browser_take_screenshot
+            - generic [ref=e742]: Take a screenshot of the current page. You can't perform actions based on the screenshot, use browser_snapshot for actions.
+          - generic [ref=e743] [cursor=pointer]:
+            - generic [ref=e744]: browser_snapshot
+            - generic [ref=e745]: Capture accessibility snapshot of the current page, this is better than screenshot
+          - generic [ref=e746] [cursor=pointer]:
+            - generic [ref=e747]: browser_click
+            - generic [ref=e748]: Perform click on a web page
+          - generic [ref=e749] [cursor=pointer]:
+            - generic [ref=e750]: browser_drag
+            - generic [ref=e751]: Perform drag and drop between two elements
+          - generic [ref=e752] [cursor=pointer]:
+            - generic [ref=e753]: browser_hover
+            - generic [ref=e754]: Hover over element on page
+          - generic [ref=e755] [cursor=pointer]:
+            - generic [ref=e756]: browser_select_option
+            - generic [ref=e757]: Select an option in a dropdown
+          - generic [ref=e758] [cursor=pointer]:
+            - generic [ref=e759]: browser_tabs
+            - generic [ref=e760]: List, create, close, or select a browser tab.
+          - generic [ref=e761] [cursor=pointer]:
+            - generic [ref=e762]: browser_wait_for
+            - generic [ref=e763]: Wait for text to appear or disappear or a specified time to pass
+          - generic [ref=e764]: local-knowledge-base
+          - generic [ref=e765] [cursor=pointer]:
+            - generic [ref=e766]: search_knowledge
+            - generic [ref=e767]: Tìm kiếm semantic trong Knowledge Base cục bộ
+          - generic [ref=e768] [cursor=pointer]:
+            - generic [ref=e769]: get_ticket_info
+            - generic [ref=e770]: Tra cứu thông tin phân tích ticket từ KB
+          - generic [ref=e771] [cursor=pointer]:
+            - generic [ref=e772]: search_relationships
+            - generic [ref=e773]: Tìm kiếm mối quan hệ/dependency giữa tickets
+      - generic [ref=e775] [cursor=pointer]:
+        - generic [ref=e776]: ▸
+        - generic [ref=e777]: 🔧 Tool Permissions
+      - generic [ref=e778]:
+        - textbox "Chat message input" [ref=e779]:
+          - /placeholder: Ask about your project...
+        - generic [ref=e780]:
+          - button "Attach file" [ref=e781] [cursor=pointer]: 📎
+          - button "Voice input" [ref=e782] [cursor=pointer]: 🎤
+          - button "Send message" [ref=e783] [cursor=pointer]: ➤
+      - generic [ref=e784]:
+        - 'generic "Context usage: 0%" [ref=e785]':
+          - img [ref=e786]
+          - generic [ref=e789]: 0%
+        - generic [ref=e790]: gemini-3-flash-preview

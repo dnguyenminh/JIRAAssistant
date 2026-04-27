@@ -1,0 +1,48 @@
+# Nhiệm vụ: Serenity Report Feature Hierarchy
+
+## Danh sách nhiệm vụ
+
+- [x] 1. Tạo cấu trúc thư mục và di chuyển feature files
+  - [x] 1.1 Tạo 9 thư mục con trong `e2e-tests/src/test/resources/features/`: `core/`, `dashboard/`, `analysis/`, `knowledge-graph/`, `integrations/`, `user-management/`, `settings/`, `ai-chat/`, `scanning/`
+  - [x] 1.2 Di chuyển feature files vào thư mục `core/`: `001-Initialization.feature`, `012-SecurityAndErrorHandling.feature`
+  - [x] 1.3 Di chuyển feature file vào thư mục `dashboard/`: `005-Dashboard.feature`
+  - [x] 1.4 Di chuyển feature files vào thư mục `analysis/`: `002-AIAnalysis.feature`, `003-Estimation.feature`, `007-TicketIntelligence.feature`
+  - [x] 1.5 Di chuyển feature file vào thư mục `knowledge-graph/`: `006-KnowledgeGraph.feature`
+  - [x] 1.6 Di chuyển feature files vào thư mục `integrations/`: `008-Integrations.feature`, `015-McpServers.feature`
+  - [x] 1.7 Di chuyển feature files vào thư mục `user-management/`: `004-FirstLaunchRedirect.feature`, `009-UserManagement.feature`
+  - [x] 1.8 Di chuyển feature file vào thư mục `settings/`: `011-AppSettings.feature`
+  - [x] 1.9 Di chuyển feature file vào thư mục `ai-chat/`: `013-AIChatSidebar.feature`
+  - [x] 1.10 Di chuyển feature files vào thư mục `scanning/`: `010-FrontendBackendIntegration.feature`, `014-BatchScan.feature`
+- [x] 2. Cập nhật Runner Classes
+  - [x] 2.1 Cập nhật `UiInitializationRunner.kt`: features path → `features/core/001-Initialization.feature`
+  - [x] 2.2 Cập nhật `UiDashboardRunner.kt`: features path → `features/dashboard/005-Dashboard.feature`
+  - [x] 2.3 Cập nhật `UiKnowledgeGraphRunner.kt`: features path → `features/knowledge-graph/006-KnowledgeGraph.feature`
+  - [x] 2.4 Cập nhật `UiTicketIntelligenceRunner.kt`: features path → `features/analysis/007-TicketIntelligence.feature`
+  - [x] 2.5 Cập nhật `UiIntegrationsRunner.kt`: features path → `features/integrations/008-Integrations.feature`
+  - [x] 2.6 Cập nhật `UiUserManagementRunner.kt`: features path → `features/user-management/009-UserManagement.feature`
+  - [x] 2.7 Cập nhật `UiFirstLaunchRunner.kt`: features path → `features/user-management/004-FirstLaunchRedirect.feature`
+  - [x] 2.8 Cập nhật `UiFrontendBackendRunner.kt`: features path → `features/scanning/010-FrontendBackendIntegration.feature`
+  - [x] 2.9 Cập nhật `UiAppSettingsRunner.kt`: features path → `features/settings/011-AppSettings.feature`
+  - [x] 2.10 Cập nhật `UiSecurityRunner.kt`: features path → `features/core/012-SecurityAndErrorHandling.feature`
+  - [x] 2.11 Cập nhật `UiAIChatSidebarRunner.kt`: features path → `features/ai-chat/013-AIChatSidebar.feature`
+  - [x] 2.12 Cập nhật `UiBatchScanRunner.kt`: features path → `features/scanning/014-BatchScan.feature`
+  - [x] 2.13 Cập nhật `UiMcpServersRunner.kt`: features path → `features/integrations/015-McpServers.feature`
+- [x] 3. Cấu hình Serenity Properties
+  - [x] 3.1 Thêm `serenity.requirement.types=capability,feature` vào `e2e-tests/src/test/resources/serenity.properties` (ngay sau dòng `serenity.features.directory`)
+- [x] 4. Xác minh
+  - [x] 4.1 Chạy `./gradlew :e2e-tests:compileTestKotlin` để verify compilation thành công
+  - [x] 4.2 Kiểm tra không còn file `.feature` nào ở cấp `features/` gốc
+  - [x] 4.3 Kiểm tra tổng số file `.feature` trong cây thư mục = 15
+- [ ] 5. Thêm `@Feature` annotation vào Runner Classes
+  - [ ] 5.1 Thêm `@net.serenitybdd.annotations.Feature("Core")` vào `UiInitializationRunner.kt` và `UiSecurityRunner.kt`
+  - [ ] 5.2 Thêm `@net.serenitybdd.annotations.Feature("Dashboard")` vào `UiDashboardRunner.kt`
+  - [ ] 5.3 Thêm `@net.serenitybdd.annotations.Feature("Analysis")` vào `UiTicketIntelligenceRunner.kt`
+  - [ ] 5.4 Thêm `@net.serenitybdd.annotations.Feature("Knowledge Graph")` vào `UiKnowledgeGraphRunner.kt`
+  - [ ] 5.5 Thêm `@net.serenitybdd.annotations.Feature("Integrations")` vào `UiIntegrationsRunner.kt` và `UiMcpServersRunner.kt`
+  - [ ] 5.6 Thêm `@net.serenitybdd.annotations.Feature("User Management")` vào `UiFirstLaunchRunner.kt` và `UiUserManagementRunner.kt`
+  - [ ] 5.7 Thêm `@net.serenitybdd.annotations.Feature("Settings")` vào `UiAppSettingsRunner.kt`
+  - [ ] 5.8 Thêm `@net.serenitybdd.annotations.Feature("AI Chat")` vào `UiAIChatSidebarRunner.kt`
+  - [ ] 5.9 Thêm `@net.serenitybdd.annotations.Feature("Scanning")` vào `UiFrontendBackendRunner.kt` và `UiBatchScanRunner.kt`
+- [ ] 6. Xác minh @Feature annotations
+  - [ ] 6.1 Chạy `./gradlew :e2e-tests:compileTestKotlin` để verify compilation thành công
+  - [ ] 6.2 Chạy `./gradlew :e2e-tests:uiTest` rồi `./gradlew :e2e-tests:aggregate` và kiểm tra tab "Features" trong report hiển thị 9 features với test counts

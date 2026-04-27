@@ -30,15 +30,6 @@
             <input type="text" class="field-input" id="input-ai-provider-url" placeholder="http://localhost:11434">
         </div>
 
-        <!-- DB_PATH (readonly) -->
-        <div class="settings-field">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <label class="field-label" for="input-db-path" style="margin-bottom: 0;">DB_PATH</label>
-                <span class="field-badge">ENV ONLY</span>
-            </div>
-            <input type="text" class="field-input readonly" id="input-db-path" readonly placeholder="./data/assistant.db">
-        </div>
-
         <!-- JWT_SECRET (password, masked) -->
         <div class="settings-field">
             <label class="field-label" for="input-jwt-secret">JWT_SECRET</label>
@@ -70,8 +61,42 @@
         <button class="btn-vibrant" id="btn-save-settings" style="width: 100%; margin-top: 12px; text-align: center; font-size: 13px; letter-spacing: 2px;">
             SAVE SETTINGS
         </button>
+    </div>
 
-        <!-- Progress Bar (hidden by default) -->
+    <!-- Feature Flags Section -->
+    <div style="margin-top:32px;">
+        <h2 style="font-size:16px; font-weight:700; letter-spacing:1.5px; margin-bottom:16px;">FEATURE FLAGS</h2>
+
+        <!-- Prompt Curation Toggle -->
+        <div class="glass-card" style="padding:20px;" id="curation-toggle-card">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="flex:1; margin-right:16px;">
+                    <div style="font-size:14px; font-weight:600; letter-spacing:0.5px;">Prompt Curation</div>
+                    <div style="font-size:11px; opacity:0.4; margin-top:4px;">Classify tickets as AS-IS/TO-BE/OUTDATED, summarize comments, curate attachments. Reduces prompt from 200K+ to 50K–80K chars.</div>
+                </div>
+                <label class="toggle-switch" style="position:relative; display:inline-block; width:48px; height:26px; flex-shrink:0;">
+                    <input type="checkbox" id="toggle-prompt-curation" style="opacity:0; width:0; height:0;">
+                    <span class="toggle-slider" id="toggle-prompt-curation-slider" style="position:absolute; cursor:pointer; inset:0; background:rgba(255,255,255,0.1); border-radius:26px; transition:0.3s;"></span>
+                </label>
+            </div>
+            <div id="curation-status-msg" style="display:none; margin-top:12px; font-size:11px; letter-spacing:0.5px; padding:8px 12px; border-radius:8px;"></div>
+        </div>
+
+        <!-- Agent Pipeline Toggle -->
+        <div class="glass-card" style="padding:20px; margin-top:12px;" id="agent-pipeline-toggle-card">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="flex:1; margin-right:16px;">
+                    <div style="font-size:14px; font-weight:600; letter-spacing:0.5px;">Agent Pipeline</div>
+                    <div style="font-size:11px; opacity:0.4; margin-top:4px;">Use AI Agent for smarter, smaller prompts (60K–70K instead of 200K+). Falls back to legacy pipeline on failure.</div>
+                </div>
+                <label class="toggle-switch" style="position:relative; display:inline-block; width:48px; height:26px; flex-shrink:0;">
+                    <input type="checkbox" id="toggle-agent-pipeline-settings" style="opacity:0; width:0; height:0;">
+                    <span class="toggle-slider" id="toggle-agent-pipeline-settings-slider" style="position:absolute; cursor:pointer; inset:0; background:rgba(255,255,255,0.1); border-radius:26px; transition:0.3s;"></span>
+                </label>
+            </div>
+            <div id="agent-pipeline-settings-msg" style="display:none; margin-top:12px; font-size:11px; letter-spacing:0.5px; padding:8px 12px; border-radius:8px;"></div>
+        </div>
+
         <div id="settings-progress" style="display: none; margin-top: 16px;">
             <div class="neural-loader">
                 <div class="neural-progress" id="settings-progress-bar" style="width: 0%;"></div>

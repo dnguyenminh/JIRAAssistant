@@ -114,6 +114,12 @@ object Router {
 
         // Update active nav state
         updateActiveNav(hash)
+
+        // Update breadcrumb and project badge for non-standalone routes
+        if (!isStandalone) {
+            com.assistant.frontend.components.Navbar.updateBreadcrumb(hash)
+            com.assistant.frontend.components.NavbarDropdown.refreshProjectSelector()
+        }
     }
 
     /**

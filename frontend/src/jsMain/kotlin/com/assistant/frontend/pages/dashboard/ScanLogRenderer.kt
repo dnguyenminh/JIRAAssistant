@@ -15,7 +15,7 @@ internal object ScanLogRenderer {
 
     private const val STORAGE_KEY = "scanlog_rendered_ids"
     private const val MAX_VISIBLE = 500
-    private const val MAX_STORED_IDS = 200
+    private const val MAX_STORED_IDS = 2000
 
     fun render(entries: List<ScanLogEntryDTO>) {
         val container = el("scan-log-container") ?: return
@@ -24,9 +24,11 @@ internal object ScanLogRenderer {
             clearAndShowEmpty(container); return
         }
         removeEmptyPlaceholder(container)
+        // Detect DOM was cleared (navigation away/back) — re-render all entries
+        val hasVisibleLines = container.querySelectorAll(".console-line").length > 0
         var appended = false
         for (entry in entries) {
-            if (entry.id in seen) continue
+            if (hasVisibleLines && entry.id in seen) continue
             seen.add(entry.id)
             appendLogLine(container, entry)
             appended = true

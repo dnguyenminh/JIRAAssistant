@@ -1,0 +1,33 @@
+# BA Agent Integration Test Configuration
+# Copy this file to test.properties and set your CLI paths.
+# test.properties is gitignored — each tester configures their own.
+#
+# Resolution order: system property > env var > test.properties
+
+# ── CLI Backend Paths ─────────────────────────────────────
+test.gemini.cli.path=C:/path/to/gemini.cmd
+test.gemini.cli.model=gemini-2.5-flash
+
+test.copilot.cli.path=C:/path/to/copilot.cmd
+test.copilot.cli.model=gemini-2.5-flash
+
+test.kiro.cli.path=C:/path/to/kiro.cmd
+test.kiro.cli.model=gemini-2.5-flash
+
+# ── Test Ticket for BRD Generation ───────────────────────
+# Set to a real Jira ticket ID for full integration testing
+test.brd.ticket=PROJ-123
+
+# ── MCP Server Configurations ────────────────────────────
+# Each MCP server is a single-line JSON string.
+# Format: test.mcp.<serverName>=<AgentMcpConfig JSON>
+# env values with ${VAR} are resolved from system environment.
+
+# External: Jira MCP (sooperset/mcp-atlassian) — requires uvx + mcp-atlassian
+# Auth: API token (JIRA_URL, JIRA_USERNAME, JIRA_API_TOKEN)
+test.mcp.jira={"serverName":"jira","command":"uvx","args":["mcp-atlassian"],"env":{"JIRA_URL":"https://your-site.atlassian.net","JIRA_USERNAME":"your-email@example.com","JIRA_API_TOKEN":"your-api-token"}}
+
+# Built-in: Local Knowledge Base — in-process, no external process needed
+# Tools: search_knowledge, get_ticket_info, search_relationships
+# Set to "enabled" to include in test tool layer; "disabled" to skip
+test.mcp.local-knowledge-base={"serverName":"local-knowledge-base","command":"builtin","args":[],"env":{}}
