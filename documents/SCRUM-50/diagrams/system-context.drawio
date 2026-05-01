@@ -1,0 +1,70 @@
+<mxfile host="draw.io">
+  <diagram name="System Context" id="sc1">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="SYS" value="Collex AI Assistant" style="swimlane;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;fontSize=14;fontStyle=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="250" y="120" width="600" height="500" as="geometry"/>
+        </mxCell>
+        <mxCell id="FE" value="Frontend&#xa;(KotlinJS)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="SYS">
+          <mxGeometry x="30" y="60" width="540" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="FE1" value="UserManagement&#xa;Page" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="SYS">
+          <mxGeometry x="40" y="70" width="100" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="FE2" value="UserCreate&#xa;Form" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="SYS">
+          <mxGeometry x="150" y="70" width="90" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="FE3" value="UserDetail&#xa;Panel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="SYS">
+          <mxGeometry x="250" y="70" width="90" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="FE4" value="UserConfirm&#xa;Dialog" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="SYS">
+          <mxGeometry x="350" y="70" width="90" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="FE5" value="UserDetail&#xa;EditMode" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="SYS">
+          <mxGeometry x="450" y="70" width="90" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="MW" value="RBAC Middleware&#xa;(JWT + MANAGE_USERS)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="SYS">
+          <mxGeometry x="150" y="180" width="300" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="BE1" value="UserRoutes.kt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="SYS">
+          <mxGeometry x="60" y="260" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="BE2" value="UserCrudHandlers.kt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="SYS">
+          <mxGeometry x="210" y="260" width="150" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="BE3" value="ValidationService" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="SYS">
+          <mxGeometry x="390" y="260" width="130" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="SH1" value="User Model&#xa;(shared)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="SYS">
+          <mxGeometry x="40" y="350" width="110" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="SH2" value="UserStore&#xa;Interface" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="SYS">
+          <mxGeometry x="170" y="350" width="110" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="SH3" value="InMemory&#xa;UserStore" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="SYS">
+          <mxGeometry x="300" y="350" width="110" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="SH4" value="AuditLog&#xa;Store" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="SYS">
+          <mxGeometry x="430" y="350" width="110" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="SH5" value="UserStatus&#xa;Enum" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="SYS">
+          <mxGeometry x="40" y="430" width="90" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="EMW" style="html=1;" edge="1" source="FE" target="MW" parent="SYS"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="EMR" style="html=1;" edge="1" source="MW" target="BE1" parent="SYS"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ERH" style="html=1;" edge="1" source="BE1" target="BE2" parent="SYS"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="EHV" style="html=1;" edge="1" source="BE2" target="BE3" parent="SYS"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="EHS" style="html=1;" edge="1" source="BE2" target="SH2" parent="SYS"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="EHA" style="html=1;" edge="1" source="BE2" target="SH4" parent="SYS"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ESI" style="html=1;dashed=1;" edge="1" source="SH2" target="SH3" parent="SYS"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ESM" style="html=1;dashed=1;" edge="1" source="SH1" target="SH5" parent="SYS"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ACTOR" value="Administrator" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="280" width="40" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="EA" style="html=1;" edge="1" source="ACTOR" target="FE" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

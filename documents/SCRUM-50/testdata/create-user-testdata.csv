@@ -1,0 +1,41 @@
+test_case_id,name,email,role,expected_http_code,expected_error_message,description
+UT-01,John Doe,john@example.com,NEURAL_ARCHITECT,201,,Valid creation — happy path. All fields valid. Expect 201 + UserDto with status=ACTIVE and createdAt.
+UT-02,,john@example.com,NEURAL_ARCHITECT,400,Name is required,Empty name string — validation rejects blank name per BR-01.
+UT-03,   ,john@example.com,NEURAL_ARCHITECT,400,Name is required,Whitespace-only name — validation rejects whitespace-only per BR-01.
+UT-04,John,notanemail,NEURAL_ARCHITECT,400,Invalid email format,Invalid email format — no @ symbol per BR-02.
+UT-05,John,john@example.com,SUPERADMIN,400,"Invalid role: SUPERADMIN",Invalid role value — SUPERADMIN not in enum per BR-03.
+UT-06,Duplicate User,admin@collex.ai,READER,409,Email already exists,Duplicate email — admin@collex.ai already exists in pre-seeded data per BR-04.
+PBT-01,   ,any@test.com,READER,400,Name is required,Property test — whitespace-only name rejected (random whitespace strings).
+PBT-01,Valid Name,any@test.com,READER,201,,Property test — non-whitespace name accepted.
+PBT-02,Test,valid@example.com,READER,201,,Property test — valid email accepted.
+PBT-02,Test,notanemail,READER,400,Invalid email format,Property test — invalid email rejected.
+PBT-04,First User,unique@test.com,READER,201,,Property test — first user with email succeeds.
+PBT-04,Second User,unique@test.com,READER,409,Email already exists,Property test — duplicate email rejected.
+PBT-08,Defaults Test,defaults@test.com,READER,201,,Property test — verify new user gets status=ACTIVE and non-empty createdAt.
+PBT-14,,john@example.com,READER,400,Name is required,Property test — missing name field returns 400.
+PBT-14,John,,READER,400,Invalid email format,Property test — missing email field returns 400.
+PBT-14,John,john@example.com,,400,Invalid role,Property test — missing role field returns 400.
+IT-01,Lifecycle User,lifecycle@test.com,READER,201,,Integration test — create step of full CRUD lifecycle.
+IT-04,Audit Test,audit@test.com,READER,201,,Integration test — create + verify audit log entry has action=USER_CREATED.
+SIT-01,Test User SIT,sit-test@example.com,NEURAL_ARCHITECT,201,,Manual SIT — create user via browser form. Verify user appears in directory.
+SIT-02,,test@test.com,READER,400,Name is required,Manual SIT — submit form with empty name. Verify error shown below field.
+SIT-02,Valid Name,notanemail,READER,400,Invalid email format,Manual SIT — submit form with invalid email. Verify error shown below field.
+SIT-03,Duplicate Test,admin@collex.ai,READER,409,Email already exists,Manual SIT — submit form with existing email. Verify error message displayed.
+PBT-03,Round Trip User,roundtrip@test.com,READER,201,,Property test — create user then serialize to JSON then deserialize. All fields must match exactly (round-trip).
+PBT-05,DTO Test User,dto@test.com,NEURAL_ARCHITECT,201,,Property test — create user then call toDto(). Verify id/name/email/role/status/createdAt all non-null and non-empty.
+PBT-07,Store Ops User,storeops@test.com,READER,201,,Property test — create user then verify updateUser/updateStatus/deleteUser return true. Random non-existent UUID returns false.
+UT-07,Existing User,existing@test.com,READER,201,,Setup for UT-07 — create user first then GET by id. Expect 200 + full UserDto with all fields matching.
+UT-08,N/A,N/A,N/A,404,User not found,GET non-existent user — use UUID 00000000-0000-0000-0000-000000000000. Expect 404.
+UT-18,Backward Compat,compat@test.com,READER,201,,Setup for UT-18 — deserialize JSON without status field. Expect default status=ACTIVE.
+UT-19,Backward Compat 2,compat2@test.com,READER,201,,Setup for UT-19 — deserialize JSON without createdAt field. Expect default createdAt="".
+UT-20,N/A,N/A,N/A,N/A,,UserStore.updateUser with non-existent ID returns false. No HTTP call — direct store method test.
+UT-21,N/A,N/A,N/A,N/A,,UserStore.deleteUser with non-existent ID returns false. No HTTP call — direct store method test.
+UT-22,N/A,N/A,N/A,N/A,,UserStore.updateStatus with non-existent ID returns false. No HTTP call — direct store method test.
+SIT-04,Admin User,admin@collex.ai,ADMINISTRATOR,200,,Manual SIT — click user row in directory. Verify Detail Panel shows avatar/name/email/role/status badge/createdAt/action buttons.
+SIT-11,Any User,any@test.com,READER,200,,Manual SIT — perform any async operation (create/edit/disable/delete). Verify blocking overlay appears during API call and disappears after.
+SIT-12,N/A,N/A,N/A,200,,Manual SIT regression — navigate to User Management page. Verify all pre-seeded users displayed correctly. No JS console errors.
+SIT-13,Neural User,neural@collex.ai,NEURAL_ARCHITECT,200,,Manual SIT regression — select user and change role via existing dropdown. Verify role persists after page refresh.
+SIT-14,Reader User,reader@collex.ai,READER,200,,Manual SIT regression — select user and toggle one of 4 hardcoded permissions. Verify toggle state persists after refresh.
+E2E-API-01,Duplicate Test,admin@collex.ai,READER,409,Email already exists,E2E-API — duplicate email rejection on real server. POST with pre-seeded admin email.
+E2E-API-02,E2E Lifecycle,e2e-lifecycle@test.com,READER,201,,E2E-API — create step of full CRUD lifecycle on real server. Expect 201 + UserDto.
+E2E-API-06,Audit E2E,audit-e2e@test.com,READER,201,,E2E-API — create user then verify audit log entry USER_CREATED on real server.

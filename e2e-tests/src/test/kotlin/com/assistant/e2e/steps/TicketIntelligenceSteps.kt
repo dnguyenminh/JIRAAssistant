@@ -274,19 +274,8 @@ class TicketIntelligenceSteps {
 
     // ── RBAC ──
 
-    @Then("the {string} button should be disabled")
-    fun buttonShouldBeDisabled(buttonText: String) {
-        val elements = driver.findElements(By.xpath("//*[contains(text(),'$buttonText')]"))
-        if (elements.isNotEmpty()) {
-            val el = elements.first()
-            val opacity = el.getCssValue("opacity")
-            val pointerEvents = el.getCssValue("pointer-events")
-            assert(opacity == "0.5" || pointerEvents == "none" ||
-                   el.getAttribute("disabled") != null) {
-                "Button '$buttonText' should be disabled"
-            }
-        }
-    }
+    // Note: "the {string} button should be disabled" is defined in DocumentJobManagerSteps.kt
+    // Removed from here to avoid DuplicateStepDefinitionException
 
     @Then("the button should have opacity 0.5 and pointer-events none")
     fun buttonHasDisabledStyles() {

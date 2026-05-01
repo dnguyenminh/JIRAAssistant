@@ -1,0 +1,46 @@
+<mxfile host="draw.io">
+  <diagram name="UserStatus State" id="st1">
+    <mxGraphModel dx="800" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="800" pageHeight="500" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="START" value="" style="ellipse;fillColor=#000000;strokeColor=#000000;html=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="200" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="ACTIVE" value="ACTIVE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;arcSize=30;" vertex="1" parent="1">
+          <mxGeometry x="180" y="180" width="150" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="DISABLED" value="DISABLED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;arcSize=30;" vertex="1" parent="1">
+          <mxGeometry x="480" y="180" width="150" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="PENDING" value="PENDING&#xa;(future)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=2;arcSize=30;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="180" y="370" width="150" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="END" value="" style="ellipse;fillColor=#000000;strokeColor=#000000;html=1;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="540" y="390" width="30" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="ENDRING" value="" style="ellipse;fillColor=none;strokeColor=#000000;html=1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="535" y="385" width="40" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="E1" value="POST /api/users&#xa;(create)" style="html=1;fontSize=10;fontStyle=1;" edge="1" source="START" target="ACTIVE" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="E2" value="PUT /status&#xa;{DISABLED}&#xa;+ Confirmation" style="html=1;fontSize=10;curved=1;" edge="1" source="ACTIVE" target="DISABLED" parent="1">
+          <mxGeometry x="0.1" y="20" relative="1" as="geometry"><mxPoint as="offset"/></mxGeometry>
+        </mxCell>
+        <mxCell id="E3" value="PUT /status&#xa;{ACTIVE}&#xa;(no confirm)" style="html=1;fontSize=10;curved=1;" edge="1" source="DISABLED" target="ACTIVE" parent="1">
+          <mxGeometry x="-0.1" y="-20" relative="1" as="geometry"><mxPoint as="offset"/></mxGeometry>
+        </mxCell>
+        <mxCell id="E4" value="DELETE&#xa;+ Name Confirm" style="html=1;fontSize=10;" edge="1" source="ACTIVE" target="END" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="E5" value="DELETE&#xa;+ Name Confirm" style="html=1;fontSize=10;" edge="1" source="DISABLED" target="END" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="E6" value="Future:&#xa;Activation" style="html=1;fontSize=10;dashed=1;" edge="1" source="PENDING" target="ACTIVE" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="NOTE1" value="Can authenticate&#xa;Full access per role" style="shape=note;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;size=14;" vertex="1" parent="1">
+          <mxGeometry x="160" y="60" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="NOTE2" value="Cannot authenticate&#xa;Data preserved" style="shape=note;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;size=14;" vertex="1" parent="1">
+          <mxGeometry x="500" y="60" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="EN1" style="html=1;dashed=1;endArrow=none;" edge="1" source="NOTE1" target="ACTIVE" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="EN2" style="html=1;dashed=1;endArrow=none;" edge="1" source="NOTE2" target="DISABLED" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

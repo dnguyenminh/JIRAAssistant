@@ -1,0 +1,21 @@
+test_case_id,user_id,current_status,new_status,expected_http_code,expected_error_message,description
+UT-12,{active_user_id},ACTIVE,DISABLED,200,,Disable active user — status changes to DISABLED. Expect 200 + UserDto(DISABLED).
+UT-13,{disabled_user_id},DISABLED,ACTIVE,200,,Enable disabled user — status changes to ACTIVE. Expect 200 + UserDto(ACTIVE).
+UT-14,{existing_user_id},ACTIVE,INVALID,400,"Invalid status: INVALID. Valid values: ACTIVE, DISABLED",Invalid status value — INVALID not in enum. Expect 400.
+PBT-09,{existing_user_id},ACTIVE,DISABLED,200,,Property test — disable then verify findById returns DISABLED.
+PBT-09,{existing_user_id},DISABLED,ACTIVE,200,,Property test — re-enable then verify findById returns ACTIVE (round-trip).
+PBT-11,{disabled_user_id},DISABLED,N/A,401,,Property test — DISABLED user attempts auth. Expect rejection.
+PBT-06,{active_user_id},ACTIVE,DISABLED,200,,Property test — disable + verify audit log has action=USER_DISABLED old=ACTIVE new=DISABLED.
+PBT-06,{disabled_user_id},DISABLED,ACTIVE,200,,Property test — enable + verify audit log has action=USER_ENABLED old=DISABLED new=ACTIVE.
+IT-01,{created_user_id},ACTIVE,DISABLED,200,,Integration test — disable step of full CRUD lifecycle.
+IT-01,{created_user_id},DISABLED,ACTIVE,200,,Integration test — enable step of full CRUD lifecycle.
+IT-06,{active_user_id},ACTIVE,DISABLED,200,,Integration test — disable + verify audit log entry has action=USER_DISABLED.
+SIT-07,{active_user_id},ACTIVE,DISABLED,200,,Manual SIT — click Disable button. Confirm dialog. Verify grayed-out row + DISABLED badge.
+SIT-08,{disabled_user_id},DISABLED,ACTIVE,200,,Manual SIT — click Enable button (no confirm needed). Verify normal row + ACTIVE badge.
+UT-14,{existing_user_id},ACTIVE,PENDING,400,"Invalid status: PENDING. Valid values: ACTIVE, DISABLED",PENDING status rejected — reserved for future use. Expect 400.
+E2E-API-02,{created_user_id},ACTIVE,DISABLED,200,,E2E-API — disable step of full CRUD lifecycle on real server.
+E2E-API-02,{created_user_id},DISABLED,ACTIVE,200,,E2E-API — enable step of full CRUD lifecycle on real server.
+E2E-API-05,{created_user_id},ACTIVE,DISABLED,200,,E2E-API — disable on real server. Verify GET returns DISABLED.
+E2E-API-05,{created_user_id},DISABLED,ACTIVE,200,,E2E-API — re-enable on real server. Verify GET returns ACTIVE.
+E2E-API-05,{created_user_id},ACTIVE,INVALID,400,"Invalid status: INVALID. Valid values: ACTIVE, DISABLED",E2E-API — invalid status on real server. Expect 400.
+E2E-API-06,{created_user_id},ACTIVE,DISABLED,200,,E2E-API — disable + verify audit log USER_DISABLED on real server.

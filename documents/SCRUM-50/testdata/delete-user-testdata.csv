@@ -1,0 +1,14 @@
+test_case_id,user_id,user_name,user_email,actor_id,expected_http_code,expected_error_message,description
+UT-15,{existing_user_id},Test User,test@example.com,admin-001,204,,Valid delete — user permanently removed. Expect 204 No Content. findById returns null.
+UT-16,admin-001,Admin User,admin@collex.ai,admin-001,403,Cannot delete your own account,Self-deletion attempt — admin tries to delete own account. Expect 403 Forbidden.
+UT-17,00000000-0000-0000-0000-000000000000,N/A,N/A,admin-001,404,User not found,Delete non-existent user — random UUID not in store. Expect 404.
+PBT-10,{existing_user_id},Random User,random@test.com,admin-001,204,,Property test — delete then verify findById returns null and getAll excludes user.
+PBT-06,{existing_user_id},Delete Me,delete@test.com,admin-001,204,,Property test — delete + verify audit log has action=USER_DELETED old=name+email.
+PBT-13,{random_uuid},N/A,N/A,admin-001,404,User not found,Property test — random UUID returns 404 on DELETE.
+IT-01,{created_user_id},Lifecycle User,lifecycle@test.com,admin-001,204,,Integration test — delete step of full CRUD lifecycle. Followed by GET returning 404.
+IT-07,{existing_user_id},Delete Me,delete@test.com,admin-001,204,,Integration test — delete + verify audit log entry has action=USER_DELETED.
+SIT-09,user-005,Delete Target,delete-target@collex.ai,admin-001,204,,Manual SIT — click Delete. Type exact name "Delete Target" to confirm. Verify user removed from list.
+SIT-10,user-005,Delete Target,delete-target@collex.ai,admin-001,N/A,,Manual SIT — type wrong name "Wrong Name" → Confirm button disabled. Type correct name → Confirm enabled.
+E2E-API-02,{created_user_id},E2E Lifecycle,e2e-lifecycle@test.com,admin-001,204,,E2E-API — delete step of full CRUD lifecycle on real server. Followed by GET returning 404.
+E2E-API-04,admin-001,Admin User,admin@collex.ai,admin-001,403,Cannot delete your own account,E2E-API — self-deletion prevention on real server. Admin tries to delete own account.
+E2E-API-06,{created_user_id},Audit E2E,audit-e2e@test.com,admin-001,204,,E2E-API — delete + verify audit log USER_DELETED on real server.

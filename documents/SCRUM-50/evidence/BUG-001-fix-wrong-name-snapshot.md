@@ -1,0 +1,201 @@
+- generic [ref=e1]:
+  - generic [ref=e4]:
+    - complementary [ref=e15]:
+      - generic [ref=e18]: JIRA ASSISTANT
+      - navigation [ref=e19]:
+        - link "🏠 Dashboard" [ref=e20] [cursor=pointer]:
+          - /url: "#dashboard"
+          - generic [ref=e21]: 🏠
+          - text: Dashboard
+        - link "🔍 Relationship Network" [ref=e22] [cursor=pointer]:
+          - /url: "#knowledge_graph"
+          - generic [ref=e23]: 🔍
+          - text: Relationship Network
+        - link "📊 Project Analysis" [ref=e24] [cursor=pointer]:
+          - /url: "#analysis"
+          - generic [ref=e25]: 📊
+          - text: Project Analysis
+        - link "✨ Ticket Intelligence" [ref=e26] [cursor=pointer]:
+          - /url: "#ticket_intelligence"
+          - generic [ref=e27]: ✨
+          - text: Ticket Intelligence
+        - link "🔌 Integrations" [ref=e28] [cursor=pointer]:
+          - /url: "#integrations"
+          - generic [ref=e29]: 🔌
+          - text: Integrations
+        - link "👥 User Management" [ref=e30] [cursor=pointer]:
+          - /url: "#user_management"
+          - generic [ref=e31]: 👥
+          - text: User Management
+        - link "⚙️ Settings" [ref=e32] [cursor=pointer]:
+          - /url: "#settings"
+          - generic [ref=e33]: ⚙️
+          - text: Settings
+      - generic [ref=e34]:
+        - generic [ref=e35]: "System Status: ACTIVE"
+        - generic [ref=e38]: READY
+    - generic [ref=e40]:
+      - navigation [ref=e41]:
+        - generic [ref=e42]: MANAGEMENT / USER MANAGEMENT
+        - generic [ref=e43]:
+          - button "Toggle AI Chat Sidebar" [ref=e44] [cursor=pointer]: 💬
+          - generic [ref=e45] [cursor=pointer]:
+            - generic [ref=e46]: A
+            - generic [ref=e47]: admin
+          - generic [ref=e150] [cursor=pointer]: Select Project
+      - generic [ref=e151]:
+        - banner [ref=e152]:
+          - heading "User Management" [level=1] [ref=e153]
+          - paragraph [ref=e154]: RBAC roles, permissions, and audit log management.
+        - generic [ref=e155]:
+          - generic [ref=e156]:
+            - generic [ref=e157]: USER DIRECTORY
+            - button "+ Add User" [ref=e158] [cursor=pointer]
+          - generic [ref=e159]:
+            - generic [ref=e273] [cursor=pointer]:
+              - generic [ref=e274]: A
+              - generic [ref=e275]:
+                - generic [ref=e276]: admin
+                - generic [ref=e277]: admin@assistant.local
+              - generic [ref=e278]: ACTIVE
+              - combobox [ref=e279]:
+                - option "ADMINISTRATOR" [selected]
+                - option "NEURAL ARCHITECT"
+                - option "READER"
+            - generic [ref=e280] [cursor=pointer]:
+              - generic [ref=e281]: U
+              - generic [ref=e282]:
+                - generic [ref=e283]: user
+                - generic [ref=e284]: user@assistant.local
+              - generic [ref=e285]: ACTIVE
+              - combobox [ref=e286]:
+                - option "ADMINISTRATOR"
+                - option "NEURAL ARCHITECT"
+                - option "READER" [selected]
+            - generic [ref=e287] [cursor=pointer]:
+              - generic [ref=e288]: BU
+              - generic [ref=e289]:
+                - generic [ref=e290]: BugTest User
+                - generic [ref=e291]: bugtest@example.com
+              - generic [ref=e292]: ACTIVE
+              - combobox [ref=e293]:
+                - option "ADMINISTRATOR"
+                - option "NEURAL ARCHITECT"
+                - option "READER" [selected]
+        - generic [ref=e294]:
+          - generic [ref=e295]:
+            - generic [ref=e296]: BU
+            - generic [ref=e297]:
+              - generic [ref=e298]: BugTest User
+              - generic [ref=e299]: bugtest@example.com
+            - generic [ref=e300]: ACTIVE
+          - generic [ref=e301]:
+            - generic [ref=e302]:
+              - generic [ref=e303]: Role
+              - generic [ref=e304]: READER
+            - generic [ref=e305]:
+              - generic [ref=e306]: Created
+              - generic [ref=e307]: 2026-04-30
+          - generic [ref=e308]:
+            - button "Edit" [ref=e309] [cursor=pointer]
+            - button "Disable" [ref=e310] [cursor=pointer]
+            - button "Delete" [ref=e311] [cursor=pointer]
+        - generic [ref=e312]:
+          - generic [ref=e313]: PERMISSION TOGGLES — BugTest User
+          - generic [ref=e314]:
+            - generic [ref=e316]: Trigger AI Scan
+            - generic [ref=e321]: Knowledge Base Write
+            - generic [ref=e326]: Update Integrations
+            - generic [ref=e331]: Export Neural Data
+        - generic [ref=e174]:
+          - generic [ref=e175]: AUDIT LOG — NEURAL CONSOLE
+          - generic [ref=e176]:
+            - generic [ref=e177]:
+              - generic [ref=e178]: "[2026-04-30T18:42:23.248436Z]"
+              - generic [ref=e179]: USER_DELETED
+            - generic [ref=e180]:
+              - generic [ref=e181]: "[2026-04-30T18:39:36.217331]"
+              - generic [ref=e182]: TOGGLE_PERMISSION
+              - generic [ref=e183]: ANALYZE_AI
+            - generic [ref=e184]:
+              - generic [ref=e185]: "[2026-04-30T18:36:27.381003600Z]"
+              - generic [ref=e186]: USER_CREATED
+              - generic [ref=e187]: role=READER
+            - generic [ref=e188]:
+              - generic [ref=e189]: "[2026-04-30T18:18:40.975976800]"
+              - generic [ref=e190]: CHANGE_ROLE
+              - generic [ref=e191]: READER
+            - generic [ref=e192]:
+              - generic [ref=e193]: "[2026-04-30T17:48:58.407756300]"
+              - generic [ref=e194]: TOGGLE_PERMISSION
+              - generic [ref=e195]: ANALYZE_AI
+            - generic [ref=e196]:
+              - generic [ref=e197]: "[2026-04-30T17:46:33.765819400]"
+              - generic [ref=e198]: CHANGE_ROLE
+              - generic [ref=e199]: NEURAL_ARCHITECT
+            - generic [ref=e200]:
+              - generic [ref=e201]: "[2026-04-30T17:45:13.342554300Z]"
+              - generic [ref=e202]: USER_DELETED
+            - generic [ref=e203]:
+              - generic [ref=e204]: "[2026-04-30T17:41:19.220744900Z]"
+              - generic [ref=e205]: USER_ENABLED
+              - generic [ref=e206]: ACTIVE
+            - generic [ref=e207]:
+              - generic [ref=e208]: "[2026-04-30T17:40:02.508095900Z]"
+              - generic [ref=e209]: USER_DISABLED
+              - generic [ref=e210]: DISABLED
+            - generic [ref=e211]:
+              - generic [ref=e212]: "[2026-04-30T17:37:31.262125800Z]"
+              - generic [ref=e213]: USER_UPDATED
+              - generic [ref=e214]: name=Test User Edited, email=sit-test@example.com
+            - generic [ref=e215]:
+              - generic [ref=e216]: "[2026-04-30T17:30:02.561785100Z]"
+              - generic [ref=e217]: USER_CREATED
+              - generic [ref=e218]: role=NEURAL_ARCHITECT
+            - generic [ref=e219]:
+              - generic [ref=e220]: "[2026-04-30T17:00:05.245981500Z]"
+              - generic [ref=e221]: USER_CREATED
+              - generic [ref=e222]: role=NEURAL_ARCHITECT
+            - generic [ref=e223]:
+              - generic [ref=e224]: "[2026-04-30T16:53:57.649650600Z]"
+              - generic [ref=e225]: USER_CREATED
+              - generic [ref=e226]: role=NEURAL_ARCHITECT
+            - generic [ref=e227]:
+              - generic [ref=e228]: "[2026-04-30T16:21:41.026342]"
+              - generic [ref=e229]: TOGGLE_PERMISSION
+              - generic [ref=e230]: ANALYZE_AI,CONFIG_INTEGRATIONS
+            - generic [ref=e231]:
+              - generic [ref=e232]: "[2026-04-30T16:21:37.682397]"
+              - generic [ref=e233]: TOGGLE_PERMISSION
+              - generic [ref=e234]: ANALYZE_AI
+            - generic [ref=e235]:
+              - generic [ref=e236]: "[2026-04-30T16:21:15.007932500]"
+              - generic [ref=e237]: TOGGLE_PERMISSION
+              - generic [ref=e238]: ANALYZE_AI
+            - generic [ref=e239]:
+              - generic [ref=e240]: "[2026-04-30T13:41:17.008877400Z]"
+              - generic [ref=e241]: USER_DELETED
+            - generic [ref=e242]:
+              - generic [ref=e243]: "[2026-04-30T13:39:06.561489Z]"
+              - generic [ref=e244]: USER_ENABLED
+              - generic [ref=e245]: ACTIVE
+            - generic [ref=e246]:
+              - generic [ref=e247]: "[2026-04-30T13:38:34.326675900Z]"
+              - generic [ref=e248]: USER_DISABLED
+              - generic [ref=e249]: DISABLED
+            - generic [ref=e250]:
+              - generic [ref=e251]: "[2026-04-30T13:37:34.511528200Z]"
+              - generic [ref=e252]: USER_UPDATED
+              - generic [ref=e253]: name=Test User Updated, email=testuser@example.com
+            - generic [ref=e254]:
+              - generic [ref=e255]: "[2026-04-30T13:34:08.256316900Z]"
+              - generic [ref=e256]: USER_CREATED
+              - generic [ref=e257]: role=NEURAL_ARCHITECT
+  - generic [ref=e345]:
+    - generic [ref=e346]: Are you sure you want to delete BugTest User? This action cannot be undone.
+    - generic [ref=e347]:
+      - generic [ref=e348]: "Type the user name to confirm:"
+      - textbox "BugTest User" [active] [ref=e349]: Wrong Name
+    - generic [ref=e350]:
+      - button "Confirm" [disabled]
+      - button "Cancel" [ref=e351] [cursor=pointer]

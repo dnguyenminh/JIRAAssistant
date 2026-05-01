@@ -1,0 +1,25 @@
+test_case_id,endpoint,method,jwt_token,jwt_role,jwt_permissions,request_body,expected_http_code,expected_error_message,description
+IT-02,/api/users,POST,,,,"{""name"":""Test"",""email"":""t@t.com"",""role"":""READER""}",401,Unauthorized,No JWT — POST create user without Authorization header. Expect 401.
+IT-02,/api/users/{id},GET,,,,,401,Unauthorized,No JWT — GET user detail without Authorization header. Expect 401.
+IT-02,/api/users/{id},PUT,,,,"{""name"":""Test"",""email"":""t@t.com""}",401,Unauthorized,No JWT — PUT update user without Authorization header. Expect 401.
+IT-02,/api/users/{id}/status,PUT,,,,"{""status"":""DISABLED""}",401,Unauthorized,No JWT — PUT status change without Authorization header. Expect 401.
+IT-02,/api/users/{id},DELETE,,,,,401,Unauthorized,No JWT — DELETE user without Authorization header. Expect 401.
+IT-03,/api/users,POST,READER_JWT,READER,,"{""name"":""Test"",""email"":""t@t.com"",""role"":""READER""}",403,Forbidden,Forbidden — READER role has no MANAGE_USERS permission. Expect 403 on POST.
+IT-03,/api/users/{id},GET,READER_JWT,READER,,,403,Forbidden,Forbidden — READER role has no MANAGE_USERS permission. Expect 403 on GET.
+IT-03,/api/users/{id},PUT,READER_JWT,READER,,"{""name"":""Test"",""email"":""t@t.com""}",403,Forbidden,Forbidden — READER role has no MANAGE_USERS permission. Expect 403 on PUT.
+IT-03,/api/users/{id}/status,PUT,READER_JWT,READER,,"{""status"":""DISABLED""}",403,Forbidden,Forbidden — READER role has no MANAGE_USERS permission. Expect 403 on PUT status.
+IT-03,/api/users/{id},DELETE,READER_JWT,READER,,,403,Forbidden,Forbidden — READER role has no MANAGE_USERS permission. Expect 403 on DELETE.
+PBT-12,/api/users,POST,,,,"{""name"":""Test"",""email"":""t@t.com"",""role"":""READER""}",401,Unauthorized,Property test — no JWT on all 5 endpoints returns 401.
+PBT-12,/api/users,POST,READER_JWT,READER,,"{""name"":""Test"",""email"":""t@t.com"",""role"":""READER""}",403,Forbidden,Property test — READER JWT on all 5 endpoints returns 403.
+PBT-12,/api/users,POST,EXPIRED_JWT,,,"{""name"":""Test"",""email"":""t@t.com"",""role"":""READER""}",401,Unauthorized,Property test — expired JWT returns 401.
+PBT-12,/api/users,POST,NEURAL_JWT,NEURAL_ARCHITECT,,"{""name"":""Test"",""email"":""t@t.com"",""role"":""READER""}",403,Forbidden,Property test — NEURAL_ARCHITECT JWT (no MANAGE_USERS) returns 403.
+E2E-API-03,/api/users,POST,,,,"{""name"":""Test"",""email"":""t@t.com"",""role"":""READER""}",401,Unauthorized,E2E-API — no JWT on real server POST. Expect 401.
+E2E-API-03,/api/users/{id},GET,,,,,401,Unauthorized,E2E-API — no JWT on real server GET. Expect 401.
+E2E-API-03,/api/users/{id},PUT,,,,"{""name"":""Test"",""email"":""t@t.com""}",401,Unauthorized,E2E-API — no JWT on real server PUT. Expect 401.
+E2E-API-03,/api/users/{id}/status,PUT,,,,"{""status"":""DISABLED""}",401,Unauthorized,E2E-API — no JWT on real server PUT status. Expect 401.
+E2E-API-03,/api/users/{id},DELETE,,,,,401,Unauthorized,E2E-API — no JWT on real server DELETE. Expect 401.
+E2E-API-03,/api/users,POST,READER_JWT,READER,,"{""name"":""Test"",""email"":""t@t.com"",""role"":""READER""}",403,Forbidden,E2E-API — READER JWT on real server POST. Expect 403.
+E2E-API-03,/api/users/{id},GET,READER_JWT,READER,,,403,Forbidden,E2E-API — READER JWT on real server GET. Expect 403.
+E2E-API-03,/api/users/{id},PUT,READER_JWT,READER,,"{""name"":""Test"",""email"":""t@t.com""}",403,Forbidden,E2E-API — READER JWT on real server PUT. Expect 403.
+E2E-API-03,/api/users/{id}/status,PUT,READER_JWT,READER,,"{""status"":""DISABLED""}",403,Forbidden,E2E-API — READER JWT on real server PUT status. Expect 403.
+E2E-API-03,/api/users/{id},DELETE,READER_JWT,READER,,,403,Forbidden,E2E-API — READER JWT on real server DELETE. Expect 403.
