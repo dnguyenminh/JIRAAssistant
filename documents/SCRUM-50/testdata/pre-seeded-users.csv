@@ -1,0 +1,6 @@
+id,name,email,role,status,permissions,created_at,description
+admin-001,Admin User,admin@collex.ai,ADMINISTRATOR,ACTIVE,MANAGE_USERS,2026-01-01T00:00:00Z,Pre-seeded admin — actor for all CRUD tests. Has MANAGE_USERS permission. Used as JWT identity for IT-01 through IT-07 and all SIT tests.
+user-002,Neural User,neural@collex.ai,NEURAL_ARCHITECT,ACTIVE,,2026-01-15T00:00:00Z,Pre-seeded NEURAL_ARCHITECT — no MANAGE_USERS. Used for IT-03 (forbidden access) and PBT-12 (unauthorized rejection).
+user-003,Reader User,reader@collex.ai,READER,ACTIVE,,2026-02-01T00:00:00Z,Pre-seeded READER — no MANAGE_USERS. Used for IT-03 (forbidden access) and PBT-12 (unauthorized rejection).
+user-004,Disabled User,disabled@collex.ai,READER,DISABLED,,2026-02-15T00:00:00Z,Pre-seeded DISABLED user — used for PBT-11 (disabled auth rejection) and SIT-08 (enable user).
+user-005,Delete Target,delete-target@collex.ai,READER,ACTIVE,,2026-03-01T00:00:00Z,Pre-seeded user designated for delete tests — SIT-09 and SIT-10. Name must be typed exactly for confirmation dialog.

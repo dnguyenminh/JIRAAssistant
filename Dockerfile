@@ -13,6 +13,16 @@ COPY gradle/libs.versions.toml gradle/libs.versions.toml
 # Copy module build files
 COPY shared/build.gradle.kts shared/build.gradle.kts
 COPY server/build.gradle.kts server/build.gradle.kts
+COPY server/core/build.gradle.kts server/core/build.gradle.kts
+COPY server/dashboard/build.gradle.kts server/dashboard/build.gradle.kts
+COPY server/analysis/build.gradle.kts server/analysis/build.gradle.kts
+COPY server/docgen/build.gradle.kts server/docgen/build.gradle.kts
+COPY server/agent/build.gradle.kts server/agent/build.gradle.kts
+COPY server/chat/build.gradle.kts server/chat/build.gradle.kts
+COPY server/mcp/build.gradle.kts server/mcp/build.gradle.kts
+COPY server/knowledge-graph/build.gradle.kts server/knowledge-graph/build.gradle.kts
+COPY server/user-mgmt/build.gradle.kts server/user-mgmt/build.gradle.kts
+COPY server/testing-support/build.gradle.kts server/testing-support/build.gradle.kts
 COPY frontend/build.gradle.kts frontend/build.gradle.kts
 
 

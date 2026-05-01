@@ -183,16 +183,13 @@ tasks.test {
     useJUnitPlatform()
     testLogging.showStandardStreams = true
 
-    // Parallel execution: use multiple JVM forks (22 cores → 8 forks)
-    // Each fork runs a subset of test classes concurrently
-    // API tests: lightweight HTTP calls, safe to parallelize heavily
-    // UI tests: each opens Chrome, ~300MB RAM each, limit forks
-
-    // systemProperty("serenity.batch.strategy", "DIVIDE_BY_TEST_COUNT")
-    maxParallelForks = Runtime.getRuntime().availableProcessors() // Sử dụng tối đa số nhân CPU
+    // Parallel execution: use half of available CPU cores to avoid resource exhaustion
+    // Each UI fork opens Chrome (~300MB RAM), too many forks → DevToolsActivePort errors
+    maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
 
     systemProperty("cucumber.execution.parallel.enabled", "true") 
-    systemProperty("cucumber.execution.parallel.config.strategy", "dynamic")
+    systemProperty("cucumber.execution.parallel.config.strategy", "fixed")
+    systemProperty("cucumber.execution.parallel.config.fixed.parallelism", "4")
 
     systemProperty("test.server.port", serverPort.toString())
     systemProperty("test.server.baseUrl", "http://localhost:$serverPort")
@@ -232,8 +229,8 @@ val uiTest by tasks.registering(Test::class) {
     useJUnitPlatform()
     testLogging.showStandardStreams = true
     filter { includeTestsMatching("com.assistant.e2e.runners.Ui*") }
-    // 10 runner classes (1 per feature) → 6 parallel Chrome instances
-    maxParallelForks = 6
+    // 10 runner classes (1 per feature) → use half CPU cores for Chrome instances
+    maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
     // Ensure each fork gets its own temp dir for Chrome profile
     jvmArgs("-Djava.io.tmpdir=${layout.buildDirectory.dir("tmp-ui").get().asFile.absolutePath}")
     systemProperty("test.server.port", serverPort.toString())

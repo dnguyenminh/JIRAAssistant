@@ -1,0 +1,15 @@
+test_case_id,user_id,original_name,original_email,new_name,new_email,expected_http_code,expected_error_message,description
+UT-09,{existing_user_id},John Doe,john@example.com,John Updated,john.updated@example.com,200,,Valid update — change both name and email. Expect 200 + updated UserDto.
+UT-10,{user_b_id},User B,b@test.com,User B,a@test.com,409,Email already exists,Duplicate email on update — User A already has a@test.com. Expect 409 Conflict.
+UT-11,00000000-0000-0000-0000-000000000000,N/A,N/A,Test,test@test.com,404,User not found,Update non-existent user — random UUID not in store. Expect 404.
+PBT-01,{existing_user_id},Original,orig@test.com,   ,orig@test.com,400,Name is required,Property test — whitespace-only name rejected on update.
+PBT-02,{existing_user_id},Original,orig@test.com,Original,notanemail,400,Invalid email format,Property test — invalid email rejected on update.
+PBT-04,{existing_user_id},Original,orig@test.com,Original,admin@collex.ai,409,Email already exists,Property test — duplicate email rejected on update.
+PBT-06,{existing_user_id},Old Name,old@test.com,New Name,new@test.com,200,,Property test — verify audit log entry has action=USER_UPDATED with old/new values.
+PBT-13,{random_uuid},N/A,N/A,Test,test@test.com,404,User not found,Property test — random UUID returns 404 on PUT.
+IT-01,{created_user_id},Lifecycle User,lifecycle@test.com,Updated Name,updated@test.com,200,,Integration test — update step of full CRUD lifecycle.
+IT-05,{existing_user_id},Old Name,old@test.com,New Name,new@test.com,200,,Integration test — update + verify audit log has old/new values.
+SIT-05,{selected_user_id},Original Name,original@test.com,Edited Name,original@test.com,200,,Manual SIT — click Edit in Detail Panel then change name and Save. Verify update in directory.
+SIT-06,{selected_user_id},Original Name,original@test.com,Should Not Save,original@test.com,N/A,,Manual SIT — click Edit then Cancel. Verify original name restored and no PUT request sent.
+E2E-API-02,{created_user_id},E2E Lifecycle,e2e-lifecycle@test.com,E2E Updated,e2e-updated@test.com,200,,E2E-API — update step of full CRUD lifecycle on real server.
+E2E-API-06,{created_user_id},Audit E2E,audit-e2e@test.com,Audit Updated,audit-updated@test.com,200,,E2E-API — update + verify audit log USER_UPDATED on real server.

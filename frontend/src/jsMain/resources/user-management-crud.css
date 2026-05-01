@@ -1,0 +1,197 @@
+/* User Management CRUD — Create form, Detail panel, Confirm dialog */
+/* Supplements user-management.css for CRUD operations */
+
+/* ===== Create Form ===== */
+.um-create-form {
+    padding: 24px 32px;
+    margin-bottom: 24px;
+}
+.um-form-field {
+    margin-bottom: 16px;
+}
+.um-form-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    opacity: 0.5;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+.um-form-input {
+    width: 100%;
+    box-sizing: border-box;
+}
+.um-form-select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    background: rgba(12, 14, 22, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #fff;
+    font-family: 'Be Vietnam Pro', sans-serif;
+    font-size: 13px;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+}
+.um-form-select:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(45, 254, 207, 0.1);
+}
+.um-form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+.um-form-error {
+    display: block;
+    font-size: 11px;
+    color: var(--danger);
+    margin-top: 4px;
+    min-height: 16px;
+}
+.um-form-error-global {
+    font-size: 12px;
+    color: var(--danger);
+    margin-top: 12px;
+    text-align: center;
+}
+
+/* ===== Detail Panel ===== */
+.um-detail-panel {
+    padding: 24px 32px;
+    margin-bottom: 24px;
+}
+.um-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--glass-border);
+}
+.um-detail-avatar {
+    width: 56px;
+    height: 56px;
+    font-size: 22px;
+}
+.um-detail-header-info {
+    flex: 1;
+    min-width: 0;
+}
+.um-detail-name {
+    font-size: 16px;
+    font-weight: 600;
+}
+.um-detail-email {
+    font-size: 12px;
+    opacity: 0.5;
+    margin-top: 2px;
+}
+.um-detail-info {
+    margin-bottom: 20px;
+}
+.um-detail-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+.um-detail-label {
+    font-size: 12px;
+    opacity: 0.4;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.um-detail-value {
+    font-size: 13px;
+    color: var(--primary);
+}
+.um-detail-actions {
+    display: flex;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--glass-border);
+}
+
+/* ===== Status Badges ===== */
+.um-status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+.um-status-active {
+    background: rgba(45, 254, 207, 0.12);
+    color: var(--primary);
+    border: 1px solid rgba(45, 254, 207, 0.25);
+}
+.um-status-disabled {
+    background: rgba(255, 77, 77, 0.1);
+    color: var(--danger);
+    border: 1px solid rgba(255, 77, 77, 0.2);
+}
+.um-status-pending {
+    background: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+    border: 1px solid rgba(255, 193, 7, 0.2);
+}
+
+/* ===== Confirmation Dialog ===== */
+.um-confirm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(4px);
+}
+.um-confirm-dialog {
+    width: 100%;
+    max-width: 420px;
+    padding: 32px;
+}
+.um-confirm-message {
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+.um-confirm-input-wrap {
+    margin-bottom: 16px;
+}
+
+/* ===== Button Variants ===== */
+.btn-ghost {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-family: 'Be Vietnam Pro', sans-serif;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.btn-ghost:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.2); }
+.btn-warning { color: #ffc107; border-color: rgba(255, 193, 7, 0.2); }
+.btn-warning:hover { background: rgba(255, 193, 7, 0.08); border-color: rgba(255, 193, 7, 0.4); }
+.btn-danger { color: var(--danger); border-color: rgba(255, 77, 77, 0.2); }
+.btn-danger:hover { background: rgba(255, 77, 77, 0.08); border-color: rgba(255, 77, 77, 0.4); }
+.btn-ghost[disabled], .btn-ghost.btn-disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+}

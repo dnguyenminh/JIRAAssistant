@@ -22,8 +22,20 @@ kotlin {
             mainClass.set("com.assistant.server.ApplicationKt")
         }
         testRuns["test"].executionTask.configure {
-            useJUnitPlatform()
+            useJUnitPlatform {
+                // Exclude sequential tests — they run in jvmTestSequential
+                excludeTags("sequential")
+            }
             workingDir = rootProject.projectDir
+            maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+            systemProperty("junit.jupiter.execution.timeout.default", "120s")
+            // Gradle-level forkEvery: restart JVM after N test classes to prevent memory leaks
+            forkEvery = 50
+            // Log which test classes start/finish to identify stuck tests
+            testLogging {
+                events("started", "passed", "skipped", "failed")
+                showStandardStreams = false
+            }
             if (project.hasProperty("testFilter")) {
                 filter {
                     includeTestsMatching(project.property("testFilter") as String)
@@ -35,6 +47,16 @@ kotlin {
     sourceSets {
         jvmMain.dependencies {
             implementation(project(":shared"))
+            implementation(project(":server:core"))
+            implementation(project(":server:dashboard"))
+            implementation(project(":server:analysis"))
+            implementation(project(":server:docgen"))
+            implementation(project(":server:agent"))
+            implementation(project(":server:chat"))
+            implementation(project(":server:mcp"))
+            implementation(project(":server:knowledge-graph"))
+            implementation(project(":server:user-mgmt"))
+            implementation(project(":server:testing-support"))
 
             // Ktor Server
             implementation(libs.ktor.server.core)
@@ -76,10 +98,10 @@ kotlin {
         }
 
         jvmTest.dependencies {
-            implementation(kotlin("test"))
             implementation(kotlin("test-junit5"))
             implementation(libs.ktor.server.test.host)
             implementation(libs.koin.test)
+            implementation(project(":server:testing-support"))
 
             // JUnit 5
             implementation("org.junit.jupiter:junit-jupiter:${libs.versions.junit.get()}")
@@ -110,6 +132,37 @@ tasks.matching { it.name == "jvmRun" }.configureEach {
             environment(key, value)
         }
     }
+}
+
+// ── Sequential test task: Testcontainers, subprocess pipe tests ──
+// Tests tagged @Tag("sequential") run here, one at a time.
+val jvmTestSequential by tasks.registering(Test::class) {
+    description = "Runs sequential tests (Testcontainers, subprocess pipes)"
+    group = "verification"
+    useJUnitPlatform {
+        includeTags("sequential")
+    }
+    workingDir = rootProject.projectDir
+    maxParallelForks = 1
+    systemProperty("junit.jupiter.execution.timeout.default", "180s")
+    val jvmTest = kotlin.jvm().compilations["test"]
+    testClassesDirs = jvmTest.output.classesDirs
+    classpath = jvmTest.runtimeDependencyFiles + jvmTest.output.allOutputs
+}
+
+// ── Aggregate sub-module parallel tests into :server:jvmTest ──
+// Requirement 7.6 / 11.3: ./gradlew :server:jvmTest runs all parallel tests across all sub-modules
+tasks.named("jvmTest") {
+    dependsOn(subprojects.mapNotNull { it.tasks.findByName("jvmTest") })
+}
+
+// ── Combined task: run parallel first, then sequential ──
+tasks.register("jvmTestAll") {
+    description = "Runs all server tests: parallel first, then sequential"
+    group = "verification"
+    dependsOn("jvmTest")
+    dependsOn(jvmTestSequential)
+    jvmTestSequential.get().mustRunAfter("jvmTest")
 }
 
 // Fat JAR task for Docker deployment
