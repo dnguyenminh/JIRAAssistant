@@ -1,8 +1,0 @@
-[
-  {
-    "title": "Code Index — root",
-    "content": "Module: root\nLanguage: typescript\nFramework: none\nPurpose: Application module\nSource files: 14\nClasses: 0\nFunctions: 125\n\nPackages:\n  - projects.java.skiptracing.skip-tracing-workflow..analysis.code-intelligence.scripts.src: Application logic\n\nDetected patterns:\n  DI Style: none\n  Error Handling: unknown\n  Naming: unknown\n  Logging: unknown\n  Testing: unknown",
-    "tags": "code-index, root, typescript",
-    "project": "scripts"
-  }
-]

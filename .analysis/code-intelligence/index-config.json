@@ -29,6 +29,7 @@
     "target",
     ".gradle",
     ".git",
+    ".analysis",
     "node_modules",
     ".idea",
     ".kiro",

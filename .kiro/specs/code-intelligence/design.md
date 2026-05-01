@@ -196,7 +196,7 @@ function loadConfig(): IndexConfig
     ".sql",
     ".toml", ".cfg", ".ini"
   ],
-  "excludedDirectories": ["build", "dist", "out", "target", ".gradle", ".git", "node_modules", ".idea", ".kiro", ".vscode", "__pycache__", ".mypy_cache", "vendor", "bin", "obj"],
+  "excludedDirectories": ["build", "dist", "out", "target", ".gradle", ".git", ".analysis", "node_modules", ".idea", ".kiro", ".vscode", "__pycache__", ".mypy_cache", "vendor", "bin", "obj"],
   "excludedFilePatterns": ["*.generated.*", "*.min.*", "*.map", "*.lock", "*.sum"]
 }
 ```
