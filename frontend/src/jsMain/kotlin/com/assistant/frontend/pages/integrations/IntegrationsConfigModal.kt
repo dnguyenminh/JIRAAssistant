@@ -22,9 +22,6 @@ import org.w3c.dom.HTMLSelectElement
 internal object IntegrationsConfigModal {
 
     fun openConfigModal(provider: ProviderInfo) {
-        if (provider.type.uppercase() == "JIRA") {
-            IntegrationsJiraModal.openJiraConfigModal(provider); return
-        }
         IntegrationsPage.activeModal = provider.providerId
         val overlay = document.getElementById("integ-modal-overlay") as? HTMLElement ?: return
         val content = document.getElementById("integ-modal-content") as? HTMLElement ?: return

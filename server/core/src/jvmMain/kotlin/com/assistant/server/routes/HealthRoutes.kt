@@ -1,6 +1,8 @@
 package com.assistant.server.routes
 
-import com.assistant.server.config.ServerConfig
+import com.assistant.ai.ProviderType
+import com.assistant.jira.JiraCredentialsService
+import com.assistant.kb.ProviderConfigRepository
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -30,12 +32,13 @@ data class ComponentHealth(
  * No authentication required.
  */
 fun Routing.healthRoutes() {
-    val config by inject<ServerConfig>()
+    val jiraCredentialsService by inject<JiraCredentialsService>()
+    val providerConfigRepo by inject<ProviderConfigRepository>()
     val httpClient by inject<HttpClient>()
 
     get("/health") {
-        val jiraHealth = checkJira(httpClient, config.jiraHost)
-        val aiHealth = checkAiProvider(httpClient, config.aiProviderUrl)
+        val jiraHealth = checkJira(httpClient, jiraCredentialsService)
+        val aiHealth = checkAiProvider(httpClient, providerConfigRepo)
         val kbHealth = checkKnowledgeBase()
 
         val overallStatus = if (
@@ -53,9 +56,13 @@ fun Routing.healthRoutes() {
     }
 }
 
-private suspend fun checkJira(client: HttpClient, jiraHost: String): ComponentHealth {
+private suspend fun checkJira(
+    client: HttpClient, jiraCredentialsService: JiraCredentialsService
+): ComponentHealth {
+    val credentials = jiraCredentialsService.getJiraCredentials()
+        ?: return ComponentHealth(status = "down", message = "Not configured")
     return try {
-        val response = client.get("$jiraHost/rest/api/3/serverInfo")
+        val response = client.get("${credentials.domain}/rest/api/3/serverInfo")
         if (response.status.isSuccess()) {
             ComponentHealth(status = "up")
         } else {
@@ -66,9 +73,18 @@ private suspend fun checkJira(client: HttpClient, jiraHost: String): ComponentHe
     }
 }
 
-private suspend fun checkAiProvider(client: HttpClient, aiProviderUrl: String): ComponentHealth {
+private suspend fun checkAiProvider(
+    client: HttpClient, providerConfigRepo: ProviderConfigRepository
+): ComponentHealth {
+    val aiTypes = listOf(ProviderType.OLLAMA, ProviderType.GEMINI, ProviderType.LM_STUDIO)
+    val provider = aiTypes.firstNotNullOfOrNull { providerConfigRepo.findByType(it) }
+        ?: return ComponentHealth(status = "down", message = "Not configured")
+    val endpoint = provider.endpoint
+    if (endpoint.isBlank()) {
+        return ComponentHealth(status = "down", message = "Not configured")
+    }
     return try {
-        val response = client.get(aiProviderUrl)
+        val response = client.get(endpoint)
         if (response.status.isSuccess()) {
             ComponentHealth(status = "up")
         } else {

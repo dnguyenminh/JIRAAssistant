@@ -61,7 +61,7 @@ object GlobalJobIndicatorPanel {
         } else {
             pauseBtn?.style?.display = "none"
         }
-        if (job.status in listOf("QUEUED", "PAUSED")) {
+        if (job.status in listOf("QUEUED", "PAUSED", "RUNNING")) {
             cancelBtn?.addEventListener("click", { cancelJob(job.jobId) })
         } else {
             cancelBtn?.style?.display = "none"

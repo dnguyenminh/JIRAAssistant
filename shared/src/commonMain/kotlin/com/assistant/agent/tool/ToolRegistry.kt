@@ -1,6 +1,7 @@
 package com.assistant.agent.tool
 
 import com.assistant.agent.models.ToolDescriptor
+import com.assistant.agent.models.ToolDescriptorWithSource
 import com.assistant.agent.models.ToolResult
 
 /**
@@ -20,6 +21,19 @@ interface ToolRegistry {
 
     /** List descriptors for all registered tools. */
     fun listTools(): List<ToolDescriptor>
+
+    /**
+     * List descriptors enriched with source metadata.
+     * Default returns all tools as LOCAL source.
+     */
+    fun listToolsWithSource(): List<ToolDescriptorWithSource> =
+        listTools().map {
+            ToolDescriptorWithSource(
+                name = it.name,
+                description = it.description,
+                parameterNames = it.parameterNames
+            )
+        }
 
     /**
      * Invoke a tool by name. Never throws — wraps all errors

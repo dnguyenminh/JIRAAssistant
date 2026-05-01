@@ -97,9 +97,9 @@ class MultiPhasePipelineIntegrationTest {
         var sessionCallCount = 0
         return object : AiBackend {
             override val displayName = "MultiPhaseMock"
-            override fun sendPrompt(prompt: String) = sendMessage(prompt)
+            override suspend fun sendPrompt(prompt: String) = sendMessage(prompt)
             override fun startSession() { sessionCallCount = 0 }
-            override fun sendMessage(message: String): AiCliResponse {
+            override suspend fun sendMessage(message: String): AiCliResponse {
                 sessionCallCount++
                 return if (sessionCallCount == 1) {
                     AiCliResponse(
@@ -128,9 +128,9 @@ class MultiPhasePipelineIntegrationTest {
         var callCount = 0
         return object : AiBackend {
             override val displayName = "SinglePhaseMock"
-            override fun sendPrompt(prompt: String) = sendMessage(prompt)
+            override suspend fun sendPrompt(prompt: String) = sendMessage(prompt)
             override fun startSession() { callCount = 0 }
-            override fun sendMessage(message: String): AiCliResponse {
+            override suspend fun sendMessage(message: String): AiCliResponse {
                 callCount++
                 return if (callCount == 1) {
                     AiCliResponse(

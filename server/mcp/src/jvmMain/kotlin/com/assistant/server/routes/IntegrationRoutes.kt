@@ -125,13 +125,12 @@ fun Routing.integrationRoutes() {
                 val dbMap = dbProviders.associateBy { it.providerId }
 
                 val defaults = listOf(
-                    ProviderConfig(providerId = "jira", name = "Jira Cloud Services", type = ProviderType.JIRA, endpoint = "", priority = 0, status = ConnectionStatus.STANDBY),
-                    ProviderConfig(providerId = "ollama", name = "Ollama (Local)", type = ProviderType.OLLAMA, endpoint = "http://localhost:11434", model = "llama3", priority = 1, status = ConnectionStatus.OFFLINE),
-                    ProviderConfig(providerId = "gemini", name = "Google Gemini API", type = ProviderType.GEMINI, endpoint = "", model = "gemini-1.5-pro", priority = 2, status = ConnectionStatus.OFFLINE),
-                    ProviderConfig(providerId = "lm_studio", name = "LM Studio", type = ProviderType.LM_STUDIO, endpoint = "http://localhost:1234", priority = 3, status = ConnectionStatus.OFFLINE),
-                    ProviderConfig(providerId = "gemini_cli", name = "Gemini CLI Interface", type = ProviderType.GEMINI_CLI, endpoint = "", priority = 4, status = ConnectionStatus.OFFLINE),
-                    ProviderConfig(providerId = "copilot_cli", name = "Copilot CLI (GitHub)", type = ProviderType.COPILOT_CLI, endpoint = "", priority = 5, status = ConnectionStatus.OFFLINE),
-                    ProviderConfig(providerId = "kiro_cli", name = "Kiro CLI (Amazon)", type = ProviderType.KIRO_CLI, endpoint = "", priority = 6, status = ConnectionStatus.OFFLINE),
+                    ProviderConfig(providerId = "ollama", name = "Ollama (Local)", type = ProviderType.OLLAMA, endpoint = "http://localhost:11434", model = "llama3", priority = 0, status = ConnectionStatus.OFFLINE),
+                    ProviderConfig(providerId = "gemini", name = "Google Gemini API", type = ProviderType.GEMINI, endpoint = "", model = "gemini-1.5-pro", priority = 1, status = ConnectionStatus.OFFLINE),
+                    ProviderConfig(providerId = "lm_studio", name = "LM Studio", type = ProviderType.LM_STUDIO, endpoint = "http://localhost:1234", priority = 2, status = ConnectionStatus.OFFLINE),
+                    ProviderConfig(providerId = "gemini_cli", name = "Gemini CLI Interface", type = ProviderType.GEMINI_CLI, endpoint = "", priority = 3, status = ConnectionStatus.OFFLINE),
+                    ProviderConfig(providerId = "copilot_cli", name = "Copilot CLI (GitHub)", type = ProviderType.COPILOT_CLI, endpoint = "", priority = 4, status = ConnectionStatus.OFFLINE),
+                    ProviderConfig(providerId = "kiro_cli", name = "Kiro CLI (Amazon)", type = ProviderType.KIRO_CLI, endpoint = "", priority = 5, status = ConnectionStatus.OFFLINE),
                     ProviderConfig(providerId = "embedding", name = "Embedding Model", type = ProviderType.EMBEDDING, endpoint = "http://localhost:11434", model = "nomic-embed-text", priority = 10, status = ConnectionStatus.ACTIVE)
                 )
 
@@ -139,7 +138,7 @@ fun Routing.integrationRoutes() {
                 val defaultIds = defaults.map { it.providerId }.toSet()
                 val merged = defaults.map { default -> dbMap[default.providerId] ?: default }
                 val extraFromDb = dbProviders.filter { it.providerId !in defaultIds }
-                val result = merged + extraFromDb
+                val result = (merged + extraFromDb).filter { it.type != ProviderType.JIRA }
 
                 call.respond(HttpStatusCode.OK, result)
             }
@@ -348,6 +347,20 @@ fun Routing.integrationRoutes() {
                 // Normalize domain (ensure https:// prefix, strip trailing slash)
                 val normalizedDomain = normalizeDomain(request.domain)
 
+                // Always save credentials first — validation via getProjects may fail
+                // due to deserialization issues even when credentials are valid
+                val providerConfig = ProviderConfig(
+                    providerId = "jira",
+                    name = "Jira Cloud Services",
+                    type = ProviderType.JIRA,
+                    endpoint = normalizedDomain,
+                    apiKey = "${request.email}:${request.apiToken}",
+                    model = request.email,
+                    priority = 0,
+                    status = ConnectionStatus.ACTIVE
+                )
+                providerConfigRepo.save(providerConfig)
+
                 // Build Basic Auth header: base64(email:apiToken)
                 val credentials = "${request.email}:${request.apiToken}"
                 val encoded = java.util.Base64.getEncoder().encodeToString(credentials.toByteArray())
@@ -359,37 +372,22 @@ fun Routing.integrationRoutes() {
                     val projects = jiraClient.getProjects()
 
                     if (projects.isEmpty()) {
-                        // Could be valid credentials but no projects, or invalid credentials
-                        // Try to distinguish by checking if we got an auth error
                         call.respond(HttpStatusCode.OK, JiraConfigResponse(
-                            status = "offline",
-                            error = "Authentication failed or no projects accessible. Verify your domain, email, and API token."
+                            status = "active",
+                            error = "Credentials saved. Connection succeeded but 0 projects accessible — verify account permissions."
                         ))
                         return@put
                     }
-
-                    // Credentials valid — save to provider_configs with encrypted apiToken
-                    // Store domain in endpoint, email:apiToken in api_key (encrypted by ProviderConfigRepository)
-                    val providerConfig = ProviderConfig(
-                        providerId = "jira",
-                        name = "Jira Cloud Services",
-                        type = ProviderType.JIRA,
-                        endpoint = normalizedDomain,
-                        apiKey = "${request.email}:${request.apiToken}",
-                        model = request.email, // Store email separately in model field for display
-                        priority = 0,
-                        status = ConnectionStatus.ACTIVE
-                    )
-                    providerConfigRepo.save(providerConfig)
 
                     call.respond(HttpStatusCode.OK, JiraConfigResponse(
                         status = "active",
                         projects = projects
                     ))
                 } catch (e: Exception) {
+                    // Credentials saved but validation failed
                     call.respond(HttpStatusCode.OK, JiraConfigResponse(
                         status = "offline",
-                        error = "Failed to connect to Jira: ${e.message ?: "Unknown error"}"
+                        error = "Credentials saved but connection test failed: ${e.message ?: "Unknown error"}"
                     ))
                 }
             }

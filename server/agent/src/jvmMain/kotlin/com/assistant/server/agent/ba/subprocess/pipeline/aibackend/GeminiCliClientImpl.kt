@@ -66,7 +66,7 @@ open class GeminiCliClientImpl(
      * Gemini CLI with json output terminates after response,
      * so we use sendPrompt-style execution with persistent args.
      */
-    override fun sendMessage(message: String): AiCliResponse {
+    override suspend fun sendMessage(message: String): AiCliResponse {
         log.info("Sending message to {}... [PERSISTENT]", displayName)
         if (!isSessionActive()) startSession()
 

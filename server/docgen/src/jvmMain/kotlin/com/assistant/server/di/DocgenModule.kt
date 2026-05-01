@@ -154,7 +154,8 @@ val docgenModule = module {
                 DeepJiraContentExtractor.analysisConfig()
             },
             jiraApiSemaphore = get(named("jiraApiSemaphore")),
-            ticketGraphHolder = get()
+            ticketGraphHolder = get(),
+            kbRepository = get()
         )
     }
 

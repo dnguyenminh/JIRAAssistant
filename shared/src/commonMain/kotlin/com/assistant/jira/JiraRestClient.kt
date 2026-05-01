@@ -23,9 +23,13 @@ class JiraRestClient(
                 header(HttpHeaders.Authorization, authHeader)
             }
             if (response.status.isSuccess()) {
-                response.body<List<JiraProject>>()
+                val body = response.bodyAsText()
+                println("[JiraRestClient] getProjects: HTTP ${response.status}, body length=${body.length}")
+                val json = Json { ignoreUnknownKeys = true }
+                json.decodeFromString<List<JiraProject>>(body)
             } else {
-                println("[JiraRestClient] getProjects: HTTP ${response.status}")
+                val errorBody = response.bodyAsText().take(500)
+                println("[JiraRestClient] getProjects: HTTP ${response.status} — $errorBody")
                 emptyList()
             }
         } catch (e: Exception) {

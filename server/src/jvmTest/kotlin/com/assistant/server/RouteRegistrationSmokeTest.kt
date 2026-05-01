@@ -38,8 +38,6 @@ import kotlin.test.assertNotEquals
 class RouteRegistrationSmokeTest {
 
     private val testConfig = ServerConfig(
-        jiraHost = "https://jira.test.local",
-        aiProviderUrl = "http://localhost:11434",
         jwtSecret = "test-jwt-secret-for-route-check",
         encryptionKey = "test-encryption-key-0123456",
         port = 0,

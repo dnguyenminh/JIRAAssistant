@@ -1,7 +1,6 @@
 package com.assistant.frontend.pages.settings
 
 import com.assistant.frontend.api.ApiClient
-import com.assistant.frontend.services.ValidationService
 import com.assistant.settings.AppSettings
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -30,31 +29,18 @@ internal object SettingsSaveHandler {
     }
 
     private data class FormValues(
-        val jiraHost: String,
-        val aiProviderUrl: String,
         val jwtSecret: String,
         val encryptionKey: String
     )
 
     private fun gatherFormValues(): FormValues = FormValues(
-        jiraHost = inputVal("input-jira-host"),
-        aiProviderUrl = inputVal("input-ai-provider-url"),
         jwtSecret = inputVal("input-jwt-secret"),
         encryptionKey = inputVal("input-encryption-key")
     )
 
-    private fun validate(v: FormValues): List<String> {
-        val errors = mutableListOf<String>()
-        if (v.jiraHost.isNotBlank() && !ValidationService.isValidUrl(v.jiraHost))
-            errors.add("JIRA_HOST must be a valid URL")
-        if (v.aiProviderUrl.isNotBlank() && !ValidationService.isValidUrl(v.aiProviderUrl))
-            errors.add("AI_PROVIDER_URL must be a valid URL")
-        return errors
-    }
+    private fun validate(v: FormValues): List<String> = emptyList()
 
     private fun buildPayload(v: FormValues) = AppSettings(
-        jiraHost = v.jiraHost.ifBlank { null },
-        aiProviderUrl = v.aiProviderUrl.ifBlank { null },
         jwtSecret = cleanSecret(v.jwtSecret),
         encryptionKey = cleanSecret(v.encryptionKey)
     )

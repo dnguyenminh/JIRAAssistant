@@ -23,8 +23,6 @@ class ServerConfigTest {
     @Test
     fun `loadFromDb uses DB values when present`() = runBlocking {
         val repo = FakeSettingsRepository(mutableMapOf(
-            "JIRA_HOST" to "https://db-jira.example.com",
-            "AI_PROVIDER_URL" to "http://db-ai:1234",
             "JWT_SECRET" to "db-secret",
             "ENCRYPTION_KEY" to "db-enc-key",
             "PORT" to "9090"
@@ -32,8 +30,6 @@ class ServerConfigTest {
 
         val config = ServerConfig.loadFromDb(repo)
 
-        assertEquals("https://db-jira.example.com", config.jiraHost)
-        assertEquals("http://db-ai:1234", config.aiProviderUrl)
         assertEquals("db-secret", config.jwtSecret)
         assertEquals("db-enc-key", config.encryptionKey)
         assertEquals(9090, config.port)
@@ -45,8 +41,6 @@ class ServerConfigTest {
 
         val config = ServerConfig.loadFromDb(repo)
 
-        assertNotNull(config.jiraHost)
-        assertNotNull(config.aiProviderUrl)
         assertNotNull(config.jwtSecret)
         assertNotNull(config.encryptionKey)
         assertNotNull(config.staticDir)
@@ -79,8 +73,6 @@ class ServerConfigTest {
     fun `load returns config from env vars only`() {
         val config = ServerConfig.load()
 
-        assertNotNull(config.jiraHost)
-        assertNotNull(config.aiProviderUrl)
         assertNotNull(config.jwtSecret)
         assertNotNull(config.encryptionKey)
         assertNotNull(config.staticDir)

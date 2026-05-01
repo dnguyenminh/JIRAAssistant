@@ -59,11 +59,31 @@ class AiBackendPipelineStrategy(
         val startTime = System.currentTimeMillis()
         return try {
             doExecute(config, progressReporter, startTime)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            log.info("Strategy cancelled via CancellationException")
+            cancelActiveBackend()
+            throw e
         } catch (e: Exception) {
+            // When httpClient.close() aborts a request, it throws IOException/ClosedChannelException
+            // Check if this was caused by cancel
+            val wasCancelled = (activeBackend as? com.assistant.server.agent.ba.subprocess.pipeline.aibackend.ollama.OllamaApiClient)?.let {
+                try { it.checkCancelled(); false } catch (_: Exception) { true }
+            } ?: false
+            if (wasCancelled) {
+                log.info("Strategy cancelled (HTTP client closed)")
+                throw kotlinx.coroutines.CancellationException("Job cancelled")
+            }
             log.error("Strategy execution failed: {}", e.message, e)
             buildFailedResult(e.message ?: "Unknown error", startTime)
         }
     }
+
+    private fun cancelActiveBackend() {
+        (activeBackend as? com.assistant.server.agent.ba.subprocess.pipeline.aibackend.ollama.OllamaApiClient)?.cancel()
+    }
+
+    /** Track active backend for cancellation. */
+    private var activeBackend: Any? = null
 
     private suspend fun doExecute(
         config: BATaskConfig,
@@ -78,6 +98,7 @@ class AiBackendPipelineStrategy(
         }
 
         configureOllamaTools(backend).let { configuredBackend ->
+            activeBackend = configuredBackend
             reporter.reportProgress(5, "AI backend starting")
 
             val bridge = ToolExecutionBridge(subprocessProxy, reporter, mcpProcessManager, internalMcpBridge, localKBToolExecutor)

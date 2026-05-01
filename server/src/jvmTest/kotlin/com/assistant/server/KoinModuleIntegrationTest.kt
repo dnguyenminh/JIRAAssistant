@@ -23,8 +23,6 @@ import org.koin.core.context.stopKoin
 class KoinModuleIntegrationTest {
 
     private val testConfig = ServerConfig(
-        jiraHost = "https://jira.test.local",
-        aiProviderUrl = "http://localhost:11434",
         jwtSecret = "test-jwt-secret-for-koin-check",
         encryptionKey = "test-encryption-key-0123456",
         port = 0,

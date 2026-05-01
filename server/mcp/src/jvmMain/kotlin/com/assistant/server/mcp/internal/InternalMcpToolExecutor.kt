@@ -55,6 +55,7 @@ class InternalMcpToolExecutor(
     )
     private val graphHandlers = KnowledgeGraphHandlers(kbRepository)
     private val dashboardHandlers = DashboardHandlers(kbRepository, batchScanEngine)
+    private val diagramHandlers = DiagramHandlers()
 
     /** Get all registered tool definitions. Req: 6.73, 6.108 */
     fun getTools(): List<InternalToolDefinition> = toolRegistry.getAllTools()
@@ -150,6 +151,9 @@ class InternalMcpToolExecutor(
             "get_dashboard_metrics" -> dashboardHandlers.handleGetDashboardMetrics(arguments, ctx)
             "list_projects" -> dashboardHandlers.handleListProjects(arguments, ctx)
             "get_project_analysis_summary" -> dashboardHandlers.handleGetProjectAnalysisSummary(arguments, ctx)
+            // Diagram
+            "create_drawio_diagram" -> diagramHandlers.handleCreateDiagram(arguments, ctx)
+            "list_drawio_diagrams" -> diagramHandlers.handleListDiagrams(arguments, ctx)
             else -> McpToolCallResponse(
                 content = listOf(McpContent(type = "text", text = "Tool handler not implemented: $toolName")),
                 isError = true

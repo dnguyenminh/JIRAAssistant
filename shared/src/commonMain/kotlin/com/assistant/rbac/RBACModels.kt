@@ -18,7 +18,9 @@ data class User(
     val email: String,
     val role: com.assistant.auth.UserRole,
     val avatarUrl: String? = null,
-    val customPermissions: Set<Permission> = emptySet()
+    val customPermissions: Set<Permission> = emptySet(),
+    val status: UserStatus = UserStatus.ACTIVE,
+    val createdAt: String = ""
 )
 
 @Serializable

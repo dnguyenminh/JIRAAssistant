@@ -104,13 +104,13 @@ class MaxToolCallsPropertyTest {
     ): AiBackend = object : AiBackend {
         override val displayName = "MockBackend"
 
-        override fun sendPrompt(prompt: String): AiCliResponse {
+        override suspend fun sendPrompt(prompt: String): AiCliResponse {
             messagesReceived.add(prompt)
             return respondBasedOn(prompt)
         }
 
         override fun startSession() {}
-        override fun sendMessage(msg: String): AiCliResponse {
+        override suspend fun sendMessage(msg: String): AiCliResponse {
             messagesReceived.add(msg)
             return respondBasedOn(msg)
         }

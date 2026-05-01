@@ -19,6 +19,10 @@ interface VectorStore {
     /** Semantic search with optional chunkType filter. null = search all types. */
     suspend fun search(queryEmbedding: FloatArray, topK: Int = 5, chunkType: String? = null): List<AttachmentChunk>
 
+    /** Semantic search returning chunks with similarity scores. */
+    suspend fun searchWithScores(queryEmbedding: FloatArray, topK: Int = 5, chunkType: String? = null): List<Pair<AttachmentChunk, Float>> =
+        search(queryEmbedding, topK, chunkType).map { it to 1.0f }
+
     /** Delete all chunks for a ticket. */
     suspend fun deleteByTicketId(ticketId: String): Boolean
 

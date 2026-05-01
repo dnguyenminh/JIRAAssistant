@@ -34,5 +34,6 @@ class InternalToolRegistry {
         ChatToolDefs.all().forEach(::register)
         SettingsToolDefs.all().forEach(::register)
         IntegrationToolDefs.all().forEach(::register)
+        DiagramToolDefs.all().forEach(::register)
     }
 }

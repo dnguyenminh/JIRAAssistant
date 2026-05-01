@@ -193,7 +193,7 @@ class AgenticLoopRunner(
         )
     }
 
-    private fun sendToBackend(
+    private suspend fun sendToBackend(
         backend: AiBackend,
         message: String,
         useSession: Boolean

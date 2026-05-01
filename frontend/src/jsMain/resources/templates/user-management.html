@@ -19,8 +19,9 @@
 
     <!-- User List Table -->
     <div class="glass-card" style="margin-bottom:24px;padding:0;overflow:hidden;">
-        <div style="padding:24px 32px 16px;border-bottom:1px solid var(--glass-border);">
+        <div style="padding:24px 32px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;justify-content:space-between;">
             <div style="font-size:11px;font-weight:700;letter-spacing:2px;opacity:0.4;">USER DIRECTORY</div>
+            <button id="um-add-user-btn" class="btn-vibrant" style="padding:6px 16px;font-size:11px;">+ Add User</button>
         </div>
         <div id="um-user-list" style="padding:8px 16px;">
             <div style="text-align:center;padding:32px;opacity:0.4;font-size:13px;">Loading users...</div>
@@ -41,3 +42,91 @@
         </div>
     </div>
 </div>
+
+<!-- Template: Create User Form -->
+<template id="tmpl-create-form">
+    <div class="um-create-form glass-card">
+        <div class="um-form-field">
+            <label class="um-form-label">Name</label>
+            <input type="text" class="um-form-input field-input" data-field="name" placeholder="Full name" autocomplete="off" />
+            <span class="um-form-error" data-error="name"></span>
+        </div>
+        <div class="um-form-field">
+            <label class="um-form-label">Email</label>
+            <input type="email" class="um-form-input field-input" data-field="email" placeholder="user@example.com" autocomplete="off" />
+            <span class="um-form-error" data-error="email"></span>
+        </div>
+        <div class="um-form-field">
+            <label class="um-form-label">Role</label>
+            <select class="um-form-select um-role-select" data-field="role">
+                <option value="ADMINISTRATOR">Administrator</option>
+                <option value="NEURAL_ARCHITECT">Neural Architect</option>
+                <option value="READER">Reader</option>
+            </select>
+        </div>
+        <div class="um-form-actions">
+            <button class="btn-vibrant" data-action="submit">Create User</button>
+            <button class="btn-ghost" data-action="cancel">Cancel</button>
+        </div>
+        <div class="um-form-error-global" data-error="global"></div>
+    </div>
+</template>
+
+<!-- Template: User Detail Panel -->
+<template id="tmpl-user-detail">
+    <div class="um-detail-panel glass-card">
+        <div class="um-detail-header">
+            <div class="um-avatar um-detail-avatar" data-field="avatar"></div>
+            <div class="um-detail-header-info">
+                <div class="um-detail-name" data-field="name"></div>
+                <div class="um-detail-email" data-field="email"></div>
+            </div>
+            <span class="um-status-badge" data-field="status"></span>
+        </div>
+        <div class="um-detail-info">
+            <div class="um-detail-row">
+                <span class="um-detail-label">Role</span>
+                <span class="um-detail-value" data-field="role"></span>
+            </div>
+            <div class="um-detail-row">
+                <span class="um-detail-label">Created</span>
+                <span class="um-detail-value" data-field="createdAt"></span>
+            </div>
+        </div>
+        <div class="um-detail-actions">
+            <button class="btn-vibrant" data-action="edit">Edit</button>
+            <button class="btn-ghost btn-warning" data-action="disable">Disable</button>
+            <button class="btn-ghost btn-danger" data-action="delete">Delete</button>
+        </div>
+    </div>
+</template>
+
+<!-- Template: Confirmation Dialog -->
+<template id="tmpl-confirm-dialog">
+    <div class="um-confirm-overlay">
+        <div class="um-confirm-dialog glass-card">
+            <div class="um-confirm-message" data-field="message"></div>
+            <div class="um-confirm-input-wrap" data-field="input-wrap" style="display:none;">
+                <label class="um-form-label">Type the user name to confirm:</label>
+                <input type="text" class="um-form-input field-input" data-field="confirm-input" placeholder="" autocomplete="off" />
+            </div>
+            <div class="um-form-actions">
+                <button class="btn-ghost btn-danger" data-action="confirm">Confirm</button>
+                <button class="btn-ghost" data-action="cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Template: User Row -->
+<template id="tmpl-user-row">
+    <div class="um-user-row">
+        <div class="um-avatar" data-field="avatar"></div>
+        <div class="um-user-info">
+            <div class="um-user-name" data-field="name"></div>
+            <div class="um-user-email" data-field="email"></div>
+        </div>
+        <span class="um-status-badge um-row-status" data-field="status"></span>
+        <select class="um-role-select" data-field="role"></select>
+    </div>
+</template>

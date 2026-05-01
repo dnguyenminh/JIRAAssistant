@@ -7,7 +7,7 @@ import com.assistant.kb.KBRecord
 import com.assistant.server.document.collection.AttachmentContentCollector
 import com.assistant.server.document.collection.CommentCollector
 import com.assistant.server.document.models.*
-import com.assistant.server.document.traversal.TicketFetcher
+import com.assistant.server.document.traversal.KBFirstTicketFetcher
 import com.assistant.server.document.traversal.TraversalEngine
 
 /**
@@ -61,7 +61,7 @@ internal suspend fun DeepCollector.executeCollection(
 /** Create a TraversalEngine with the current JiraClient and config. */
 private fun DeepCollector.buildTraversalEngine(config: TraversalConfig): TraversalEngine {
     val sectionClassifier = getSectionClassifier()
-    val fetcher = TicketFetcher(jiraClientProvider(), sectionClassifier)
+    val fetcher = KBFirstTicketFetcher(jiraClientProvider(), sectionClassifier, kbRepository)
     return TraversalEngine(fetcher, config, jiraApiSemaphore)
 }
 

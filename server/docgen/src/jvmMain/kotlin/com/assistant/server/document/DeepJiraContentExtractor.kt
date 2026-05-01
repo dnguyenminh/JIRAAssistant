@@ -9,6 +9,7 @@ import com.assistant.server.document.models.RelationshipType
 import com.assistant.server.document.models.TicketGraph
 import com.assistant.server.document.models.TicketNode
 import com.assistant.server.document.models.TraversalConfig
+import com.assistant.server.document.traversal.KBFirstTicketFetcher
 import com.assistant.server.document.traversal.TicketFetcher
 import com.assistant.server.document.traversal.TraversalEngine
 import kotlinx.coroutines.sync.Semaphore
@@ -29,7 +30,8 @@ class DeepJiraContentExtractor(
     private val sectionClassifier: SectionClassifier,
     private val traversalConfigProvider: () -> TraversalConfig,
     private val jiraApiSemaphore: Semaphore,
-    private val ticketGraphHolder: TicketGraphHolder? = null
+    private val ticketGraphHolder: TicketGraphHolder? = null,
+    private val kbRepository: com.assistant.kb.KBRepository? = null
 ) : JiraContentExtractor {
 
     private val logger = LoggerFactory.getLogger(DeepJiraContentExtractor::class.java)
@@ -54,7 +56,11 @@ class DeepJiraContentExtractor(
             "Deep extraction starting for {} with client={}, config: maxDepth={}, maxTickets={}",
             ticketId, client::class.simpleName, config.maxDepth, config.maxTickets
         )
-        val fetcher = TicketFetcher(client, sectionClassifier)
+        val fetcher = if (kbRepository != null) {
+            KBFirstTicketFetcher(client, sectionClassifier, kbRepository)
+        } else {
+            TicketFetcher(client, sectionClassifier)
+        }
         val engine = TraversalEngine(fetcher, config, jiraApiSemaphore)
         return engine.traverse(ticketId)
     }

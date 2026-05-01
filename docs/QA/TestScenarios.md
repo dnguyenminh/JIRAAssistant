@@ -133,27 +133,23 @@
 
 ## 6. Integrations (MH6)
 
-- **TS-30: Five Provider Cards**
+- **TS-30: Seven Provider Cards**
   - **Input**: Navigate to Integrations
-  - **Expectation**: 5 cards visible: Jira Cloud, Ollama, Gemini API, LM Studio, Gemini CLI
+  - **Expectation**: 7 cards visible: Ollama, Gemini API, LM Studio, Gemini CLI, Copilot CLI, Kiro CLI, Embedding
 
 - **TS-31: Status Dot Colors**
   - **Input**: View provider cards
-  - **Expectation**: Jira=Active(green), Ollama=Active(green), Gemini=Standby(blue), LMStudio=Offline(red), CLI=Standby(blue)
+  - **Expectation**: Ollama=Active(green), Gemini=Standby(blue), LMStudio=Offline(red), CLI=Standby(blue), Embedding=Active(green)
 
 - **TS-32: TEST LINK Interaction**
   - **Input**: Click "TEST LINK" on Ollama card
   - **Expectation**: Button → "PROBING...", progress bar 0→100%, button resets
 
-- **TS-33: Jira Reconnect**
-  - **Input**: Click "RE-CONNECT / UPDATE" on Jira card
-  - **Expectation**: Redirect to Onboarding page
-
-- **TS-34: Gemini Model Dropdown**
+- **TS-33: Gemini Model Dropdown**
   - **Input**: View Gemini card
   - **Expectation**: Dropdown contains: Gemini 1.5 Pro, Gemini 1.0 Ultra, Gemini 1.5 Flash
 
-- **TS-35: Status Dot Tooltips**
+- **TS-34: Status Dot Tooltips**
   - **Input**: Hover over status dots
   - **Expectation**: Tooltips show details (latency, session time, error reason)
 

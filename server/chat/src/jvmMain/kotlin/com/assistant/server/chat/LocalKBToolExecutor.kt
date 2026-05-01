@@ -20,6 +20,8 @@ class LocalKBToolExecutor(
     companion object {
         const val SERVER_ID = "local-knowledge-base"
         private const val DEFAULT_TOP_K = 10
+        /** Minimum cosine similarity score to consider a result relevant. */
+        private const val MIN_RELEVANCE_SCORE = 0.3f
     }
 
     /** Route tool call to appropriate operation. */
@@ -39,9 +41,10 @@ class LocalKBToolExecutor(
         val topK = args["topK"]?.toIntOrNull() ?: DEFAULT_TOP_K
         val embedding = embeddingService.embed(query)
             ?: return "Tool error: EmbeddingService unavailable"
-        val chunks = vectorStore.search(embedding, topK, chunkType)
-        if (chunks.isEmpty()) return "No results found for query: $query"
-        return formatKnowledgeChunks(chunks)
+        val chunks = vectorStore.searchWithScores(embedding, topK, chunkType)
+        val relevant = chunks.filter { it.second >= MIN_RELEVANCE_SCORE }
+        if (relevant.isEmpty()) return "No relevant results found for query: $query"
+        return formatKnowledgeChunks(relevant.map { it.first })
     }
 
     /** Lookup ticket analysis from KBRepository. Req: 19.65 */

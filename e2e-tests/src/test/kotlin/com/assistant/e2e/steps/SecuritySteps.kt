@@ -321,7 +321,7 @@ class SecuritySteps {
         runBlocking {
             TestHelper.put(
                 "/api/settings",
-                """{"jiraHost":"not-a-url"}""",
+                "{invalid-json",
                 TestHelper.TEST_JWT
             )
         }

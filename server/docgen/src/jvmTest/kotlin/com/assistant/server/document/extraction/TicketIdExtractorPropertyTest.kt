@@ -14,21 +14,26 @@ import org.junit.jupiter.api.Test
 private val TICKET_ID_REGEX = Regex("[A-Z][A-Z0-9]+-\\d+")
 
 /**
- * Generates a random valid Jira ticket ID matching `[A-Z][A-Z0-9]+-\d+`.
+ * Generates a random valid Jira ticket ID matching `[A-Z][A-Z0-9]+-\d+`
+ * that also passes [TicketIdExtractor.isValidTicketKey].
  *
  * Project key: 2-5 chars — first char [A-Z], remaining [A-Z0-9]+
- * (the `+` quantifier requires at least one tail character).
- * Number: 1-5 digits, no leading zeros.
+ * Number: 1-5 digits (1..99999), no leading zeros.
+ * Retries if the generated key collides with a known false positive.
  */
 fun Arb.Companion.arbTicketId(): Arb<String> = arbitrary {
-    val firstChar = Arb.of(('A'..'Z').toList()).bind()
-    val tailLen = Arb.int(1..4).bind()
-    val tailChars = List(tailLen) {
-        Arb.of(('A'..'Z') + ('0'..'9')).bind()
-    }
-    val projectKey = firstChar + tailChars.joinToString("")
-    val number = Arb.int(1..99999).bind()
-    "$projectKey-$number"
+    var id: String
+    do {
+        val firstChar = Arb.of(('A'..'Z').toList()).bind()
+        val tailLen = Arb.int(1..4).bind()
+        val tailChars = List(tailLen) {
+            Arb.of(('A'..'Z') + ('0'..'9')).bind()
+        }
+        val projectKey = firstChar + tailChars.joinToString("")
+        val number = Arb.int(1..99999).bind()
+        id = "$projectKey-$number"
+    } while (!TicketIdExtractor.isValidTicketKey(id))
+    id
 }
 
 /** Generates a random uppercase project key of 1-5 chars [A-Z]. */

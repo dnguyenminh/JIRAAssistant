@@ -17,6 +17,17 @@ internal object McpToolCallFallback {
         """Tool\s*Call:\s*(\w+)\s*\(([^)]*)\)""", RegexOption.IGNORE_CASE
     )
 
+    /**
+     * Natural language tool call pattern — catches AI responses like:
+     * "Dùng tool search_knowledge để tìm 'Network Graph'"
+     * "I'll use search_knowledge to find..."
+     * "Let me call get_ticket_info with ticketId=ICL2-339"
+     */
+    private val NATURAL_LANG_PATTERN = Regex(
+        """(?:dùng|sử dụng|gọi|call|use|using)\s+(?:tool\s+)?(\w+)(?:\s+(?:để|to|with|for)\s+(?:tìm|search|find|get|look\s*up)\s+['\"]?([^'\".\n]+)['\"]?)?""",
+        RegexOption.IGNORE_CASE
+    )
+
     /** Parse {"tool_name":"...","tool_input":{...}} JSON from AI. */
     fun parseJsonToolName(response: String): McpToolCallRequest? {
         val idx = response.indexOf("\"tool_name\"")
@@ -39,11 +50,22 @@ internal object McpToolCallFallback {
 
     /** Parse "Tool Call: tool_name(param=value)" text pattern. */
     fun parseTextPattern(response: String): McpToolCallRequest? {
-        val match = TEXT_PATTERN.find(response) ?: return null
+        val match = TEXT_PATTERN.find(response) ?: return parseNaturalLanguage(response)
         val rawName = match.groupValues[1]
-        val toolName = mapToolName(rawName) ?: return null
+        val toolName = mapToolName(rawName) ?: return parseNaturalLanguage(response)
         val args = parseTextArgs(match.groupValues[2])
         logger.info("[Fallback] Text: tool=$toolName args=$args")
+        return buildRequest(toolName, args)
+    }
+
+    /** Parse natural language tool call descriptions (Vietnamese/English). */
+    fun parseNaturalLanguage(response: String): McpToolCallRequest? {
+        val match = NATURAL_LANG_PATTERN.find(response) ?: return null
+        val rawName = match.groupValues[1]
+        val toolName = mapToolName(rawName) ?: return null
+        val queryValue = match.groupValues.getOrNull(2)?.trim()
+        val args = if (!queryValue.isNullOrBlank()) mapOf("query" to queryValue) else emptyMap()
+        logger.info("[Fallback] NaturalLang: tool=$toolName args=$args")
         return buildRequest(toolName, args)
     }
 

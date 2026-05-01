@@ -9,7 +9,9 @@ data class UserInfo(
     val email: String = "",
     @SerialName("name") val displayName: String = "",
     val role: String = "",
-    @SerialName("customPermissions") val permissions: List<String> = emptyList()
+    @SerialName("customPermissions") val permissions: List<String> = emptyList(),
+    val status: String = "ACTIVE",
+    val createdAt: String = ""
 )
 
 @Serializable
@@ -33,3 +35,21 @@ data class PermissionToggleRequest(
 )
 
 data class PermToggle(val key: String, val label: String)
+
+@Serializable
+data class CreateUserRequest(
+    val name: String,
+    val email: String,
+    val role: String
+)
+
+@Serializable
+data class UpdateUserRequest(
+    val name: String,
+    val email: String
+)
+
+@Serializable
+data class UpdateStatusRequest(
+    val status: String
+)

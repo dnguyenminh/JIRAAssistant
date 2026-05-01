@@ -8,6 +8,9 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import org.slf4j.LoggerFactory
 
+import kotlin.coroutines.coroutineContext
+import kotlinx.coroutines.ensureActive
+
 /**
  * BFS traversal engine that builds a [TicketGraph] from a root ticket.
  *
@@ -58,6 +61,7 @@ class TraversalEngine(
     /** Main BFS loop — one depth level per iteration. */
     private suspend fun bfsLoop(state: TraversalState, startTime: Long) {
         while (state.hasWork()) {
+            coroutineContext.ensureActive()
             if (shouldStop(state, startTime)) break
             processNextLevel(state, startTime)
         }
@@ -72,10 +76,12 @@ class TraversalEngine(
 
     /** Process all tickets at the current BFS depth level concurrently. */
     private suspend fun processNextLevel(state: TraversalState, startTime: Long) {
+        coroutineContext.ensureActive()
         val levelItems = state.dequeueCurrentLevel()
         if (levelItems.isEmpty()) return
         val results = fetchConcurrently(levelItems, state)
         for ((item, result) in levelItems.zip(results)) {
+            coroutineContext.ensureActive()
             processResult(item, result, state)
             if (shouldStop(state, startTime)) break
         }

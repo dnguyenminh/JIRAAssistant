@@ -2,6 +2,7 @@ package com.assistant.server.chat
 
 import com.assistant.ai.AIAgent
 import com.assistant.ai.AIResult
+import com.assistant.ai.OllamaChatAgent
 import com.assistant.chat.*
 import com.assistant.graph.GraphEngine
 import com.assistant.kb.KBRepository
@@ -55,7 +56,39 @@ class ChatServiceImpl(
         message: String, context: ChatContext,
         conversationHistory: List<ChatMessage>
     ): ChatResponse {
-        val prompt = buildFullPrompt(message, context, conversationHistory)
+        val agent = aiAgentProvider()
+        if (agent is OllamaChatAgent) {
+            return processChatNative(agent, message, context, conversationHistory)
+        }
+        return processChatLegacy(message, context, conversationHistory)
+    }
+
+    /** Native tool calling path via OllamaChatAgent. */
+    private suspend fun processChatNative(
+        agent: OllamaChatAgent, message: String,
+        context: ChatContext, history: List<ChatMessage>
+    ): ChatResponse = try {
+        val systemPrompt = buildNativeSystemPrompt(message, context, history)
+        val tools = OllamaToolConverter.buildToolDefs(
+            internalMcpBridge, mcpProcessManager,
+            isLocalKBToolEnabled(), context.userId, userToolPermissionService
+        )
+        val executor = if (isLocalKBToolEnabled()) localKBToolExecutor else null
+        NativeToolCallHandler.execute(
+            agent, systemPrompt, message, tools,
+            { text -> parseAIResponse(text, systemPrompt.length) },
+            mcpProcessManager, executor, internalMcpBridge,
+            context.userId, userToolPermissionService
+        )
+    } catch (e: Exception) {
+        processChatLegacy(message, context, history)
+    }
+
+    /** Legacy text-based tool calling path (fallback). */
+    private suspend fun processChatLegacy(
+        message: String, context: ChatContext, history: List<ChatMessage>
+    ): ChatResponse {
+        val prompt = buildFullPrompt(message, context, history)
         val executor = if (isLocalKBToolEnabled()) localKBToolExecutor else null
         val modelCtx = resolveModelContext()
         return McpAgenticLoop.execute(
@@ -70,8 +103,18 @@ class ChatServiceImpl(
 
     override fun buildSystemPrompt(context: ChatContext): String = buildBasePrompt(context)
 
+    /** Build system prompt for native tool calling (no MCP tool text injection). */
+    private suspend fun buildNativeSystemPrompt(
+        message: String, context: ChatContext, history: List<ChatMessage>
+    ): String = buildPromptParts(message, context, history, includeMcpTools = false)
+
     private suspend fun buildFullPrompt(
         message: String, context: ChatContext, history: List<ChatMessage>
+    ): String = buildPromptParts(message, context, history, includeMcpTools = true)
+
+    private suspend fun buildPromptParts(
+        message: String, context: ChatContext,
+        history: List<ChatMessage>, includeMcpTools: Boolean
     ): String {
         val base = buildBasePrompt(context)
         val personalization = buildPersonalization(context.userId)
@@ -79,10 +122,13 @@ class ChatServiceImpl(
         val graph = buildGraphContext(context.projectKey)
         val graphState = buildGraphStateContext(context.graphContext)
         val ticketState = buildTicketStateContext(context.ticketContext)
-        val mcpTools = buildMcpToolsContext(context.userId)
         val knowledgeCtx = buildKnowledgeContext(context.projectKey, message)
         val hist = formatHistory(history)
-        return "$base\n$personalization\n--- KB ---\n$kb\n--- GRAPH ---\n$graph\n$graphState\n--- TICKET CONTEXT ---\n$ticketState\n--- MCP TOOLS ---\n$mcpTools\n--- KNOWLEDGE CONTEXT ---\n$knowledgeCtx\n--- HISTORY ---\n$hist\n--- USER ---\n$message"
+        val mcpSection = if (includeMcpTools) "\n--- MCP TOOLS ---\n${buildMcpToolsContext(context.userId)}" else ""
+        val userSection = if (includeMcpTools) "\n--- USER ---\n$message" else ""
+        return "$base\n$personalization\n--- KB ---\n$kb\n--- GRAPH ---\n$graph\n$graphState" +
+            "\n--- TICKET CONTEXT ---\n$ticketState$mcpSection" +
+            "\n--- KNOWLEDGE CONTEXT ---\n$knowledgeCtx\n--- HISTORY ---\n$hist$userSection"
     }
 
     /** Build context string from Ticket Intelligence screen state (selected ticket, analysis). */
@@ -90,45 +136,18 @@ class ChatServiceImpl(
         ChatTicketStateContext.build(tc)
 
     /** Build context string from frontend graph state (focused node, filters, etc.) */
-    private fun buildGraphStateContext(gc: com.assistant.chat.GraphChatContext?): String {
-        if (gc == null) return "User is NOT on the Knowledge Graph page."
-        val parts = mutableListOf("User is viewing the Knowledge Graph.")
-        gc.focusedNodeKey?.let { key ->
-            parts.add(
-                "The user is currently focused on Jira ticket \"$key\". " +
-                "\"$key\" is the COMPLETE Jira issue key (project prefix + number). " +
-                "Use this EXACT value \"$key\" as the issueId/issue key when calling any Jira tools. " +
-                "Do NOT split, truncate, or extract only the project prefix from this key."
-            )
-        }
-        if (gc.activeTypeFilters.isNotEmpty()) parts.add("Active type filters: ${gc.activeTypeFilters.joinToString(", ")}")
-        gc.selectedClusterId?.let { parts.add("Selected cluster: $it") }
-        if (gc.searchQuery.isNotBlank()) parts.add("Search query: ${gc.searchQuery}")
-        parts.add("Visible nodes: ${gc.visibleNodeCount}, Depth: ${gc.depthValue}")
-        return parts.joinToString(" ")
-    }
+    private fun buildGraphStateContext(gc: com.assistant.chat.GraphChatContext?): String =
+        ChatGraphStateContext.build(gc)
 
     internal fun buildMcpToolsContext(userId: String? = null): String {
         val localLines = buildLocalKBToolsContext()
-        val prompt = ChatMcpToolsContext.build(
-            internalMcpBridge, mcpProcessManager, localLines,
-            userId, userToolPermissionService
-        )
-        val priorityHint = buildLocalKBPriorityHint()
-        return "$prompt$priorityHint"
+        val prompt = ChatMcpToolsContext.build(internalMcpBridge, mcpProcessManager, localLines, userId, userToolPermissionService)
+        return "$prompt${buildLocalKBPriorityHint()}"
     }
 
-    /** Check if Local KB Tool is enabled via settings. Default: enabled. Req: 19.76 */
-    internal fun isLocalKBToolEnabled(): Boolean =
-        ChatLocalKBContext.isEnabled(settingsRepository)
-
-    /** Build tool descriptions for 3 local KB operations. Req: 19.61, 19.72 */
-    internal fun buildLocalKBToolsContext(): List<String> =
-        ChatLocalKBContext.buildToolsContext(isLocalKBToolEnabled())
-
-    /** Build priority guidance for local KB tools. Req: 19.71 */
-    internal fun buildLocalKBPriorityHint(): String =
-        ChatLocalKBContext.buildPriorityHint(isLocalKBToolEnabled())
+    internal fun isLocalKBToolEnabled(): Boolean = ChatLocalKBContext.isEnabled(settingsRepository)
+    internal fun buildLocalKBToolsContext(): List<String> = ChatLocalKBContext.buildToolsContext(isLocalKBToolEnabled())
+    internal fun buildLocalKBPriorityHint(): String = ChatLocalKBContext.buildPriorityHint(isLocalKBToolEnabled())
 
     private fun buildBasePrompt(ctx: ChatContext): String = ChatPromptBuilder.buildBasePrompt(ctx)
 

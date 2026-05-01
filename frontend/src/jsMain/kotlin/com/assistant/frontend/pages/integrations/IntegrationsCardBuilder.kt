@@ -19,7 +19,7 @@ internal object IntegrationsCardBuilder {
         val tooltipText = buildTooltipText(provider)
         val logo = providerLogo(provider.type)
         val disabledBtn = if (!canConfig) "opacity:0.5;cursor:not-allowed;pointer-events:none;" else ""
-        val configBtnClass = if (provider.type == "JIRA") "integ-btn-jira-configure" else "integ-btn-configure"
+        val configBtnClass = "integ-btn-configure"
         val badgeClass = statusBadgeClass(provider.status)
         val badgeLabel = provider.status.uppercase()
         val isActive = provider.status.uppercase() == "ACTIVE"
@@ -68,7 +68,7 @@ internal object IntegrationsCardBuilder {
     }
 
     private fun providerLogo(type: String): String = when (type.uppercase()) {
-        "JIRA" -> "🔷"; "OLLAMA" -> "🦙"; "GEMINI" -> "✦"; "LM_STUDIO" -> "🧪"; "GEMINI_CLI" -> "⌨"
+        "OLLAMA" -> "🦙"; "GEMINI" -> "✦"; "LM_STUDIO" -> "🧪"; "GEMINI_CLI" -> "⌨"
         "COPILOT_CLI" -> "🤖"; "KIRO_CLI" -> "🔮"; "EMBEDDING" -> "🧬"; else -> "⚡"
     }
 
@@ -82,9 +82,6 @@ internal object IntegrationsCardBuilder {
         })
         card.querySelector(".integ-btn-configure")?.addEventListener("click", { e ->
             e.stopPropagation(); if (canConfig) IntegrationsConfigModal.openConfigModal(provider)
-        })
-        card.querySelector(".integ-btn-jira-configure")?.addEventListener("click", { e ->
-            e.stopPropagation(); if (canConfig) IntegrationsJiraModal.openJiraConfigModal(provider)
         })
         card.querySelector(".integ-arrow-up")?.addEventListener("click", { e ->
             e.stopPropagation(); if (canConfig && index > 0) IntegrationsPage.swapPriority(index, index - 1)
