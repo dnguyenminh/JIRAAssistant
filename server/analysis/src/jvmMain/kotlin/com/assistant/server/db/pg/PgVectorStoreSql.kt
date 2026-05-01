@@ -26,12 +26,31 @@ internal object PgVectorStoreSql {
         LIMIT ?
     """
 
+    const val SEARCH_ALL_WITH_SCORE_SQL = """
+        SELECT id, ticket_id, attachment_id, filename,
+               chunk_index, chunk_text, embedding, created_at, chunk_type,
+               (embedding <=> ?::vector) AS distance
+        FROM attachment_chunks
+        ORDER BY distance
+        LIMIT ?
+    """
+
     const val SEARCH_BY_TYPE_SQL = """
         SELECT id, ticket_id, attachment_id, filename,
                chunk_index, chunk_text, embedding, created_at, chunk_type
         FROM attachment_chunks
         WHERE chunk_type = ?
         ORDER BY embedding <=> ?::vector
+        LIMIT ?
+    """
+
+    const val SEARCH_BY_TYPE_WITH_SCORE_SQL = """
+        SELECT id, ticket_id, attachment_id, filename,
+               chunk_index, chunk_text, embedding, created_at, chunk_type,
+               (embedding <=> ?::vector) AS distance
+        FROM attachment_chunks
+        WHERE chunk_type = ?
+        ORDER BY distance
         LIMIT ?
     """
 

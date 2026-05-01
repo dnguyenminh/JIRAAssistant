@@ -1,7 +1,12 @@
 package com.assistant.server.auth
 
+import com.assistant.ai.ConnectionStatus
+import com.assistant.ai.ProviderConfig
+import com.assistant.ai.ProviderType
 import com.assistant.auth.AuthenticatedUser
 import com.assistant.auth.UserRole
+import com.assistant.jira.JiraCredentialsService
+import com.assistant.kb.ProviderConfigRepository
 import com.assistant.server.config.ServerConfig
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.*
@@ -29,9 +34,13 @@ import org.junit.jupiter.api.Assertions.*
 @OptIn(ExperimentalKotest::class)
 class AuthServicePropertyTest {
 
+    /** Fake [ProviderConfigRepository] that returns no providers (no DB needed). */
+    private class EmptyProviderConfigRepo : ProviderConfigRepository(null, "") {
+        override fun findById(providerId: String): ProviderConfig? = null
+        override fun getAllProviders(): List<ProviderConfig> = emptyList()
+    }
+
     private val config = ServerConfig(
-        jiraHost = "https://test.atlassian.net",
-        aiProviderUrl = "http://localhost:11434",
         jwtSecret = "test-secret-for-property-testing-minimum-length",
         encryptionKey = "test-encryption-key-for-property-testing",
         port = 8080,
@@ -40,7 +49,7 @@ class AuthServicePropertyTest {
 
     private val authService = AuthServiceImpl(config, HttpClient(MockEngine) {
         engine { addHandler { error("HttpClient not used in JWT tests") } }
-    })
+    }, JiraCredentialsService(EmptyProviderConfigRepo()))
 
     private val arbUserRole: Arb<UserRole> = Arb.enum<UserRole>()
 

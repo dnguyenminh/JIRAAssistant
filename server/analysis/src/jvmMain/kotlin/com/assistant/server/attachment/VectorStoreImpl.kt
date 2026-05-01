@@ -45,7 +45,14 @@ class VectorStoreImpl(
         queryEmbedding: FloatArray,
         topK: Int,
         chunkType: String?
-    ): List<AttachmentChunk> = try {
+    ): List<AttachmentChunk> =
+        searchWithScores(queryEmbedding, topK, chunkType).map { it.first }
+
+    override suspend fun searchWithScores(
+        queryEmbedding: FloatArray,
+        topK: Int,
+        chunkType: String?
+    ): List<Pair<AttachmentChunk, Float>> = try {
         val allRows = if (chunkType != null) {
             queries.getAllChunksByType(chunkType).executeAsList()
         } else {
@@ -54,7 +61,6 @@ class VectorStoreImpl(
         allRows.mapNotNull { row -> parseAndScore(row, queryEmbedding) }
             .sortedByDescending { it.second }
             .take(topK)
-            .map { it.first }
     } catch (e: Exception) {
         println("[VectorStore] search failed: ${e.message}")
         emptyList()

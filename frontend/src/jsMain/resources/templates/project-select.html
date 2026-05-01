@@ -42,6 +42,16 @@
     </div>
 </div>
 
+<!-- Credential error state — shown when Jira credentials fail to decrypt -->
+<template id="tmpl-credential-error">
+  <div class="credential-error-container" id="credential-error-container">
+    <div class="credential-error-icon">🔐</div>
+    <h3 class="credential-error-title">Jira Connection Failed</h3>
+    <p class="credential-error-msg">Credentials could not be decrypted. Please reconfigure in Integrations settings.</p>
+    <button id="btn-go-integrations" class="chat-action-btn credential-error-btn">Go to Integrations</button>
+  </div>
+</template>
+
 <!-- Jira disconnect footer indicator -->
 <template id="tmpl-jira-disconnect">
   <div class="jira-disconnect-footer" id="jira-disconnect-footer">
@@ -149,5 +159,43 @@
 @keyframes popupFadeIn {
     from { opacity: 0; transform: scale(0.9) translateY(10px); }
     to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Credential Error State — centered card with warning */
+.credential-error-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 64px 32px;
+    text-align: center;
+    animation: popupFadeIn 0.3s ease-out;
+}
+
+.credential-error-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.credential-error-title {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--danger);
+    margin-bottom: 12px;
+}
+
+.credential-error-msg {
+    font-size: 13px;
+    color: var(--text-sub);
+    line-height: 1.6;
+    max-width: 420px;
+    margin-bottom: 28px;
+}
+
+.credential-error-btn {
+    padding: 12px 32px;
+    font-size: 13px;
+    letter-spacing: 1.5px;
 }
 </style>

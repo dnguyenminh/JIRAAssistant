@@ -1410,3 +1410,161 @@ select:focus {
 /* Loading / empty */
 .perm-loading { text-align: center; opacity: 0.3; font-size: 11px; padding: 12px 0; }
 .perm-empty { text-align: center; opacity: 0.3; font-size: 11px; padding: 12px 0; }
+
+/* ===========================================
+   AI CONFIG — POPUP MODAL FORMS
+   Requirements: AC 19.38a–19.38i
+   =========================================== */
+
+/* Overlay — fixed fullscreen backdrop */
+.config-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Modal container — dark glass card */
+.config-modal {
+    min-width: 500px;
+    max-width: 90vw;
+    background: rgba(12, 14, 22, 0.97);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow: 0 20px 80px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header — title + close button */
+.config-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--glass-border);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+/* Body — form fields */
+.config-modal-body {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.config-modal-body .modal-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.config-modal-body label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    opacity: 0.5;
+}
+
+/* Input fields — dark theme */
+.config-modal-body .modal-input,
+.config-modal-body .modal-select,
+.config-modal-body .modal-textarea {
+    background: rgba(12, 14, 22, 0.95);
+    color: var(--text-main);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: 'Be Vietnam Pro', sans-serif;
+    font-size: 13px;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.config-modal-body .modal-input:focus,
+.config-modal-body .modal-select:focus,
+.config-modal-body .modal-textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 8px rgba(45, 254, 207, 0.15);
+}
+
+.config-modal-body .modal-select {
+    color: var(--primary);
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.config-modal-body .modal-textarea {
+    min-height: 100px;
+    resize: vertical;
+    line-height: 1.6;
+}
+
+/* Validation error — red border + message */
+.config-modal-body .field-error {
+    border-color: var(--danger, #ff4444) !important;
+    box-shadow: 0 0 8px rgba(255, 68, 68, 0.15) !important;
+}
+
+.config-modal-body .field-error-msg {
+    font-size: 11px;
+    color: var(--danger, #ff4444);
+    margin-top: 2px;
+}
+
+/* Footer — Save + Cancel buttons */
+.config-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--glass-border);
+}
+
+.config-modal-footer .btn-modal-cancel {
+    padding: 8px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: transparent;
+    color: var(--text-sub);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.config-modal-footer .btn-modal-cancel:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.config-modal-footer .btn-modal-save {
+    padding: 8px 24px;
+    font-size: 12px;
+    letter-spacing: 1px;
+}
+
+/* Summary table rows — clickable */
+.config-table .summary-row {
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.config-table .summary-row:hover {
+    background: rgba(45, 254, 207, 0.06);
+}
+
+/* Mobile responsive */
+@media (max-width: 600px) {
+    .config-modal {
+        min-width: unset;
+        width: 90vw;
+    }
+}

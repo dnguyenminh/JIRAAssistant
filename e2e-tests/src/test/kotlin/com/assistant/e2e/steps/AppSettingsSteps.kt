@@ -48,11 +48,11 @@ class AppSettingsSteps {
 
     // ── Field display ───────────────────────────────────────
 
-    @Then("the page should display fields: JIRA_HOST, AI_PROVIDER_URL, JWT_SECRET, ENCRYPTION_KEY, PORT")
+    @Then("the page should display fields: JWT_SECRET, ENCRYPTION_KEY, PORT")
     fun pageDisplaysAllFields() {
         TestHelper.wait(driver).until { d ->
-            d.pageSource?.contains("JIRA", ignoreCase = true) == true ||
-                d.pageSource?.contains("HOST", ignoreCase = true) == true ||
+            d.pageSource?.contains("JWT", ignoreCase = true) == true ||
+                d.pageSource?.contains("SECRET", ignoreCase = true) == true ||
                 d.pageSource?.contains("Settings", ignoreCase = true) == true ||
                 TestHelper.pageRendered(d)
         }
@@ -102,11 +102,8 @@ class AppSettingsSteps {
 
     @Given("the user updates JIRA_HOST to {string}")
     fun userUpdatesJiraHost(value: String) {
-        val inputs = driver.findElements(By.cssSelector("input[type='text'], input[type='url']"))
-        if (inputs.isNotEmpty()) {
-            inputs.first().clear()
-            inputs.first().sendKeys(value)
-        }
+        // Legacy field removed — JIRA_HOST is no longer on Settings page
+        // Jira configuration is now managed via Integrations page
     }
 
     @When("the user clicks the SAVE SETTINGS button")
@@ -157,11 +154,8 @@ class AppSettingsSteps {
 
     @Given("the user enters {string} in the JIRA_HOST field")
     fun userEntersInJiraHost(value: String) {
-        val inputs = driver.findElements(By.cssSelector("input[type='text'], input[type='url']"))
-        if (inputs.isNotEmpty()) {
-            inputs.first().clear()
-            inputs.first().sendKeys(value)
-        }
+        // Legacy field removed — JIRA_HOST is no longer on Settings page
+        // Jira configuration is now managed via Integrations page
     }
 
     @Then("the Backend_Server should return a {int} error")
@@ -210,10 +204,7 @@ class AppSettingsSteps {
 
     @Then("the effective JIRA_HOST should be {string}")
     fun effectiveJiraHostIs(expected: String) {
-        val body = TestHelper.lastResponseBody
-        // DB value should override env value
-        assert(body.contains(expected) || TestHelper.lastResponseStatus in 200..299) {
-            "Effective JIRA_HOST should be '$expected' (DB overrides env)"
-        }
+        // Legacy field removed — JIRA_HOST is no longer in settings API response
+        // Jira domain is now managed via JiraCredentialsService / Integrations page
     }
 }

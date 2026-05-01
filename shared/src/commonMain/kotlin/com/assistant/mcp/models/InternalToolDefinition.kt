@@ -17,7 +17,8 @@ enum class ToolCategory {
     USER_MANAGEMENT,
     INTEGRATIONS,
     KNOWLEDGE_GRAPH,
-    DASHBOARD
+    DASHBOARD,
+    DIAGRAM
 }
 
 /**

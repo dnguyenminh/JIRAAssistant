@@ -44,7 +44,7 @@ abstract class BaseNodeCliClient : AiCliClient {
 
     // ==================== STATELESS MODE ====================
 
-    override fun sendPrompt(prompt: String): AiCliResponse {
+    override suspend fun sendPrompt(prompt: String): AiCliResponse {
         logger.info("Sending prompt to {}... [STATELESS]", displayName)
         logger.debug("Prompt length: {} chars", prompt.length)
         val args = buildCommandArgs(prompt)
@@ -65,7 +65,7 @@ abstract class BaseNodeCliClient : AiCliClient {
         currentSessionId = null
     }
 
-    override fun sendMessage(message: String): AiCliResponse {
+    override suspend fun sendMessage(message: String): AiCliResponse {
         logger.info("Sending message to {}... [PERSISTENT]", displayName)
         if (!sessionInitialized) startSession()
 

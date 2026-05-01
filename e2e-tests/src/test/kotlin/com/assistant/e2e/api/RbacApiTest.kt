@@ -29,7 +29,7 @@ class RbacApiTest : ApiTestBase() {
         val resp = client.put("$baseUrl/api/settings") {
             contentType(ContentType.Application.Json)
             header(HttpHeaders.Authorization, "Bearer ${readerJwt()}")
-            setBody("""{"jiraHost":"https://evil.example.com"}""")
+            setBody("""{"jwtSecret":"https://evil.example.com"}""")
         }
         assertEquals(403, resp.status.value, "READER should not access PUT /api/settings")
     }

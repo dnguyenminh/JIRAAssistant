@@ -3,6 +3,8 @@ package com.assistant.frontend.pages
 import com.assistant.auth.UserRole
 import com.assistant.frontend.api.ApiClient
 import com.assistant.frontend.components.BlockingOverlay
+import com.assistant.frontend.models.ProjectInfo
+import com.assistant.frontend.models.ProjectsResponse
 import com.assistant.frontend.router.Router
 import com.assistant.frontend.services.HtmlUtils
 import io.ktor.client.statement.*
@@ -10,15 +12,10 @@ import io.ktor.http.*
 import kotlinx.browser.document
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.boolean
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.HTMLInputElement
-import org.w3c.dom.HTMLTemplateElement
 
 /**
  * Standalone project selection page with sortable, searchable, paginated table.
@@ -28,19 +25,12 @@ object ProjectSelectPage {
 
     private val scope = MainScope()
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
-    private var allProjects = listOf<JiraProject>()
-    private var filtered = listOf<JiraProject>()
+    private var allProjects = listOf<ProjectInfo>()
+    private var filtered = listOf<ProjectInfo>()
     private var sortCol = "key"
     private var sortAsc = true
     private var page = 0
     private const val PAGE_SIZE = 20
-
-    @Serializable
-    data class JiraProject(
-        val key: String = "",
-        val name: String = "",
-        val projectTypeKey: String = ""
-    )
 
     fun render(container: Element) {
         container.innerHTML = ""
@@ -83,12 +73,8 @@ object ProjectSelectPage {
                     Router.navigateTo("login"); return@launch
                 }
                 if (resp.status == HttpStatusCode.OK) {
-                    allProjects = json.decodeFromString<List<JiraProject>>(resp.bodyAsText())
-                    if (allProjects.isEmpty()) {
-                        checkJiraStatus()
-                        return@launch
-                    }
-                    applyFilter(); applySort(); renderTable()
+                    val body = json.decodeFromString<ProjectsResponse>(resp.bodyAsText())
+                    handleProjectsResponse(body)
                 } else {
                     renderEmpty("Failed to load projects (${resp.status})")
                 }
@@ -96,6 +82,20 @@ object ProjectSelectPage {
                 renderEmpty("Connection error: ${e.message}")
             } finally {
                 BlockingOverlay.remove("project-select-page")
+            }
+        }
+    }
+
+    private fun handleProjectsResponse(body: ProjectsResponse) {
+        when (body.jiraStatus) {
+            "CREDENTIALS_INVALID" -> showCredentialError()
+            "NOT_CONFIGURED" -> handleJiraConfigResult(false)
+            else -> {
+                allProjects = body.projects
+                if (allProjects.isEmpty()) {
+                    showEmptyWithRetry(); return
+                }
+                applyFilter(); applySort(); renderTable()
             }
         }
     }
@@ -114,7 +114,7 @@ object ProjectSelectPage {
         filtered = when (sortCol) {
             "key" -> if (sortAsc) filtered.sortedBy { it.key } else filtered.sortedByDescending { it.key }
             "name" -> if (sortAsc) filtered.sortedBy { it.name.lowercase() } else filtered.sortedByDescending { it.name.lowercase() }
-            "type" -> if (sortAsc) filtered.sortedBy { it.projectTypeKey } else filtered.sortedByDescending { it.projectTypeKey }
+            "type" -> if (sortAsc) filtered.sortedBy { it.projectTypeKey ?: "" } else filtered.sortedByDescending { it.projectTypeKey ?: "" }
             else -> filtered
         }
     }
@@ -133,7 +133,7 @@ object ProjectSelectPage {
             tr.innerHTML = """
                 <td style="padding:12px 16px;font-weight:600;color:var(--primary);">${HtmlUtils.escapeHtml(p.key)}</td>
                 <td style="padding:12px 16px;">${HtmlUtils.escapeHtml(p.name)}</td>
-                <td style="padding:12px 16px;opacity:0.5;">${HtmlUtils.escapeHtml(p.projectTypeKey)}</td>
+                <td style="padding:12px 16px;opacity:0.5;">${HtmlUtils.escapeHtml(p.projectTypeKey ?: "")}</td>
             """.trimIndent()
             tr.addEventListener("mouseenter", { tr.style.background = "rgba(45,254,207,0.06)" })
             tr.addEventListener("mouseleave", { tr.style.background = "" })
@@ -170,28 +170,8 @@ object ProjectSelectPage {
         tbody.innerHTML = "<tr><td colspan='3' style='text-align:center;padding:48px;opacity:0.5;'>$msg</td></tr>"
     }
 
-    /** 2.1 — Check Jira config status; branch by role. */
-    private fun checkJiraStatus() {
-        scope.launch {
-            try {
-                val resp = ApiClient.get("/api/integrations/jira/status")
-                if (resp.status == HttpStatusCode.OK) {
-                    val body = resp.bodyAsText()
-                    val obj = Json.parseToJsonElement(body).jsonObject
-                    val configured = obj["configured"]
-                        ?.jsonPrimitive?.boolean ?: true
-                    handleJiraConfigResult(configured)
-                } else {
-                    showEmptyWithRetry()
-                }
-            } catch (e: Exception) {
-                console.log("[ProjectSelect] Jira status check failed: ${e.message}")
-                showEmptyWithRetry()
-            } finally {
-                BlockingOverlay.remove("project-select-page")
-            }
-        }
-    }
+    /** Show credential error state with link to Integrations. */
+    private fun showCredentialError() = ProjectSelectStates.showCredentialError()
 
     private fun handleJiraConfigResult(configured: Boolean) {
         if (!configured) {
@@ -199,60 +179,14 @@ object ProjectSelectPage {
             if (role == UserRole.ADMINISTRATOR) {
                 Router.navigateTo("integrations")
             } else {
-                showJiraNotConfigured()
+                ProjectSelectStates.showJiraNotConfigured()
             }
         } else {
             showEmptyWithRetry()
         }
     }
 
-    /** 2.3 — Non-admin: show disconnect footer + popup. */
-    private fun showJiraNotConfigured() {
-        cloneAndAppendFooter()
-        cloneAndShowPopup()
-    }
-
-    private fun cloneAndAppendFooter() {
-        val tmpl = document.getElementById("tmpl-jira-disconnect")
-            as? HTMLTemplateElement ?: return
-        val footer = tmpl.content.firstElementChild
-            ?.cloneNode(true) as? HTMLElement ?: return
-        document.body?.appendChild(footer)
-    }
-
-    private fun cloneAndShowPopup() {
-        val tmpl = document.getElementById("tmpl-jira-not-configured-popup")
-            as? HTMLTemplateElement ?: return
-        val overlay = tmpl.content.firstElementChild
-            ?.cloneNode(true) as? HTMLElement ?: return
-        document.body?.appendChild(overlay)
-        overlay.querySelector("#jira-popup-ok-btn")
-            ?.addEventListener("click", { overlay.remove() })
-    }
-
-    /** 2.4 — Fallback: normal empty state with RETRY. */
-    private fun showEmptyWithRetry() {
-        val tbody = document.getElementById("project-table-body")
-            as? HTMLElement ?: return
-        tbody.innerHTML = ""
-        val tr = document.createElement("tr") as HTMLElement
-        val td = document.createElement("td") as HTMLElement
-        td.setAttribute("colspan", "3")
-        td.style.cssText = "text-align:center;padding:48px;"
-        val msg = document.createElement("span") as HTMLElement
-        msg.style.opacity = "0.5"
-        msg.textContent = "No projects available."
-        val btn = document.createElement("button") as HTMLElement
-        btn.className = "chat-action-btn"
-        btn.style.cssText = "margin-top:16px;padding:8px 24px;"
-        btn.textContent = "RETRY"
-        btn.addEventListener("click", { loadProjects() })
-        td.appendChild(msg)
-        td.appendChild(document.createElement("br"))
-        td.appendChild(btn)
-        tr.appendChild(td)
-        tbody.appendChild(tr)
-    }
+    private fun showEmptyWithRetry() = ProjectSelectStates.showEmptyWithRetry { loadProjects() }
 
     private fun selectProject(key: String) {
         ApiClient.saveProjectKey(key)

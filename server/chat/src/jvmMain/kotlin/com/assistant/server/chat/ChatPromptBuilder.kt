@@ -38,9 +38,17 @@ internal object ChatPromptBuilder {
             {"mcpToolCall":{"serverId":"jira-assistant-ui","toolName":"get_dashboard_metrics","arguments":{"projectKey":"ICL2"}}}
             DO NOT respond with {"reply":"I will fetch data...","actions":[{"type":"get_dashboard_metrics",...}]}
             DO NOT write "Tool Call: ..." or any other format. ONLY the mcpToolCall JSON works.
+            DO NOT write "Dùng tool X để tìm Y" — this does NOT execute the tool.
+            DO NOT describe what tool you want to use — just output the JSON directly.
             After the tool returns data, THEN respond with the reply+actions+references format.
-            NEVER say "I will fetch data" without actually calling the tool.
+            NEVER say "I will fetch data" or "Tôi sẽ dùng tool" without actually calling the tool.
             NEVER put tool names in the "actions" array — actions are ONLY for UI navigation/filtering.
+
+            CORRECT tool call example:
+            {"mcpToolCall":{"serverId":"local-knowledge-base","toolName":"search_knowledge","arguments":{"query":"Network Graph"}}}
+
+            WRONG (DO NOT DO THIS):
+            {"reply":"Dùng tool search_knowledge để tìm 'Network Graph'","actions":[{"type":"navigate",...}]}
 
             EMPTY DATA HANDLING:
             When a tool returns data with all zero values (totalTickets:0, totalEdges:0) or empty results,

@@ -25,6 +25,9 @@ class JobManager(
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 ) {
 
+    /** Track running coroutine jobs for cancellation. */
+    private val activeCoroutines = java.util.concurrent.ConcurrentHashMap<String, Job>()
+
     suspend fun createJob(ticketId: String, documentType: String, userId: String): GenerationJob {
         val existing = jobRepository.findByTicketIdAndTypeActive(ticketId, documentType)
         if (existing != null) {
@@ -46,7 +49,7 @@ class JobManager(
             createdBy = userId, createdAt = now, updatedAt = now
         )
         jobRepository.create(job)
-        scope.launch { executeJobSafe(job.jobId) }
+        activeCoroutines[job.jobId] = scope.launch { executeJobSafe(job.jobId) }
         return job
     }
 
@@ -62,12 +65,12 @@ class JobManager(
             )
         }
         jobs.forEach { jobRepository.create(it) }
-        scope.launch { executeJobSafe(jobs.first().jobId) }
+        activeCoroutines[jobs.first().jobId] = scope.launch { executeJobSafe(jobs.first().jobId) }
         return JobChainResponse(chainId = chainId, jobs = jobs)
     }
 
     fun executeJob(jobId: String) {
-        scope.launch { executeJobSafe(jobId) }
+        activeCoroutines[jobId] = scope.launch { executeJobSafe(jobId) }
     }
 
     private suspend fun executeJobSafe(jobId: String) {
@@ -82,6 +85,10 @@ class JobManager(
             }
             jobRepository.updateStatus(jobId, "COMPLETED", 100, "COMPLETE")
             chainOrchestrator.onJobCompleted(job.chainId, this@JobManager)
+        } catch (e: CancellationException) {
+            println("[JobManager] Job $jobId cancelled")
+            // Status already set to CANCELLED by cancelJob(), just propagate
+            throw e
         } catch (e: TimeoutCancellationException) {
             val msg = "Job timed out after ${JOB_TIMEOUT_MINUTES}m"
             val current = jobRepository.findById(jobId)
@@ -95,6 +102,8 @@ class JobManager(
             jobRepository.updateStatus(jobId, "FAILED", current?.progressPercent ?: 0, lastPhase, e.message)
             chainOrchestrator.onJobFailed(job.chainId)
             println("[JobManager] Job $jobId failed: ${e.message}")
+        } finally {
+            activeCoroutines.remove(jobId)
         }
     }
 
@@ -124,7 +133,7 @@ class JobManager(
         val job = jobRepository.findById(jobId) ?: throw JobNotFoundException(jobId)
         if (job.status != "PAUSED") throw InvalidTransitionException(job.status, "QUEUED")
         jobRepository.updateStatus(jobId, "QUEUED", job.progressPercent, job.phase)
-        scope.launch { executeJobSafe(jobId) }
+        activeCoroutines[jobId] = scope.launch { executeJobSafe(jobId) }
         return jobRepository.findById(jobId)!!
     }
 
@@ -134,6 +143,7 @@ class JobManager(
             throw InvalidTransitionException(job.status, "CANCELLED")
         }
         jobRepository.updateStatus(jobId, "CANCELLED", job.progressPercent, job.phase)
+        activeCoroutines.remove(jobId)?.cancel()
         chainOrchestrator.onJobCancelled(job.chainId)
         return jobRepository.findById(jobId)!!
     }
@@ -143,7 +153,7 @@ class JobManager(
         running.forEach { job ->
             println("[JobManager] Recovering RUNNING job ${job.jobId} → QUEUED")
             jobRepository.updateStatus(job.jobId, "QUEUED", 0, job.phase)
-            scope.launch { executeJobSafe(job.jobId) }
+            activeCoroutines[job.jobId] = scope.launch { executeJobSafe(job.jobId) }
         }
     }
 

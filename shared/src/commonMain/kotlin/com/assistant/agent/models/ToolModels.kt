@@ -48,3 +48,20 @@ data class ToolDescriptor(
     val description: String,
     val parameterNames: List<String> = emptyList()
 )
+
+/**
+ * Enriched tool descriptor with source metadata.
+ * Returned by ToolRegistry.listToolsWithSource().
+ *
+ * [toolSource] uses String ("LOCAL", "AGENT_MCP", "SHARED_MCP")
+ * for cross-platform compatibility.
+ */
+@Serializable
+data class ToolDescriptorWithSource(
+    val name: String,
+    val description: String,
+    val parameterNames: List<String> = emptyList(),
+    val toolSource: String = "LOCAL",
+    val serverId: String? = null,
+    val serverName: String? = null
+)

@@ -236,21 +236,23 @@ Trang này cung cấp cái nhìn tổng thể về hiệu suất sprint và các
 
 ## Chương 7: Tích hợp AI (Integrations)
 
-Trang này quản lý các nhà cung cấp AI và kết nối Jira.
+Trang này quản lý các nhà cung cấp AI.
 
 ### B01: Truy cập
 - Click **"Integrations"** trên sidebar
 
 ### B02: Xem danh sách providers
-5 thẻ provider hiển thị trong lưới:
+7 thẻ provider hiển thị trong lưới:
 
 | Provider | Loại | Trạng thái mặc định |
 |----------|------|---------------------|
-| Jira Cloud Services | Nguồn dữ liệu | 🟢 Active |
 | Ollama (Local) | AI cục bộ | 🟢 Active |
 | Google Gemini API | AI đám mây | 🔵 Standby |
 | LM Studio | AI cục bộ (OpenAI-compatible) | 🔴 Offline |
 | Gemini CLI Interface | AI qua dòng lệnh | 🔵 Standby |
+| Copilot CLI (GitHub) | AI qua dòng lệnh | 🔴 Offline |
+| Kiro CLI (Amazon) | AI qua dòng lệnh | 🔴 Offline |
+| Embedding Model | Mô hình nhúng | 🟢 Active |
 
 ### B03: Kiểm tra kết nối
 - Nhấn **"TEST LINK"** trên thẻ Ollama

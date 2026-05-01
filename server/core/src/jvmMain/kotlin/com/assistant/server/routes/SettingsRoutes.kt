@@ -14,7 +14,6 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import org.koin.ktor.ext.inject
-import java.net.URL
 
 @Serializable
 data class SettingsStatusResponse(val configured: Boolean)
@@ -88,8 +87,6 @@ private suspend fun RoutingContext.handleGetSettings(
 ) {
     val raw = settingsRepo.getAll()
     val current = AppSettings(
-        jiraHost = raw["JIRA_HOST"] ?: serverConfig.jiraHost,
-        aiProviderUrl = raw["AI_PROVIDER_URL"] ?: serverConfig.aiProviderUrl,
         jwtSecret = raw["JWT_SECRET"] ?: serverConfig.jwtSecret,
         encryptionKey = raw["ENCRYPTION_KEY"] ?: serverConfig.encryptionKey,
         port = raw["PORT"]?.toIntOrNull() ?: serverConfig.port
@@ -101,18 +98,10 @@ private suspend fun RoutingContext.handlePutSettings(
     settingsRepo: SettingsRepository, serverConfig: ServerConfig
 ) {
     val request = call.receive<AppSettings>()
-    request.jiraHost?.let { if (!isValidUrl(it)) {
-        call.respond(HttpStatusCode.BadRequest, ErrorResponse("jiraHost must be a valid URL")); return
-    }}
-    request.aiProviderUrl?.let { if (!isValidUrl(it)) {
-        call.respond(HttpStatusCode.BadRequest, ErrorResponse("aiProviderUrl must be a valid URL")); return
-    }}
     request.port?.let { if (it !in 1..65535) {
         call.respond(HttpStatusCode.BadRequest, ErrorResponse("port must be between 1 and 65535")); return
     }}
     val settingsMap = buildMap {
-        request.jiraHost?.let { put("JIRA_HOST", it) }
-        request.aiProviderUrl?.let { put("AI_PROVIDER_URL", it) }
         request.jwtSecret?.let { put("JWT_SECRET", it) }
         request.encryptionKey?.let { put("ENCRYPTION_KEY", it) }
         request.port?.let { put("PORT", it.toString()) }
@@ -120,15 +109,9 @@ private suspend fun RoutingContext.handlePutSettings(
     settingsRepo.putAll(settingsMap)
     val saved = settingsRepo.getAll()
     val updated = AppSettings(
-        jiraHost = saved["JIRA_HOST"] ?: serverConfig.jiraHost,
-        aiProviderUrl = saved["AI_PROVIDER_URL"] ?: serverConfig.aiProviderUrl,
         jwtSecret = saved["JWT_SECRET"] ?: serverConfig.jwtSecret,
         encryptionKey = saved["ENCRYPTION_KEY"] ?: serverConfig.encryptionKey,
         port = saved["PORT"]?.toIntOrNull() ?: serverConfig.port
     )
     call.respond(HttpStatusCode.OK, AppSettingsResponse.fromSettings(updated))
 }
-
-private fun isValidUrl(value: String): Boolean = try {
-    val url = URL(value); url.protocol in listOf("http", "https")
-} catch (_: Exception) { false }

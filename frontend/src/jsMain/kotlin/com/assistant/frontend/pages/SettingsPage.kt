@@ -5,7 +5,6 @@ import com.assistant.frontend.api.ApiClient
 import com.assistant.frontend.pages.settings.SettingsSaveHandler
 import com.assistant.frontend.pages.settings.SettingsCurationToggle
 import com.assistant.frontend.pages.settings.SettingsAgentPipelineToggle
-import com.assistant.frontend.services.ValidationService
 import com.assistant.settings.AppSettingsResponse
 import io.ktor.client.statement.*
 import kotlinx.browser.document
@@ -98,8 +97,6 @@ object SettingsPage {
     }
 
     private fun bindSettingsToForm(settings: AppSettingsResponse) {
-        setInput("input-jira-host", settings.jiraHost ?: "")
-        setInput("input-ai-provider-url", settings.aiProviderUrl ?: "")
         setMaskedInput("input-jwt-secret", settings.jwtSecret)
         setMaskedInput("input-encryption-key", settings.encryptionKey)
         setReadonlyInput("input-port", settings.port?.toString() ?: "")

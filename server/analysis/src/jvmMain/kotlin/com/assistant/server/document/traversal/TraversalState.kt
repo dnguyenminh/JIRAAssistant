@@ -27,6 +27,7 @@ data class BfsQueueItem(
 class TraversalState(private val config: TraversalConfig) {
 
     private val visited = mutableSetOf<String>()
+    private val queued = mutableSetOf<String>()
     private val nodeMap = mutableMapOf<String, TicketNode>()
     private val edgeList = mutableListOf<TicketEdge>()
     private val queue = LinkedList<BfsQueueItem>()
@@ -47,8 +48,9 @@ class TraversalState(private val config: TraversalConfig) {
     }
 
     fun enqueue(item: BfsQueueItem) {
-        if (item.ticketId !in visited) {
+        if (item.ticketId !in visited && item.ticketId !in queued) {
             totalDiscoveredCount++
+            queued.add(item.ticketId)
             queue.add(item)
         }
     }

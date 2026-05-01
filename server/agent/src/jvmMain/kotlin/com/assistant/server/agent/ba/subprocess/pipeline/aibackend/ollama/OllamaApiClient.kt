@@ -41,9 +41,35 @@ class OllamaApiClient(
 
     override val displayName: String get() = "Ollama ($model)"
 
+    @Volatile
+    private var cancelled = false
+
+    /** Cancel any in-flight HTTP request by closing the client. */
+    fun cancel() {
+        log.info("Cancelling Ollama HTTP client")
+        cancelled = true
+        try { httpClient.close() } catch (_: Exception) {}
+    }
+
+    /** Check if cancelled before each HTTP call. */
+    internal fun checkCancelled() {
+        if (cancelled) throw kotlinx.coroutines.CancellationException("Job cancelled")
+    }
+
+    /** Suspend-aware cancel check — also checks coroutine cancellation. */
+    internal suspend fun ensureCancelledOrActive() {
+        val ctx = kotlin.coroutines.coroutineContext
+        val job = ctx[kotlinx.coroutines.Job]
+        if (job != null && !job.isActive) {
+            throw kotlinx.coroutines.CancellationException("Job cancelled")
+        }
+        checkCancelled()
+    }
+
     // ── Stateless mode ──────────────────────────────────────
 
-    override fun sendPrompt(prompt: String): AiCliResponse {
+    override suspend fun sendPrompt(prompt: String): AiCliResponse {
+        ensureCancelledOrActive()
         log.info("Sending stateless prompt to Ollama ($model)")
         val request = buildChatRequest(
             messages = listOf(OllamaChatMessage(role = "user", content = prompt))
@@ -62,7 +88,8 @@ class OllamaApiClient(
         sessionActive = true
     }
 
-    override fun sendMessage(message: String): AiCliResponse {
+    override suspend fun sendMessage(message: String): AiCliResponse {
+        ensureCancelledOrActive()
         log.info("Sending message in session, history={}", conversationHistory.size)
         conversationHistory.add(OllamaChatMessage(role = "user", content = message))
         val request = buildChatRequest(messages = conversationHistory.toList())
@@ -92,7 +119,8 @@ class OllamaApiClient(
 
     // ── Tool result ─────────────────────────────────────────
 
-    fun sendToolResult(toolName: String, result: String): AiCliResponse {
+    suspend fun sendToolResult(toolName: String, result: String): AiCliResponse {
+        ensureCancelledOrActive()
         log.info("Sending tool result for '{}'", toolName)
         conversationHistory.add(OllamaChatMessage(role = "tool", content = result))
         val request = buildChatRequest(messages = conversationHistory.toList())

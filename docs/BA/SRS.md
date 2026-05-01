@@ -60,13 +60,12 @@ The Jira Assistant is an AI-driven tool built with **Kotlin Multiplatform (KMP)*
 
 ### 2.6 Integrations (MH6)
 
-- **FR-31: Provider Cards**: The page SHALL display 5 provider cards in a responsive grid (min 380px columns): Jira Cloud Services, Ollama (Local), Google Gemini API, LM Studio, Gemini CLI Interface.
+- **FR-31: Provider Cards**: The page SHALL display 7 provider cards in a responsive grid (min 380px columns): Ollama (Local), Google Gemini API, LM Studio, Gemini CLI Interface, Copilot CLI (GitHub), Kiro CLI (Amazon), Embedding Model.
 - **FR-32: Card Content**: Each card SHALL display: provider logo, status dot with tooltip, configuration fields, and an action button.
 - **FR-33: Status Indicators**: Status dots SHALL use 3 states: Active (green with glow), Standby (blue with glow), Offline (red with glow). Each SHALL have a tooltip with details (latency, error reason, session time).
 - **FR-34: Connection Test**: WHEN a user clicks "TEST LINK", THEN the button text SHALL change to "PROBING...", a progress bar SHALL animate from 0% to 100%, and the button SHALL reset after completion.
-- **FR-35: Jira Reconnect**: The Jira card's "RE-CONNECT / UPDATE" button SHALL redirect to the Onboarding page.
-- **FR-36: Gemini Model Selection**: The Gemini card SHALL include a dropdown with options: Gemini 1.5 Pro, Gemini 1.0 Ultra, Gemini 1.5 Flash.
-- **FR-37: Integration RBAC**: Only Administrator role SHALL be able to modify provider configurations. Other roles can view but not edit.
+- **FR-35: Gemini Model Selection**: The Gemini card SHALL include a dropdown with options: Gemini 1.5 Pro, Gemini 1.0 Ultra, Gemini 1.5 Flash.
+- **FR-36: Integration RBAC**: Only Administrator role SHALL be able to modify provider configurations. Other roles can view but not edit.
 
 ### 2.7 User Management (MH7)
 

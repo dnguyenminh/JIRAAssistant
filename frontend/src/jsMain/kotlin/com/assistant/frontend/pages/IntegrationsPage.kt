@@ -118,13 +118,12 @@ object IntegrationsPage {
     }
 
     private fun defaultProviders(): List<ProviderInfo> = listOf(
-        ProviderInfo("jira", "Jira Cloud Services", "JIRA", "STANDBY", priority = 0),
-        ProviderInfo("ollama", "Ollama (Local)", "OLLAMA", "OFFLINE", priority = 1),
-        ProviderInfo("gemini", "Google Gemini API", "GEMINI", "OFFLINE", priority = 2),
-        ProviderInfo("lm_studio", "LM Studio", "LM_STUDIO", "OFFLINE", priority = 3),
-        ProviderInfo("gemini_cli", "Gemini CLI Interface", "GEMINI_CLI", "OFFLINE", priority = 4),
-        ProviderInfo("copilot_cli", "Copilot CLI (GitHub)", "COPILOT_CLI", "OFFLINE", priority = 5),
-        ProviderInfo("kiro_cli", "Kiro CLI (Amazon)", "KIRO_CLI", "OFFLINE", priority = 6),
+        ProviderInfo("ollama", "Ollama (Local)", "OLLAMA", "OFFLINE", priority = 0),
+        ProviderInfo("gemini", "Google Gemini API", "GEMINI", "OFFLINE", priority = 1),
+        ProviderInfo("lm_studio", "LM Studio", "LM_STUDIO", "OFFLINE", priority = 2),
+        ProviderInfo("gemini_cli", "Gemini CLI Interface", "GEMINI_CLI", "OFFLINE", priority = 3),
+        ProviderInfo("copilot_cli", "Copilot CLI (GitHub)", "COPILOT_CLI", "OFFLINE", priority = 4),
+        ProviderInfo("kiro_cli", "Kiro CLI (Amazon)", "KIRO_CLI", "OFFLINE", priority = 5),
         ProviderInfo("embedding", "Embedding Model", "EMBEDDING", "ACTIVE", priority = 10,
             endpoint = "http://localhost:11434", model = "nomic-embed-text")
     )

@@ -14,8 +14,6 @@ object TestConfigFactory {
 
     /** Minimal [ServerConfig] suitable for unit tests that don't need a real DB. */
     fun minimal(): ServerConfig = ServerConfig(
-        jiraHost = "https://jira.example.com",
-        aiProviderUrl = "http://localhost:11434",
         jwtSecret = "test-jwt-secret-change-in-production",
         encryptionKey = "test-encryption-key-change-in-prod",
         port = 8080,

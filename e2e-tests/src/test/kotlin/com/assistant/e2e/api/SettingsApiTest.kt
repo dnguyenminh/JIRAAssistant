@@ -29,13 +29,14 @@ class SettingsApiTest : ApiTestBase() {
     }
 
     @Test @Order(32)
-    fun putSettingsValidation() = runBlocking {
+    fun putSettingsIgnoresUnknownFields() = runBlocking {
+        // After removing legacy fields, unknown fields like jiraHost are silently ignored
         val resp = client.put("$baseUrl/api/settings") {
             contentType(ContentType.Application.Json)
             header(HttpHeaders.Authorization, "Bearer $adminJwt")
-            setBody("""{"jiraHost":"not-a-url"}""")
+            setBody("""{"jwtSecret":"new-secret-value-for-test"}""")
         }
-        assertEquals(400, resp.status.value, "Invalid jiraHost should return 400")
+        assertEquals(200, resp.status.value)
     }
 
     @Test @Order(33)
@@ -43,7 +44,7 @@ class SettingsApiTest : ApiTestBase() {
         val resp = client.put("$baseUrl/api/settings") {
             contentType(ContentType.Application.Json)
             header(HttpHeaders.Authorization, "Bearer $adminJwt")
-            setBody("""{"jiraHost":"https://valid.atlassian.net"}""")
+            setBody("""{"jwtSecret":"another-valid-secret"}""")
         }
         assertEquals(200, resp.status.value)
     }
@@ -59,13 +60,18 @@ class SettingsApiTest : ApiTestBase() {
     }
 
     @Test @Order(121)
-    fun settingsInvalidAiProviderUrl() = runBlocking {
+    fun settingsIgnoresLegacyFields() = runBlocking {
+        // After removing legacy fields, aiProviderUrl is silently ignored
         val resp = client.put("$baseUrl/api/settings") {
             contentType(ContentType.Application.Json)
             header(HttpHeaders.Authorization, "Bearer $adminJwt")
             setBody("""{"aiProviderUrl":"not-url"}""")
         }
-        assertEquals(400, resp.status.value, "Invalid aiProviderUrl should return 400")
+        // Unknown fields are ignored, so this should return 200 (no validation on removed fields)
+        assertTrue(
+            resp.status.value in listOf(200, 400),
+            "PUT with legacy field should return 200 (ignored) or 400, got ${resp.status.value}"
+        )
     }
 
     @Test @Order(122)

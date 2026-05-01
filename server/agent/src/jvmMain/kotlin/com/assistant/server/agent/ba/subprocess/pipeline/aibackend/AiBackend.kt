@@ -11,11 +11,11 @@ interface AiBackend {
     val displayName: String
 
     // Stateless mode
-    fun sendPrompt(prompt: String): AiCliResponse
+    suspend fun sendPrompt(prompt: String): AiCliResponse
 
     // Session mode
     fun startSession()
-    fun sendMessage(message: String): AiCliResponse
+    suspend fun sendMessage(message: String): AiCliResponse
     fun endSession()
     fun isSessionActive(): Boolean
 

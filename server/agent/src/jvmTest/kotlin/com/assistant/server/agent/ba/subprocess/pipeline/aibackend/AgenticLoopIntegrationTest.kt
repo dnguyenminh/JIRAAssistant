@@ -127,7 +127,7 @@ class AgenticLoopIntegrationTest {
         return object : AiBackend {
             override val displayName = "IntegrationMock"
 
-            override fun sendPrompt(prompt: String): AiCliResponse {
+            override suspend fun sendPrompt(prompt: String): AiCliResponse {
                 callCount++
                 return if (callCount == 1) {
                     AiCliResponse(
@@ -139,7 +139,7 @@ class AgenticLoopIntegrationTest {
             }
 
             override fun startSession() {}
-            override fun sendMessage(msg: String) = sendPrompt(msg)
+            override suspend fun sendMessage(msg: String) = sendPrompt(msg)
             override fun endSession() {}
             override fun isSessionActive() = false
 

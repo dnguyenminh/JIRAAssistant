@@ -117,6 +117,10 @@ internal object DocumentGenerationFlow {
     private suspend fun pollJobUntilComplete(
         jobId: String, areaId: String, ticketId: String, docType: String
     ) {
+        // Install event delegation once — survives innerHTML rebuilds
+        InlineProgressRenderer.installCancelDelegate(areaId) {
+            cancelJob(jobId, ticketId, docType)
+        }
         var consecutiveErrors = 0
         var timerStarted = false
         for (attempt in 0 until 120) {
@@ -164,6 +168,7 @@ internal object DocumentGenerationFlow {
 
     private fun handleCompleted(areaId: String, ticketId: String, docType: String) {
         stopElapsedTimer()
+        InlineProgressRenderer.removeCancelDelegate(areaId)
         InlineProgressRenderer.renderSuccess(areaId) {
             DocGenButtonHelper.enableGenerateButton(docType)
             scope.launch {
@@ -177,18 +182,21 @@ internal object DocumentGenerationFlow {
         areaId: String, job: GenerationJobDto, ticketId: String, docType: String
     ) {
         stopElapsedTimer()
+        InlineProgressRenderer.removeCancelDelegate(areaId)
         DocGenButtonHelper.enableGenerateButton(docType)
         InlineProgressRenderer.renderError(areaId, job) { startGeneration(ticketId, docType) }
     }
 
     private fun handleCancelled(areaId: String, docType: String) {
         stopElapsedTimer()
+        InlineProgressRenderer.removeCancelDelegate(areaId)
         InlineProgressRenderer.clearProgress(areaId)
         DocGenButtonHelper.enableGenerateButton(docType)
     }
 
     private fun handlePollFailure(areaId: String, docType: String) {
         stopElapsedTimer()
+        InlineProgressRenderer.removeCancelDelegate(areaId)
         InlineProgressRenderer.clearProgress(areaId)
         DocGenButtonHelper.enableGenerateButton(docType)
         DocGenApiHelper.showErrorToast(SECTION_ID, "Mất kết nối — vui lòng thử lại")

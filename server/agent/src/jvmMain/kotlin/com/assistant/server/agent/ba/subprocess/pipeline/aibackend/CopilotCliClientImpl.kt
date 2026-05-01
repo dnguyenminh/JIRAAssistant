@@ -62,7 +62,7 @@ open class CopilotCliClientImpl : BaseNodeCliClient() {
      * Copilot persistent mode = stateless execution + --continue flag.
      * Override sendMessage to use sendPrompt with persistent args.
      */
-    override fun sendMessage(message: String): AiCliResponse {
+    override suspend fun sendMessage(message: String): AiCliResponse {
         logger.info("Sending message to {}... [PERSISTENT]", displayName)
         if (!isSessionActive()) startSession()
 

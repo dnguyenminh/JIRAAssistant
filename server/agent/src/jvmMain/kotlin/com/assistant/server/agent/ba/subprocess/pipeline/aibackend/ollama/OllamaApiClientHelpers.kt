@@ -6,6 +6,7 @@ import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
@@ -41,20 +42,20 @@ internal object OllamaApiClientHelpers {
 
     // ── HTTP communication ──────────────────────────────────
 
-    fun sendChatRequest(
+    suspend fun sendChatRequest(
         httpClient: HttpClient,
         json: Json,
         baseUrl: String,
         timeoutSeconds: Long,
         chatRequest: OllamaChatRequest
-    ): String = runBlocking {
+    ): String {
         val requestBody = json.encodeToString(
             OllamaChatRequest.serializer(), chatRequest
         )
         log.debug("Request body length: {} chars", requestBody.length)
         val response = executeChatPost(httpClient, baseUrl, requestBody)
         handleHttpErrors(response, baseUrl)
-        if (chatRequest.stream) {
+        return if (chatRequest.stream) {
             readStreamingResponse(json, response)
         } else {
             response.bodyAsText()
@@ -125,6 +126,10 @@ internal object OllamaApiClientHelpers {
         val body = response.bodyAsText()
 
         for (line in body.lines()) {
+            val job = kotlin.coroutines.coroutineContext[Job]
+            if (job != null && !job.isActive) {
+                throw kotlinx.coroutines.CancellationException("Job cancelled during streaming")
+            }
             if (line.isBlank()) continue
             val chunk = json.decodeFromString<OllamaChatResponse>(line)
             if (chunk.message.content.isNotEmpty()) {

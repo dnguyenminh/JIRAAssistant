@@ -1,9 +1,9 @@
 @ui
-Feature: Integrations — AI Provider & Jira Configuration Management
+Feature: Integrations — AI Provider Configuration Management
 
   As an Administrator
-  I want to manage and test all provider connections including Jira
-  So that the system always has available data sources and AI providers
+  I want to manage and test all AI provider connections
+  So that the system always has available AI providers
 
   # Validates: Requirements 6.1–6.17
 
@@ -15,8 +15,8 @@ Feature: Integrations — AI Provider & Jira Configuration Management
 
   @req-6.1
   Scenario: Provider cards are displayed in a responsive grid
-    Then the page should display 5 provider cards in a grid layout
-    And the cards should be: Jira Cloud Services, Ollama (Local), Google Gemini API, LM Studio, Gemini CLI Interface
+    Then the page should display 7 provider cards in a grid layout
+    And the cards should be: Ollama (Local), Google Gemini API, LM Studio, Gemini CLI Interface, Copilot CLI (GitHub), Kiro CLI (Amazon), Embedding Model
     And the grid should be responsive with minimum 380px per card
 
   @req-6.2
@@ -34,80 +34,6 @@ Feature: Integrations — AI Provider & Jira Configuration Management
     And an Offline provider should show a red status dot
     When the user hovers over a status dot
     Then a tooltip should appear with connection details
-
-  # ── Jira Configuration ─────────────────────────────────────
-
-  @req-6.6
-  Scenario: Jira CONFIGURE button opens dedicated config modal
-    When the user clicks "CONFIGURE" on the Jira Cloud Services card
-    Then a modal should appear with title "Jira Cloud Services"
-    And the modal should contain a "JIRA DOMAIN URL" text input
-    And the modal should contain an "EMAIL / SERVICE ACCOUNT" email input
-    And the modal should contain an "API TOKEN" password input
-    And the modal should contain a "SAVE & TEST" button
-    And the modal should contain a close button
-
-  @req-6.6
-  Scenario: Jira API token field has visibility toggle
-    Given the Jira config modal is open
-    When the user clicks the eye toggle button next to the API TOKEN field
-    Then the API TOKEN field should change from password to text type
-    When the user clicks the eye toggle button again
-    Then the API TOKEN field should change back to password type
-
-  @req-6.6
-  Scenario: Jira SAVE & TEST validates required fields
-    Given the Jira config modal is open
-    And the "JIRA DOMAIN URL" field is empty
-    When the user clicks "SAVE & TEST"
-    Then an error message "All fields are required" should be displayed
-    And no API call should be made
-
-  @req-6.14
-  Scenario: Jira SAVE & TEST with valid credentials succeeds
-    Given the Jira config modal is open
-    And the user enters domain "https://myteam.atlassian.net"
-    And the user enters email "user@example.com"
-    And the user enters API token "valid-token-123"
-    When the user clicks "SAVE & TEST"
-    Then the button text should change to "SAVING..."
-    And a progress bar should animate
-    And the Backend_Server should call "PUT /api/integrations/jira/config"
-    And the Backend_Server should validate credentials against Jira API
-    And the Jira card status dot should change to Active (green)
-    And a success toast "Jira configuration saved successfully" should appear
-    And the modal should close after 1.5 seconds
-
-  @req-6.14
-  Scenario: Jira SAVE & TEST with invalid credentials shows error
-    Given the Jira config modal is open
-    And the user enters domain "https://invalid.atlassian.net"
-    And the user enters email "user@example.com"
-    And the user enters API token "bad-token"
-    When the user clicks "SAVE & TEST"
-    Then the Backend_Server should return status "offline" with an error message
-    And the Jira card status dot should remain Offline (red)
-    And an error message should be displayed in the modal status area
-    And an error toast should appear
-
-  @req-6.17
-  Scenario: Jira credentials persist across page navigation
-    Given Jira is configured with domain "https://myteam.atlassian.net"
-    When the user navigates to Dashboard and back to Integrations
-    Then the Jira card should show status Active
-    And the Jira config modal should pre-fill the domain field
-
-  @req-6.6
-  Scenario: Jira config modal closes on overlay click
-    Given the Jira config modal is open
-    When the user clicks outside the modal content area
-    Then the modal should close
-
-  @req-6.6
-  Scenario: Jira config modal closes on close button click
-    Given the Jira config modal is open
-    When the user clicks the close button
-    Then the modal should close
 
   # ── AI Provider Configuration ──────────────────────────────
 
@@ -184,11 +110,11 @@ Feature: Integrations — AI Provider & Jira Configuration Management
   Scenario: Integrations page shows default providers when API returns 401
     Given the user has no valid JWT token
     When the user navigates to the Integrations page
-    Then the page should display 5 default provider cards
+    Then the page should display 7 default provider cards
     And the cards should show Standby/Offline status
     And the page should not redirect to another route
 
   Scenario: Integrations page shows default providers when backend is unreachable
     Given the backend server is not running
     When the user navigates to the Integrations page
-    Then the page should display 5 default provider cards as fallback
+    Then the page should display 7 default provider cards as fallback

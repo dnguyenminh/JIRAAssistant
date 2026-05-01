@@ -68,7 +68,7 @@ private fun buildChatAgentMap(
             com.assistant.ai.ProviderType.OLLAMA,
             com.assistant.ai.ProviderType.LM_STUDIO ->
                 agents[config.providerId] = com.assistant.ai.OllamaAgent(
-                    http, config.model ?: "llama3", config.endpoint
+                    http, config.model ?: "qwen2.5", config.endpoint
                 )
             com.assistant.ai.ProviderType.GEMINI ->
                 agents[config.providerId] = com.assistant.ai.OllamaAgent(
@@ -90,7 +90,7 @@ private fun buildChatAgentMap(
         }
     }
     if (agents.isEmpty()) {
-        agents["ollama"] = com.assistant.ai.OllamaAgent(http, "llama3", "http://localhost:11434")
+        agents["ollama"] = com.assistant.ai.OllamaAgent(http, "qwen2.5", "http://localhost:11434")
     }
     return agents
 }

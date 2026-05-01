@@ -15,6 +15,29 @@ internal object InlineProgressRenderer {
 
     private const val TIMEOUT_THRESHOLD_SECONDS = 240
 
+    /**
+     * Registers a one-time event delegation listener on the progress area.
+     * This survives innerHTML rebuilds since the listener is on the parent.
+     */
+    fun installCancelDelegate(areaId: String, onCancel: () -> Unit) {
+        val area = document.getElementById(areaId) as? HTMLElement ?: return
+        // Mark to avoid duplicate listeners
+        if (area.getAttribute("data-cancel-bound") == "1") return
+        area.setAttribute("data-cancel-bound", "1")
+        area.addEventListener("click", { evt ->
+            val target = (evt.target as? HTMLElement) ?: return@addEventListener
+            if (target.classList.contains("btn-cancel-job")) {
+                onCancel()
+            }
+        })
+    }
+
+    /** Remove the cancel delegate marker so a new one can be installed. */
+    fun removeCancelDelegate(areaId: String) {
+        val area = document.getElementById(areaId) as? HTMLElement ?: return
+        area.removeAttribute("data-cancel-bound")
+    }
+
     fun renderProgress(areaId: String, job: GenerationJobDto) {
         val area = document.getElementById(areaId) as? HTMLElement ?: return
         area.style.display = "block"

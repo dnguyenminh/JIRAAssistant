@@ -20,4 +20,5 @@ import org.junit.platform.suite.api.Suite
     key = GLUE_PROPERTY_NAME,
     value = "com.assistant.e2e.steps"
 )
+@Feature("User Management")
 class UiUserManagementRunner

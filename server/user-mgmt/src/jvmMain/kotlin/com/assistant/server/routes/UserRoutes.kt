@@ -26,7 +26,9 @@ data class UserDto(
     val email: String,
     val role: String,
     val avatarUrl: String?,
-    val customPermissions: List<String>
+    val customPermissions: List<String>,
+    val status: String = "ACTIVE",
+    val createdAt: String = ""
 )
 
 fun Routing.userRoutes() {
@@ -46,6 +48,16 @@ fun Routing.userRoutes() {
                 val users = userStore.getAll().map { it.toDto() }
                 call.respond(HttpStatusCode.OK, users)
             }
+
+            post { handleCreateUser(userStore, auditLogStore) }
+
+            get("/{userId}") { handleGetUser(userStore) }
+
+            put("/{userId}") { handleUpdateUser(userStore, auditLogStore) }
+
+            put("/{userId}/status") { handleUpdateStatus(userStore, auditLogStore) }
+
+            delete("/{userId}") { handleDeleteUser(userStore, auditLogStore) }
 
             put("/{userId}/role") {
                 val userId = call.parameters["userId"]
@@ -102,11 +114,13 @@ fun Routing.userRoutes() {
     }
 }
 
-private fun User.toDto() = UserDto(
+fun User.toDto() = UserDto(
     id = id,
     name = name,
     email = email,
     role = role.name,
     avatarUrl = avatarUrl,
-    customPermissions = customPermissions.map { it.name }
+    customPermissions = customPermissions.map { it.name },
+    status = status.name,
+    createdAt = createdAt
 )

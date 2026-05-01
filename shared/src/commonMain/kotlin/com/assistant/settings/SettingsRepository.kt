@@ -18,8 +18,6 @@ interface SettingsRepository {
  */
 @Serializable
 data class AppSettings(
-    val jiraHost: String? = null,
-    val aiProviderUrl: String? = null,
     val jwtSecret: String? = null,
     val encryptionKey: String? = null,
     val port: Int? = null
@@ -31,8 +29,6 @@ data class AppSettings(
  */
 @Serializable
 data class AppSettingsResponse(
-    val jiraHost: String? = null,
-    val aiProviderUrl: String? = null,
     val jwtSecret: String? = null,
     val encryptionKey: String? = null,
     val port: Int? = null,
@@ -46,8 +42,6 @@ data class AppSettingsResponse(
          */
         fun fromSettings(settings: AppSettings): AppSettingsResponse =
             AppSettingsResponse(
-                jiraHost = settings.jiraHost,
-                aiProviderUrl = settings.aiProviderUrl,
                 jwtSecret = settings.jwtSecret?.maskToLast4(),
                 encryptionKey = settings.encryptionKey?.maskToLast4(),
                 port = settings.port,

@@ -136,17 +136,16 @@ The Jira Assistant is an AI-driven platform designed to optimize Agile delivery 
 
 | ID | Requirement | Priority |
 |:---|:-----------|:---------|
-| BR-INTEG-01 | Display 5 provider cards: Jira Cloud, Ollama, Gemini API, LM Studio, Gemini CLI | High |
+| BR-INTEG-01 | Display 7 provider cards: Ollama, Gemini API, LM Studio, Gemini CLI, Copilot CLI, Kiro CLI, Embedding | High |
 | BR-INTEG-02 | Each card shows: logo, status dot, config fields, action button | High |
 | BR-INTEG-03 | Status indicators: Active (green), Standby (blue), Offline (red) with tooltips | High |
 | BR-INTEG-04 | "TEST LINK" button with progress bar animation | High |
-| BR-INTEG-05 | Jira card "RE-CONNECT" redirects to Onboarding | High |
-| BR-INTEG-06 | Gemini card has model tier dropdown (1.5 Pro, 1.0 Ultra, 1.5 Flash) | High |
-| BR-INTEG-07 | Only Administrator can modify provider configurations | High |
+| BR-INTEG-05 | Gemini card has model tier dropdown (1.5 Pro, 1.0 Ultra, 1.5 Flash) | High |
+| BR-INTEG-06 | Only Administrator can modify provider configurations | High |
 
 **User Flow (Administrator):**
 1. Navigate to Integrations via sidebar
-2. Review 5 provider cards and their connection status
+2. Review 7 provider cards and their connection status
 3. Click "TEST LINK" on Ollama → Watch progress → Confirm active
 4. Configure Gemini API Key + select model → Click "RE-AUTHENTICATE"
 5. Note: LM Studio shows Offline — troubleshoot or skip
@@ -212,7 +211,7 @@ Onboarding (MH1)
 
 1. **Onboarding (MH1):** Enter Jira Domain + API Token → Watch 3-stage connection → Select project "JRA"
 2. **Dashboard (MH2):** Verify 3 metrics load correctly, Neural Console shows activity
-3. **Integrations (MH6):** Test Ollama connection → Configure Gemini API Key → Verify status dots
+3. **Integrations (MH6):** Test Ollama connection → Configure Gemini API Key → Verify provider status dots
 4. **User Management (MH7):** Review 3 users → Assign roles → Toggle permissions → Check Audit Log
 5. **Result:** System fully configured and ready for team use
 

@@ -1,6 +1,9 @@
 package com.assistant.server.auth
 
 import com.assistant.auth.*
+import com.assistant.jira.JiraCredentialsService
+import com.assistant.rbac.User
+import com.assistant.rbac.UserStore
 import com.assistant.server.config.ServerConfig
 import com.auth0.jwt.JWT
 import com.auth0.jwt.exceptions.JWTVerificationException
@@ -10,7 +13,9 @@ import java.util.concurrent.ConcurrentHashMap
 
 class AuthServiceImpl(
     private val config: ServerConfig,
-    private val httpClient: HttpClient
+    private val httpClient: HttpClient,
+    private val jiraCredentialsService: JiraCredentialsService,
+    private val userStore: UserStore
 ) : AuthService {
 
     private val invalidatedSessions = ConcurrentHashMap.newKeySet<String>()
@@ -39,8 +44,11 @@ class AuthServiceImpl(
             email = creds.email,
             role = creds.role,
             projectKey = "",
-            jiraDomain = config.jiraHost
+            jiraDomain = jiraCredentialsService.getJiraCredentials()?.domain ?: ""
         )
+
+        // Register authenticated user into the RBAC store (idempotent — overwrites existing)
+        userStore.addUser(User(id = username, name = username, email = creds.email, role = creds.role))
 
         val jwt = generateJwt(user)
         return AuthResult.Success(user = user, jwt = jwt, projects = emptyList())

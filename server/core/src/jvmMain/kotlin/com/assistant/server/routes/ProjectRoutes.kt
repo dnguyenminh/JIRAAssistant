@@ -16,8 +16,20 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.Serializable
 import org.koin.ktor.ext.inject
 import java.util.Base64
+
+/**
+ * Wrapper response for GET /api/projects that includes credential state metadata.
+ * Allows the frontend to distinguish between "not configured", "credentials invalid",
+ * and "OK" states instead of receiving an ambiguous empty list.
+ */
+@Serializable
+data class ProjectsResponse(
+    val projects: List<JiraProject>,
+    val jiraStatus: String
+)
 
 /**
  * Project routes — authenticated access.
@@ -34,15 +46,35 @@ fun Routing.projectRoutes() {
     authenticate("auth-jwt") {
         route("/api/projects") {
             get {
-                val jiraClient = createJiraClientFromDb(credentialsService, httpClient)
-                if (jiraClient is NoOpJiraClient) {
-                    application.log.info("[ProjectRoutes] Jira not configured — returning empty project list")
+                val credentialState = credentialsService.getCredentialState()
+
+                when (credentialState) {
+                    JiraCredentialState.NOT_CONFIGURED -> {
+                        application.log.info("[ProjectRoutes] Jira not configured — returning empty project list")
+                        call.respond(HttpStatusCode.OK, ProjectsResponse(
+                            projects = emptyList(),
+                            jiraStatus = JiraCredentialState.NOT_CONFIGURED.name
+                        ))
+                    }
+                    JiraCredentialState.CREDENTIALS_INVALID -> {
+                        application.log.warn("[ProjectRoutes] Jira credentials invalid (decrypt failure) — returning CREDENTIALS_INVALID status")
+                        call.respond(HttpStatusCode.OK, ProjectsResponse(
+                            projects = emptyList(),
+                            jiraStatus = JiraCredentialState.CREDENTIALS_INVALID.name
+                        ))
+                    }
+                    JiraCredentialState.OK -> {
+                        val jiraClient = createJiraClientFromDb(credentialsService, httpClient)
+                        val projects = jiraClient.getProjects()
+                        if (projects.isEmpty()) {
+                            application.log.info("[ProjectRoutes] getProjects returned empty list")
+                        }
+                        call.respond(HttpStatusCode.OK, ProjectsResponse(
+                            projects = projects,
+                            jiraStatus = JiraCredentialState.OK.name
+                        ))
+                    }
                 }
-                val projects = jiraClient.getProjects()
-                if (projects.isEmpty()) {
-                    application.log.info("[ProjectRoutes] getProjects returned empty list")
-                }
-                call.respond(HttpStatusCode.OK, projects)
             }
 
             get("/{key}/issues") {

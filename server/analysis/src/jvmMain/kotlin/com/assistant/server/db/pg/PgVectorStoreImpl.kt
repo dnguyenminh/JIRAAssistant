@@ -46,13 +46,20 @@ class PgVectorStoreImpl(
         queryEmbedding: FloatArray,
         topK: Int,
         chunkType: String?
-    ): List<AttachmentChunk> = try {
+    ): List<AttachmentChunk> =
+        searchWithScores(queryEmbedding, topK, chunkType).map { it.first }
+
+    override suspend fun searchWithScores(
+        queryEmbedding: FloatArray,
+        topK: Int,
+        chunkType: String?
+    ): List<Pair<AttachmentChunk, Float>> = try {
         dataSource.connection.use { conn ->
             setEfSearch(conn)
-            executeSearch(conn, queryEmbedding, topK, chunkType)
+            executeSearchWithScores(conn, queryEmbedding, topK, chunkType)
         }
     } catch (e: Exception) {
-        println("[PgVectorStore] search failed: ${e.message}")
+        println("[PgVectorStore] searchWithScores failed: ${e.message}")
         emptyList()
     }
 
@@ -113,38 +120,41 @@ class PgVectorStoreImpl(
         queryEmbedding: FloatArray,
         topK: Int,
         chunkType: String?
-    ): List<AttachmentChunk> {
+    ): List<AttachmentChunk> =
+        executeSearchWithScores(conn, queryEmbedding, topK, chunkType).map { it.first }
+
+    private fun executeSearchWithScores(
+        conn: Connection,
+        queryEmbedding: FloatArray,
+        topK: Int,
+        chunkType: String?
+    ): List<Pair<AttachmentChunk, Float>> {
         val vectorStr = toVectorString(queryEmbedding)
         return if (chunkType != null) {
-            searchByType(conn, vectorStr, topK, chunkType)
+            searchByTypeWithScores(conn, vectorStr, topK, chunkType)
         } else {
-            searchAll(conn, vectorStr, topK)
+            searchAllWithScores(conn, vectorStr, topK)
         }
     }
 
-    private fun searchAll(
-        conn: Connection,
-        vectorStr: String,
-        topK: Int
-    ): List<AttachmentChunk> {
-        return conn.prepareStatement(PgVectorStoreSql.SEARCH_ALL_SQL).use { ps ->
+    private fun searchAllWithScores(
+        conn: Connection, vectorStr: String, topK: Int
+    ): List<Pair<AttachmentChunk, Float>> {
+        return conn.prepareStatement(PgVectorStoreSql.SEARCH_ALL_WITH_SCORE_SQL).use { ps ->
             ps.setString(1, vectorStr)
             ps.setInt(2, topK)
-            ps.executeQuery().use { rs -> collectChunks(rs) }
+            ps.executeQuery().use { rs -> collectChunksWithScores(rs) }
         }
     }
 
-    private fun searchByType(
-        conn: Connection,
-        vectorStr: String,
-        topK: Int,
-        chunkType: String
-    ): List<AttachmentChunk> {
-        return conn.prepareStatement(PgVectorStoreSql.SEARCH_BY_TYPE_SQL).use { ps ->
+    private fun searchByTypeWithScores(
+        conn: Connection, vectorStr: String, topK: Int, chunkType: String
+    ): List<Pair<AttachmentChunk, Float>> {
+        return conn.prepareStatement(PgVectorStoreSql.SEARCH_BY_TYPE_WITH_SCORE_SQL).use { ps ->
             ps.setString(1, chunkType)
             ps.setString(2, vectorStr)
             ps.setInt(3, topK)
-            ps.executeQuery().use { rs -> collectChunks(rs) }
+            ps.executeQuery().use { rs -> collectChunksWithScores(rs) }
         }
     }
 
@@ -163,6 +173,17 @@ class PgVectorStoreImpl(
         val chunks = mutableListOf<AttachmentChunk>()
         while (rs.next()) { chunks.add(mapRow(rs)) }
         return chunks
+    }
+
+    private fun collectChunksWithScores(rs: ResultSet): List<Pair<AttachmentChunk, Float>> {
+        val results = mutableListOf<Pair<AttachmentChunk, Float>>()
+        while (rs.next()) {
+            val chunk = mapRow(rs)
+            val distance = try { rs.getFloat("distance") } catch (_: Exception) { 0f }
+            val score = 1f - distance // cosine distance to similarity
+            results.add(chunk to score)
+        }
+        return results
     }
 
     private fun mapRow(rs: ResultSet): AttachmentChunk {

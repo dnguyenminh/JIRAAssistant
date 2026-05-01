@@ -11,8 +11,14 @@ class InMemoryUserStore : UserStore {
     private val users = mutableMapOf<String, User>()
     private val mutex = Mutex()
 
-    suspend fun addUser(user: User) {
-        mutex.withLock { users[user.id] = user }
+    override suspend fun addUser(user: User) {
+        mutex.withLock {
+            val existing = users.values.firstOrNull { it.email == user.email }
+            if (existing != null && existing.id != user.id) {
+                throw IllegalArgumentException("Email already exists: ${user.email}")
+            }
+            users[user.id] = user
+        }
     }
 
     override suspend fun getAll(): List<User> {
@@ -37,5 +43,29 @@ class InMemoryUserStore : UserStore {
             users[userId] = user.copy(customPermissions = permissions)
             return true
         }
+    }
+
+    override suspend fun updateUser(userId: String, name: String, email: String): Boolean {
+        mutex.withLock {
+            val user = users[userId] ?: return false
+            users[userId] = user.copy(name = name, email = email)
+            return true
+        }
+    }
+
+    override suspend fun deleteUser(userId: String): Boolean {
+        mutex.withLock { return users.remove(userId) != null }
+    }
+
+    override suspend fun updateStatus(userId: String, status: UserStatus): Boolean {
+        mutex.withLock {
+            val user = users[userId] ?: return false
+            users[userId] = user.copy(status = status)
+            return true
+        }
+    }
+
+    override suspend fun findByEmail(email: String): User? {
+        mutex.withLock { return users.values.firstOrNull { it.email == email } }
     }
 }
